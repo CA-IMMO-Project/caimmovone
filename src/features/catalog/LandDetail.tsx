@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import MapVisual from '../../shared/MapVisual';
 import LandCard from './LandCard';
-import { ChoiceCards, EmptyState, ErrorBanner, Eyebrow, FormField, Input, Modal, ProgressSteps, Select, Textarea } from '../../shared/ui';
+import { ChoiceCards, EmptyState, ErrorBanner, Eyebrow, FormField, Input, Modal, ProgressSteps, Select, Textarea, useBodyScrollLock } from '../../shared/ui';
 import { AuthModal } from '../auth/AuthModule';
 import InterestForm from './components/InterestForm';
 import VisitForm from './components/VisitForm';
@@ -49,6 +49,7 @@ export default function LandDetail() {
   const { isFavorite, toggleFavorite, enabled } = useFavorites();
 
   const [lightbox, setLightbox] = useState<number | null>(null);
+  useBodyScrollLock(lightbox !== null); // page figée derrière la visionneuse
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
   const [interest, setInterest] = useState(false);

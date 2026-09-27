@@ -98,6 +98,27 @@ export function ErrorBanner({ children, className = '' }: { children: ReactNode;
 }
 
 /** Piège de focus + restitution du focus — à attacher au panneau d'une modale/d'un drawer. */
+/** Verrouille le défilement de la page tant qu'un overlay (modale, visionneuse)
+    est ouvert — seule la modale reste accessible au scroll.
+    - compense la disparition de la barre de défilement (aucun saut de mise en page)
+    - les empilements de modales (ex. formulaire + connexion) sont gérés en LIFO :
+      le scroll n'est rendu qu'à la fermeture de la dernière. */
+export function useBodyScrollLock(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+    const { body } = document;
+    const previousOverflow = body.style.overflow;
+    const previousPaddingRight = body.style.paddingRight;
+    const scrollbar = window.innerWidth - document.documentElement.clientWidth;
+    body.style.overflow = 'hidden';
+    if (scrollbar > 0) body.style.paddingRight = `${scrollbar}px`;
+    return () => {
+      body.style.overflow = previousOverflow;
+      body.style.paddingRight = previousPaddingRight;
+    };
+  }, [active]);
+}
+
 export function useDialogFocus(open: boolean, onClose: () => void) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -161,6 +182,7 @@ export function Modal({
 }) {
   const titleId = useId();
   const panelRef = useDialogFocus(open, onClose);
+  useBodyScrollLock(open); // la page derrière est figée : seule la modale défile
   const widths = { sm: 'max-w-md', md: 'max-w-xl', lg: 'max-w-3xl' };
 
   return (
@@ -183,7 +205,7 @@ export function Modal({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.98 }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            className={`w-full ${widths[size]} max-h-[92vh] overflow-y-auto rounded-t-[2rem] bg-white shadow-2xl outline-none sm:rounded-[2rem]`}
+            className={`w-full ${widths[size]} max-h-[92vh] overflow-y-auto overscroll-contain rounded-t-[2rem] bg-white shadow-2xl outline-none sm:rounded-[2rem]`}
             onMouseDown={(e) => e.stopPropagation()}
           >
             {(title || subtitle) && (
