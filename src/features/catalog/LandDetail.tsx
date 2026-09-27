@@ -148,7 +148,7 @@ export default function LandDetail() {
   ];
 
   return (
-        <div className="font-display overflow-hidden bg-mist">
+        <div className="font-display overflow-hidden bg-mist pb-24 lg:pb-0">
       {/* — Barre supérieure — */}
       <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -355,7 +355,7 @@ export default function LandDetail() {
 
           {/* — Colonne latérale — */}
           <aside className="mt-14 lg:mt-0">
-            <div className="lg:sticky lg:top-28">
+            <div>
               <div className="card-soft p-8">
                 <span className="text-xs font-semibold uppercase tracking-[0.22em] text-navy-900/70">Prix du terrain</span>
                 <strong className="mt-2 block font-serif text-3xl font-bold text-navy-900">
@@ -378,23 +378,25 @@ export default function LandDetail() {
                   ))}
                 </ul>
 
-                <button
-                  onClick={() => setInterest(true)}
-                  disabled={land.status === 'vendu'}
-                  className="btn-gold mt-8 w-full disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  Je suis intéressé <ArrowRight className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setVisit(true)}
-                  disabled={land.status === 'vendu'}
-                  className="btn-outline mt-3 w-full disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <CalendarDays className="h-4 w-4" /> Demander une visite
-                </button>
-                <p className="mt-4 text-center text-xs font-normal text-navy-900/70">
-                  Réponse d’un conseiller sous 24 h ouvrées.
-                </p>
+                <div className="hidden lg:block">
+                  <button
+                    onClick={() => setInterest(true)}
+                    disabled={land.status === 'vendu'}
+                    className="btn-gold mt-8 w-full disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Je suis intéressé <ArrowRight className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setVisit(true)}
+                    disabled={land.status === 'vendu'}
+                    className="btn-outline mt-3 w-full disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <CalendarDays className="h-4 w-4" /> Demander une visite
+                  </button>
+                  <p className="mt-4 text-center text-xs font-normal text-navy-900/70">
+                    Réponse d’un conseiller sous 24 h ouvrées.
+                  </p>
+                </div>
               </div>
 
               {/* Conseil sécurité */}
@@ -455,6 +457,26 @@ export default function LandDetail() {
         />
       </Modal>
 
+
+      {/* — Barre d'action mobile : fixe en bas, juste les deux boutons — */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-navy-900/10 bg-white/95 backdrop-blur-md lg:hidden">
+        <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+          <button
+            onClick={() => setInterest(true)}
+            disabled={land.status === 'vendu'}
+            className="btn-gold flex-1 !px-3 !text-xs disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Je suis intéressé <ArrowRight className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setVisit(true)}
+            disabled={land.status === 'vendu'}
+            className="btn-outline flex-1 !px-3 !text-xs disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <CalendarDays className="h-4 w-4" /> Demander une visite
+          </button>
+        </div>
+      </div>
 
       {/* — Connexion demandée depuis « Enregistrer » : le favori est ajouté
           juste après, sans quitter la fiche terrain — */}
