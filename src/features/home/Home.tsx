@@ -1,15 +1,18 @@
 import { motion, useReducedMotion } from 'motion/react';
 import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   ArrowRight, Phone, Award, FileCheck, Home as HomeIcon, Users, ShieldCheck, MapPinned,
-  LandPlot, Search, HandCoins, Repeat, Building2, Wallet, Cpu, View, MonitorPlay,
-  Globe, Eye, Star, HeartHandshake, Tag, Ruler,
+  Search, Repeat, Building2, Wallet, Cpu, View, MonitorPlay, Footprints,
+  Globe, Ruler,
 } from 'lucide-react';
 import { PHONE_1_TEL, WHATSAPP_URL } from '../../lib/contact';
+import LandCard from '../catalog/LandCard';
+import { fetchLands } from '../../lib/api';
+import type { Land } from '../../types';
 
 const IMG_HERO = '/media/terrains/highlands.jpg';
-const IMG_LOTS = '/media/terrains/plaine.jpg';
 const IMG_AERIAL = '/media/terrains/colline.jpg';
 const IMG_SUNSET = '/media/terrains/littoral.jpg';
 
@@ -73,6 +76,18 @@ function GoldButton({ to, children, small = false }: { to: string; children: Rea
 
 export default function Home() {
   const reduce = useReducedMotion();
+  const [featured, setFeatured] = useState<Land[]>([]);
+  useEffect(() => {
+    let alive = true;
+    fetchLands({ availableOnly: true })
+      .then((lands) => {
+        if (alive) setFeatured(lands.slice(0, 3));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
   return (
     <div className="font-display overflow-hidden bg-white">
       {/* ================= HERO ================= */}
@@ -95,8 +110,8 @@ export default function Home() {
             </h1>
             <p className="text-xl md:text-2xl font-semibold mb-6">Votre projet immobilier, notre engagement.</p>
             <p className="text-sm md:text-base text-white/80 leading-relaxed mb-10 max-w-md">
-              Depuis plus de 12 ans, CA Immo vous accompagne dans vos projets immobiliers à Madagascar : achat, vente,
-              recherche de terrain, lotissement et acquisition de maisons clé en main.
+              Achat, vente, recherche sur mesure, lotissement ou maison clé en main : notre équipe vous accompagne
+              de la première idée jusqu’à la signature.
             </p>
             <div className="flex flex-wrap gap-4">
               <GoldButton to="/terrains">Découvrir nos biens</GoldButton>
@@ -137,56 +152,39 @@ export default function Home() {
         </svg>
       </section>
 
-      {/* ================= EN QUELQUES MOTS ================= */}
-      <section className="relative bg-white py-16 md:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid gap-12 lg:grid-cols-12 items-center">
-          <motion.div {...fadeUp} className="lg:col-span-4 relative mx-auto w-full max-w-sm">
-            <div className="absolute -left-4 top-6 bottom-0 right-10 rounded-[2rem] bg-gold-500 -rotate-6" />
-            <img
-              src={IMG_LOTS}
-              alt="Lotissement vu du ciel"
-              className="relative h-72 w-full rounded-[2rem] object-cover shadow-2xl -rotate-3 border-4 border-white"
-              referrerPolicy="no-referrer"
-            />
-          </motion.div>
-
-          <motion.div {...fadeUp} className="lg:col-span-5">
-            <Eyebrow>CA Immo en quelques mots</Eyebrow>
-            <h2 className="text-3xl md:text-4xl font-bold text-navy-900 leading-tight mb-6">
-              Une expertise immobilière au service de vos projets
-            </h2>
-            <p className="text-sm text-slate-600 leading-relaxed mb-4">
-              CA Immo est <strong className="text-navy-900">une entreprise immobilière avec plus de 12 ans d’expérience</strong>,
-              spécialisée dans les projets immobiliers à Madagascar. Nous vous accompagnons dans l’achat et la vente de terrains,
-              le lotissement, la recherche de biens spécifiques et les projets de maisons clé en main.
-            </p>
-            <p className="text-sm text-slate-600 leading-relaxed mb-8">
-              Notre priorité est de vous proposer une solution adaptée à vos besoins, votre budget et vos attentes, tout en
-              garantissant la qualité de nos prestations et votre satisfaction.
-            </p>
-            <GoldButton to="/about" small>Découvrir notre entreprise</GoldButton>
-          </motion.div>
-
-          <motion.div {...fadeUp} className="lg:col-span-3 rounded-3xl bg-mist p-7 shadow-sm">
-            <h3 className="font-bold text-navy-900 mb-5">
-              <span className="text-gold-500">N</span>os solutions
-            </h3>
-            <ul className="space-y-4">
-              {[
-                { icon: FileCheck, label: 'Terrain titré' },
-                { icon: LandPlot, label: 'Lotissement' },
-                { icon: HomeIcon, label: 'Maison clé en main' },
-                { icon: Search, label: 'Recherche personnalisée' },
-                { icon: HandCoins, label: 'Vente de terrain' },
-              ].map(({ icon: Icon, label }) => (
-                <li key={label} className="flex items-center gap-4 text-sm text-navy-900">
-                  <Icon className="w-5 h-5 text-gold-700" /> {label}
-                </li>
+      {/* ================= TERRAINS EN VEDETTE ================= */}
+      {featured.length > 0 && (
+        <section className="relative bg-white py-16 md:py-24">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
+              <div>
+                <Eyebrow>Nos sélections</Eyebrow>
+                <h2 className="text-3xl md:text-4xl font-bold text-navy-900 leading-tight">
+                  Terrains <span className="text-gold-500">en vedette</span>
+                </h2>
+                <p className="mt-3 max-w-xl text-sm text-slate-600 leading-relaxed">
+                  Un aperçu de nos parcelles disponibles actuellement — titrées, contrôlées et prêtes à être visitées.
+                </p>
+              </div>
+              <Link to="/terrains" className="btn-outline !px-6 !py-3 !text-xs !font-semibold">
+                Voir tout le catalogue <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+            <div className="grid gap-7 md:grid-cols-2 lg:grid-cols-3">
+              {featured.map((land, i) => (
+                <motion.div
+                  key={land.id}
+                  {...fadeUp}
+                  transition={{ ...fadeUp.transition, delay: i * 0.08 }}
+                  className="h-full"
+                >
+                  <LandCard land={land} />
+                </motion.div>
               ))}
-            </ul>
-          </motion.div>
-        </div>
-      </section>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ================= OBJECTIF ================= */}
       <section className="relative bg-mist py-16 md:py-24">
@@ -198,26 +196,30 @@ export default function Home() {
               Que vous souhaitiez acheter, vendre ou trouver un terrain sur mesure, nous sommes là pour vous guider et vous
               apporter des solutions adaptées à vos besoins.
             </p>
-            <GoldButton to="/about" small>En savoir plus</GoldButton>
           </motion.div>
 
           <div className="lg:col-span-8 grid gap-5 sm:grid-cols-3">
             {[
-              { icon: HomeIcon, bg: 'bg-navy-900 text-white', title: 'Vous souhaitez acheter ?', text: 'Nous vous aidons à trouver le bien ou le terrain qui correspond à vos besoins et à vos moyens.' },
-              { icon: Repeat, bg: 'bg-gold-500 text-navy-900', title: 'Vous souhaitez vendre ?', text: 'Nous vous accompagnons dans la mise en valeur de votre bien et dans toutes les démarches liées à la vente.' },
-              { icon: Search, bg: 'bg-navy-900 text-white', title: 'Vous recherchez un terrain précis ?', text: 'Donnez-nous vos critères : emplacement, superficie, budget, accessibilité, environnement… Nous recherchons pour vous.' },
-            ].map(({ icon: Icon, bg, title, text }, i) => (
+              { icon: HomeIcon, bg: 'bg-navy-900 text-white', title: 'Vous souhaitez acheter ?', text: 'Nous vous aidons à trouver le bien ou le terrain qui correspond à vos besoins et à vos moyens.', to: '/terrains', cta: 'Parcourir le catalogue' },
+              { icon: Repeat, bg: 'bg-gold-500 text-navy-900', title: 'Vous souhaitez vendre ?', text: 'Nous vous accompagnons dans la mise en valeur de votre bien et dans toutes les démarches liées à la vente.', to: '/vendre', cta: 'Vendre mon terrain' },
+              { icon: Search, bg: 'bg-navy-900 text-white', title: 'Vous recherchez un terrain précis ?', text: 'Donnez-nous vos critères : emplacement, superficie, budget, accessibilité, environnement… Nous recherchons pour vous.', to: '/recherche', cta: 'Confier ma recherche' },
+            ].map(({ icon: Icon, bg, title, text, to, cta }, i) => (
               <motion.div
                 key={title}
                 {...fadeUp}
                 transition={{ ...fadeUp.transition, delay: i * 0.1 }}
-                className="rounded-2xl bg-white p-6 shadow-lg shadow-navy-900/5 transition hover:-translate-y-1 hover:shadow-xl"
+                className="h-full"
               >
-                <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-full ${bg}`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-                <h3 className="font-bold text-navy-900 mb-3 leading-snug">{title}</h3>
-                <p className="text-xs text-slate-500 leading-relaxed">{text}</p>
+                <Link to={to} className="group/card flex h-full flex-col rounded-2xl bg-white p-6 shadow-lg shadow-navy-900/5 transition hover:-translate-y-1 hover:shadow-xl">
+                  <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-full ${bg}`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-bold text-navy-900 mb-3 leading-snug">{title}</h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">{text}</p>
+                  <span className="mt-auto inline-flex items-center gap-1.5 pt-5 text-xs font-bold text-gold-700">
+                    {cta} <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover/card:translate-x-0.5" />
+                  </span>
+                </Link>
               </motion.div>
             ))}
           </div>
@@ -242,7 +244,7 @@ export default function Home() {
           </motion.div>
           <div className="lg:col-span-8 grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { icon: Award, title: '12+ ans d’expérience', text: 'Une expérience solide dans le secteur immobilier.' },
+              { icon: Footprints, title: 'Visites accompagnées', text: 'Découvrez chaque parcelle sur place, guidé par notre équipe locale.' },
               { icon: ShieldCheck, title: 'Sécurité foncière', text: 'Des démarches encadrées et une attention particulière à la sécurisation des biens.' },
               { icon: Building2, title: 'Accompagnement administratif', text: 'Nous vous guidons dans toutes les démarches liées à votre projet.' },
               { icon: Ruler, title: 'Notaire & géomètre', text: 'Des professionnels compétents pour renforcer la sécurité de votre acquisition.' },
@@ -315,41 +317,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= ENGAGEMENTS ================= */}
-      <section className="bg-mist py-16 md:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid gap-10 lg:grid-cols-12 items-center">
-          <motion.div {...fadeUp} className="lg:col-span-3">
-            <Eyebrow>Nos engagements</Eyebrow>
-            <h2 className="text-2xl md:text-3xl font-bold text-navy-900 leading-tight">
-              Nous nous engageons à vous accompagner avec transparence
-            </h2>
-          </motion.div>
-          <div className="lg:col-span-9 grid gap-4 grid-cols-2 md:grid-cols-5">
-            {[
-              { icon: ShieldCheck, title: 'Sécurisation', text: 'Une attention particulière à la situation foncière et administrative.' },
-              { icon: Eye, title: 'Transparence', text: 'Des informations claires sur les biens, les conditions et les engagements.' },
-              { icon: Star, title: 'Qualité', text: 'Des solutions correspondant à vos critères et à vos attentes.' },
-              { icon: HeartHandshake, title: 'Satisfaction', text: 'Un suivi sérieux et le respect des engagements convenus.' },
-              { icon: Tag, title: 'Prix & négociation', text: 'Des offres compétitives et négociables selon les projets.' },
-            ].map(({ icon: Icon, title, text }) => (
-              <motion.div key={title} {...fadeUp} className="rounded-2xl bg-white p-5 shadow-md shadow-navy-900/5 transition hover:-translate-y-1">
-                <span className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-navy-900 text-gold-500">
-                  <Icon className="w-5 h-5" />
-                </span>
-                <h3 className="text-sm font-bold text-navy-900 mb-2">{title}</h3>
-                <p className="text-xs text-slate-500 leading-relaxed">{text}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ================= CTA ================= */}
       <section className="relative text-white">
         <img src={IMG_SUNSET} alt="Paysage de Madagascar" className="absolute inset-0 h-full w-full object-cover" referrerPolicy="no-referrer" />
         <div className="absolute inset-0 bg-gradient-to-r from-navy-950 via-navy-900/85 to-navy-900/30" />
         <svg className="absolute -top-px left-0 block w-full h-10 md:h-16" viewBox="0 0 1440 70" preserveAspectRatio="none" aria-hidden>
-          <path fill="#f3f6fb" d="M0,-2 L1440,-2 L1440,10 C1000,50 500,60 0,40 Z" />
+          <path fill="#ffffff" d="M0,-2 L1440,-2 L1440,10 C1000,50 500,60 0,40 Z" />
           <path className="text-gold-500" fill="currentColor" d="M0,40 C60,42 110,45 150,48 C110,58 50,66 0,70 Z" />
         </svg>
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 md:py-24 flex flex-col lg:flex-row lg:items-center gap-10 justify-between">

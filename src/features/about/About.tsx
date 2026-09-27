@@ -2,8 +2,8 @@ import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import {
-  ArrowRight, ArrowRightCircle, ChevronRight, Trophy, Users, MapPin, ShieldCheck, Quote, Home as HomeIcon,
-  Target, Gem, Handshake, Eye, UserCheck, Lightbulb, Leaf, Plus,
+  ArrowRight, ArrowRightCircle, Trophy, Users, MapPin, ShieldCheck, Quote,
+  Target, Handshake, Eye, UserCheck, Lightbulb, Leaf, Plus,
 } from 'lucide-react';
 import { WHATSAPP_URL } from '../../lib/contact';
 
@@ -192,25 +192,29 @@ export default function About() {
               Une expertise immobilière au service de Madagascar
             </h2>
             <p className="mt-5 text-sm md:text-[15px] text-slate-600 leading-relaxed">
-              CA Immo est une entreprise immobilière spécialisée dans l’achat, la vente de terrains, le lotissement, la recherche
-              de biens spécifiques et les projets de maisons clé en main. Notre mission est de rendre l’immobilier plus simple,
-              plus sûr et plus accessible pour tous.
+              Chez CA Immo, nous partons d’un principe simple : un projet immobilier ne réussit que s’il est sécurisé.
+              Chaque parcelle que nous proposons est vérifiée — situation foncière, limites, accès — avant d’être présentée,
+              et chaque dossier est suivi par un interlocuteur unique qui le connaît de bout en bout.
             </p>
             <p className="mt-3 text-sm md:text-[15px] text-slate-600 leading-relaxed">
-              Nous mettons à votre disposition une équipe passionnée, des outils modernes et un réseau de professionnels de
-              confiance (notaires, géomètres, spécialistes fonciers) pour vous garantir un accompagnement complet et sécurisé.
+              Derrière chaque projet, il y a une équipe locale passionnée, des outils modernes et un réseau de professionnels
+              de confiance : notaires, géomètres, spécialistes fonciers. De la première visite à la signature, vous savez
+              toujours où en est votre dossier.
             </p>
-            <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-5 border-t border-navy-900/10 pt-6">
+            <div className="mt-8 space-y-5 border-t border-navy-900/10 pt-7">
               {[
-                { icon: HomeIcon, t: 'Proximité', d: 'Toujours à votre écoute' },
-                { icon: Target, t: 'Engagement', d: 'Des solutions sur mesure' },
-                { icon: Gem, t: 'Qualité', d: 'Des biens sélectionnés' },
-                { icon: Handshake, t: 'Confiance', d: 'Une relation durable' },
-              ].map(({ icon: Icon, t, d }) => (
-                <div key={t}>
-                  <Icon className="w-8 h-8 text-navy-900 mb-2" strokeWidth={2} />
-                  <p className="text-xs font-bold text-navy-900">{t}</p>
-                  <p className="text-xs text-slate-500">{d}</p>
+                { n: '01', t: 'Nous écoutons', d: 'Votre projet, votre budget, vos contraintes.' },
+                { n: '02', t: 'Nous proposons', d: 'Une sélection de parcelles qui correspondent vraiment.' },
+                { n: '03', t: 'Nous sécurisons', d: 'Vérifications, notaire, géomètre : une acquisition sans souci.' },
+              ].map(({ n, t, d }) => (
+                <div key={n} className="flex gap-5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gold-500/20 text-sm font-extrabold text-navy-900">
+                    {n}
+                  </span>
+                  <div>
+                    <p className="text-sm font-bold text-navy-900">{t}</p>
+                    <p className="text-xs text-slate-500">{d}</p>
+                  </div>
                 </div>
               ))}
             </div>
