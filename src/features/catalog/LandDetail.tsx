@@ -355,7 +355,10 @@ export default function LandDetail() {
 
           {/* — Colonne latérale — */}
           <aside className="mt-14 lg:mt-0">
-            <div>
+            {/* Carte figée pendant le défilement (desktop) — même comportement
+                que la page Vendre et le site de référence. Sur mobile, les deux
+                boutons vivent dans la barre fixe en bas d'écran. */}
+            <div className="lg:sticky lg:top-28">
               <div className="card-soft p-8">
                 <span className="text-xs font-semibold uppercase tracking-[0.22em] text-navy-900/70">Prix du terrain</span>
                 <strong className="mt-2 block font-serif text-3xl font-bold text-navy-900">
