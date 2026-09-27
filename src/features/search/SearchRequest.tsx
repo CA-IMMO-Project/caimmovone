@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   ArrowRight,
@@ -15,17 +15,16 @@ import {
   Phone,
   SearchCheck,
   ShieldCheck,
-  Sparkles,
   Sprout,
   Store,
   Umbrella,
   WalletCards,
 } from 'lucide-react';
-import { ChoiceCards, ErrorBanner, Eyebrow, FormField, Input, PageHero, ProgressSteps, Select, Textarea } from '../../shared/ui';
+import { ChoiceCards, ErrorBanner, FormField, Input, PageHero, ProgressSteps, Select, Textarea } from '../../shared/ui';
 import { AccountNote, AuthModal } from '../auth/AuthModule';
 import { usePendingAuth } from '../auth/usePendingAuth';
 import type { AuthUser } from '../../lib/auth';
-import { fetchLands, fetchZones } from '../../lib/api';
+import { fetchZones } from '../../lib/api';
 import { createReservation } from '../../lib/dossiers';
 import type { ReservationPayload } from '../../types';
 import { PHONE_1, PHONE_1_TEL } from '../../lib/contact';
@@ -68,10 +67,10 @@ function requestRef(): string {
 
 export default function SearchRequest() {
   const { user, guard, authModalProps } = usePendingAuth<ReservationPayload>();
+  const navigate = useNavigate();
 
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ ref: string; matches: number } | null>(null);
   const [zones, setZones] = useState<string[]>([]);
 
   const [form, setForm] = useState({
@@ -158,20 +157,6 @@ export default function SearchRequest() {
     return lines.join('\n');
   };
 
-  const countMatches = async () => {
-    const budget = BUDGET_RANGES.find((b) => b.label === form.budget);
-    const area = AREA_RANGES.find((a) => a.label === form.area);
-    const results = await fetchLands({
-      availableOnly: true,
-      minPrice: budget?.min,
-      maxPrice: form.budget === BUDGET_CUSTOM ? (form.customBudget ? Number(form.customBudget) : undefined) : budget?.max,
-      minArea: area?.min,
-      maxArea: form.area === AREA_CUSTOM ? (form.customArea ? Number(form.customArea) : undefined) : area?.max,
-      relief: form.relief === 'Sans préférence' ? undefined : form.relief,
-    });
-    return results.length;
-  };
-
   const finalize = async (payload: ReservationPayload, asUser: AuthUser) => {
     const ref = requestRef();
     await createReservation({
@@ -182,8 +167,8 @@ export default function SearchRequest() {
       phone: payload.phone || asUser.phone,
       email: payload.email || asUser.email,
     });
-    const matches = await countMatches();
-    setDone({ ref, matches });
+    // La demande est enregistrée : direction son suivi dans l'espace client.
+    navigate(`/compte?tab=searches&new=${ref}`, { replace: true });
   };
 
   const submit = () => {
@@ -204,100 +189,6 @@ export default function SearchRequest() {
     guard(payload, finalize);
   };
 
-  /* --- Confirmation --- */
-
-  if (done) {
-    return (
-      <div className="font-display overflow-hidden bg-mist">
-        <section className="mx-auto max-w-3xl px-4 py-20 sm:px-6 lg:py-28">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="card-soft p-10 sm:p-14">
-            <div className="flex flex-col items-center text-center">
-              <span className="grid h-16 w-16 place-items-center rounded-full bg-brand-accent/10">
-                <CheckCircle2 className="h-8 w-8 text-green-700" strokeWidth={2} />
-              </span>
-              <Eyebrow className="mt-6">Demande transmise</Eyebrow>
-              <h1 className="mt-4 text-3xl font-bold leading-tight tracking-tight text-navy-900 md:text-4xl">
-                Votre recherche est entre de bonnes mains
-              </h1>
-              <p className="mx-auto mt-4 max-w-md text-sm font-normal leading-relaxed text-navy-900/85">
-                Notre équipe étudie vos critères et vérifie les terrains disponibles. Vous serez informé dès qu’une
-                correspondance pertinente sera prête.
-              </p>
-            </div>
-
-            {/* Correspondances réelles */}
-            <div className="mt-9 flex items-center gap-4 rounded-2xl bg-gold-500/8 px-6 py-5">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gold-500 text-navy-900">
-                <Sparkles className="h-5 w-5" />
-              </span>
-              <div>
-                {done.matches > 0 ? (
-                  <>
-                    <strong className="block text-sm font-medium text-navy-900">
-                      {done.matches} terrain{done.matches > 1 ? 's' : ''} de notre catalogue {done.matches > 1 ? 'correspondent' : 'correspond'} déjà à vos critères
-                    </strong>
-                    <p className="mt-0.5 text-xs font-normal text-navy-900/85">Et nous continuons à chercher au-delà du catalogue.</p>
-                  </>
-                ) : (
-                  <>
-                    <strong className="block text-sm font-medium text-navy-900">Aucun terrain en vente ne correspond exactement</strong>
-                    <p className="mt-0.5 text-xs font-normal text-navy-900/85">C’est justement le rôle de notre recherche sur mesure : nous le trouverons.</p>
-                  </>
-                )}
-              </div>
-              <Link to="/terrains" className="text-link ml-auto !text-xs">
-                Voir le catalogue
-              </Link>
-            </div>
-
-            {/* Récapitulatif de la demande */}
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-navy-900/8 bg-white px-6 py-5">
-                <small className="block text-xs font-semibold uppercase tracking-[0.2em] text-navy-900/65">Numéro de demande</small>
-                <strong className="mt-1.5 block tracking-[0.12em] text-navy-900">{done.ref}</strong>
-              </div>
-              <div className="rounded-2xl border border-navy-900/8 bg-white px-6 py-5">
-                <small className="block text-xs font-semibold uppercase tracking-[0.2em] text-navy-900/65">Statut</small>
-                <span className="mt-1.5 flex items-center gap-2 text-sm font-medium text-navy-900">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold-500" /> En attente de traitement
-                </span>
-              </div>
-              <div className="rounded-2xl border border-navy-900/8 bg-white px-6 py-5">
-                <small className="block text-xs font-semibold uppercase tracking-[0.2em] text-navy-900/65">Réponse estimée</small>
-                <strong className="mt-1.5 block text-sm font-medium text-navy-900">24 – 48 h ouvrées</strong>
-              </div>
-            </div>
-
-            {/* Et maintenant ? */}
-            <h3 className="mt-12 text-lg font-bold text-navy-900">Et maintenant ?</h3>
-            <div className="mt-5 space-y-5">
-              {[
-                { title: 'Analyse de votre demande', text: 'Un membre de l’équipe compare vos critères aux terrains vérifiés.' },
-                { title: 'Sélection personnalisée', text: 'Vous recevez les meilleures correspondances, photos et documents à l’appui.' },
-                { title: 'Visite accompagnée', text: 'Nous organisons vos visites selon vos disponibilités.' },
-              ].map((s, i) => (
-                <div key={s.title} className="flex gap-4">
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-navy-900/5 text-xs font-semibold text-navy-900">{i + 1}</span>
-                  <p className="text-sm font-normal leading-relaxed text-navy-900/85">
-                    <strong className="font-medium text-navy-900">{s.title}</strong> — {s.text}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-10 flex flex-wrap justify-center gap-3">
-              <Link to="/connexion" className="btn-gold">
-                Suivre ma demande <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link to="/terrains" className="btn-outline">
-                Explorer les terrains
-              </Link>
-            </div>
-          </motion.div>
-        </section>
-      </div>
-    );
-  }
 
   /* --- Formulaire en 4 étapes --- */
 

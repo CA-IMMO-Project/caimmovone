@@ -100,6 +100,19 @@ export default function Account() {
     return () => window.clearTimeout(t);
   }, [toast]);
 
+  // Arrivée depuis un formulaire : la demande vient d'être enregistrée,
+  // on la confirme et on nettoie le paramètre (pas de réaffichage au refresh).
+  const newRef = params.get('new');
+  useEffect(() => {
+    if (!newRef) return;
+    setToast(`Votre demande ${newRef} a bien été enregistrée — elle apparaît en tête de liste.`);
+    const next = new URLSearchParams(params);
+    next.delete('new');
+    setParams(next, { replace: true });
+    // exécuté une seule fois à l'arrivée sur la page
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const cancelVisit = (r: Reservation) => {
     cancelVisitRequest(r);
     setToast('Demande de visite annulée');

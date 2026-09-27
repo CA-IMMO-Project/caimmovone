@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Outlet, Navigate, useLocation } from 'react-router-dom';
 import Navbar from '../layout/Navbar';
 import Footer from '../layout/Footer';
 import Home from '../features/home/Home';
@@ -27,6 +28,15 @@ import { SearchDetail, SearchList } from '../admin/Searches';
 import AdminRealisations from '../admin/Realisations';
 import Agenda from '../admin/Agenda';
 
+/** Remonte en haut de page à chaque changement de route (comportement attendu d'un site). */
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
 function PublicLayout() {
   return (
     <div className="min-h-screen flex flex-col bg-brand-50 text-brand-900 font-sans">
@@ -42,6 +52,7 @@ function PublicLayout() {
 export default function App() {
   return (
     <Router>
+      <ScrollToTop />
       <Routes>
         <Route element={<PublicLayout />}>
           <Route path="/" element={<Home />} />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   ArrowRight,
@@ -42,9 +42,9 @@ function requestRef(): string {
 
 export default function Sell() {
   const { user, guard, authModalProps } = usePendingAuth<ReservationPayload>();
+  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     firstName: '',
@@ -165,8 +165,8 @@ export default function Sell() {
       phone: payload.phone || asUser.phone,
       email: payload.email || asUser.email,
     });
-    setDone(ref);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Le dossier est déposé : direction son suivi dans l'espace client.
+    navigate(`/compte?tab=lands&new=${ref}`, { replace: true });
   };
 
   const submit = () => {
@@ -188,82 +188,6 @@ export default function Sell() {
     guard(payload, finalize);
   };
 
-  /* ————— Confirmation ————— */
-  if (done) {
-    return (
-      <div className="font-display overflow-hidden bg-mist">
-        <section className="mx-auto max-w-3xl px-4 py-20 sm:px-6 lg:py-28">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="card-soft p-10 sm:p-14">
-            <div className="flex flex-col items-center text-center">
-              <span className="grid h-16 w-16 place-items-center rounded-full bg-brand-accent/10">
-                <CheckCircle2 className="h-8 w-8 text-green-700" strokeWidth={2} />
-              </span>
-              <Eyebrow className="mt-6">Dépôt reçu</Eyebrow>
-              <h1 className="mt-4 text-3xl font-bold leading-tight tracking-tight text-navy-900 md:text-4xl">
-                Votre terrain a bien été proposé
-              </h1>
-              <p className="mx-auto mt-4 max-w-md text-sm font-normal leading-relaxed text-navy-900/85">
-                Merci pour votre confiance. Votre annonce ne sera pas publiée immédiatement : notre équipe doit d’abord
-                contrôler vos informations et vos documents.
-              </p>
-            </div>
-
-            {/* Timeline de statut */}
-            <div className="mt-10 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-              {[
-                { icon: CheckCircle2, title: 'En attente de vérification', sub: 'Aujourd’hui', active: true },
-                { icon: FileText, title: 'Documents contrôlés', sub: 'Prochaine étape', active: false },
-                { icon: ShieldCheck, title: 'Publication après validation', sub: '2 – 5 jours ouvrés', active: false },
-              ].map(({ icon: Icon, title, sub, active }, i) => (
-                <div key={title} className="flex flex-1 items-center gap-3">
-                  <div className={`flex-1 rounded-2xl border px-5 py-4 ${active ? 'border-gold-500/50 bg-gold-500/8' : 'border-navy-900/8 bg-white'}`}>
-                    <Icon className={`h-4.5 w-4.5 ${active ? 'text-gold-700' : 'text-navy-900/60'}`} strokeWidth={2} />
-                    <strong className="mt-2 block text-xs font-medium text-navy-900">{title}</strong>
-                    <small className="mt-0.5 block text-xs font-normal text-navy-900/70">{sub}</small>
-                  </div>
-                  {i < 2 && <div className="hidden h-px w-6 shrink-0 bg-navy-900/15 sm:block" />}
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-navy-900/8 bg-white px-6 py-5">
-                <small className="block text-xs font-semibold uppercase tracking-[0.2em] text-navy-900/65">Référence du dépôt</small>
-                <strong className="mt-1.5 block tracking-[0.12em] text-navy-900">{done}</strong>
-              </div>
-              <div className="rounded-2xl border border-navy-900/8 bg-white px-6 py-5">
-                <small className="block text-xs font-semibold uppercase tracking-[0.2em] text-navy-900/65">Statut actuel</small>
-                <span className="mt-1.5 flex items-center gap-2 text-sm font-medium text-navy-900">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold-500" /> En attente de vérification
-                </span>
-              </div>
-              <div className="rounded-2xl border border-navy-900/8 bg-white px-6 py-5">
-                <small className="block text-xs font-semibold uppercase tracking-[0.2em] text-navy-900/65">Délai moyen</small>
-                <strong className="mt-1.5 block text-sm font-medium text-navy-900">2 – 5 jours ouvrés</strong>
-              </div>
-            </div>
-
-            <div className="mt-6 flex items-start gap-3.5 rounded-2xl bg-brand-accent/5 px-6 py-5">
-              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-green-700" />
-              <p className="text-xs font-normal leading-relaxed text-navy-900/85">
-                <strong className="font-medium text-navy-900">Important —</strong> notre équipe peut vous recontacter si un
-                document est incomplet. Suivez l’avancement depuis votre espace.
-              </p>
-            </div>
-
-            <div className="mt-9 flex flex-wrap justify-center gap-3">
-              <Link to="/connexion" className="btn-gold">
-                Suivre mon terrain <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link to="/" className="btn-outline">
-                Retour à l’accueil
-              </Link>
-            </div>
-          </motion.div>
-        </section>
-      </div>
-    );
-  }
 
   /* ————— Formulaire en 5 étapes ————— */
   return (

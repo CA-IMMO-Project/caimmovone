@@ -53,7 +53,6 @@ export default function LandDetail() {
   const [shared, setShared] = useState(false);
   const [interest, setInterest] = useState(false);
   const [visit, setVisit] = useState(false);
-  const [success, setSuccess] = useState<{ kind: 'interest' | 'visit'; ref: string } | null>(null);
   const [favAuthOpen, setFavAuthOpen] = useState(false); // connexion demandée depuis le bouton « Enregistrer »
 
   useEffect(() => {
@@ -445,45 +444,17 @@ export default function LandDetail() {
       >
         <InterestForm
           land={land}
-          onDone={(reqRef) => {
-            setInterest(false);
-            setSuccess({ kind: 'interest', ref: reqRef });
-          }}
+          onDone={(reqRef) => navigate(`/compte?tab=purchases&new=${reqRef}`)}
         />
       </Modal>
 
       <Modal open={visit} onClose={() => setVisit(false)} title="Planifier une visite" subtitle={`${land.title} • ${land.location}`}>
         <VisitForm
           land={land}
-          onDone={(reqRef) => {
-            setVisit(false);
-            setSuccess({ kind: 'visit', ref: reqRef });
-          }}
+          onDone={(reqRef) => navigate(`/compte?tab=visits&new=${reqRef}`)}
         />
       </Modal>
 
-      <Modal open={!!success} onClose={() => setSuccess(null)} size="sm">
-        <div className="flex flex-col items-center py-4 text-center">
-          <span className="grid h-16 w-16 place-items-center rounded-full bg-brand-accent/10">
-            <CheckCircle2 className="h-8 w-8 text-green-700" strokeWidth={2} />
-          </span>
-          <h2 className="mt-6 text-2xl font-bold text-navy-900">
-            {success?.kind === 'visit' ? 'Demande de visite envoyée !' : 'Votre intérêt est enregistré !'}
-          </h2>
-          <p className="mt-3 max-w-xs text-sm font-normal leading-relaxed text-navy-900/85">
-            {success?.kind === 'visit'
-              ? 'Notre équipe vérifie la disponibilité du conseiller. Vous recevrez une confirmation par téléphone et SMS.'
-              : `Notre équipe CA IMMO vous contactera sous 24 heures ouvrées pour qualifier votre projet.`}
-          </p>
-          <div className="mt-6 w-full rounded-2xl border border-navy-900/8 bg-white px-6 py-4">
-            <small className="block text-xs font-semibold uppercase tracking-[0.2em] text-navy-900/65">Numéro de demande</small>
-            <strong className="mt-1 block tracking-[0.12em] text-navy-900">{success?.ref}</strong>
-          </div>
-          <button onClick={() => setSuccess(null)} className="btn-gold mt-7 w-full">
-            Terminé
-          </button>
-        </div>
-      </Modal>
 
       {/* — Connexion demandée depuis « Enregistrer » : le favori est ajouté
           juste après, sans quitter la fiche terrain — */}
