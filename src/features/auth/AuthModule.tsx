@@ -24,19 +24,22 @@ export function AuthForm({
   onSuccess,
   initialMode = 'register',
   submitLabels,
+  initialValues,
 }: {
   onSuccess: (user: AuthUser) => void;
   initialMode?: 'login' | 'register';
   submitLabels?: { register: string; login: string };
+  /** Coordonnées déjà saisies (formulaire d'origine) : l'inscription est pré-remplie. */
+  initialValues?: { firstName?: string; lastName?: string; phone?: string; email?: string };
 }) {
   const { login, register } = useAuth();
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
-    firstName: '',
-    lastName: '',
-    phone: '',
-    email: '',
+    firstName: initialValues?.firstName ?? '',
+    lastName: initialValues?.lastName ?? '',
+    phone: initialValues?.phone ?? '',
+    email: initialValues?.email ?? '',
     password: '',
   });
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -191,11 +194,14 @@ export function AuthModal({
   onClose,
   onSuccess,
   initialMode = 'register',
+  defaults,
 }: {
   open: boolean;
   onClose: () => void;
   onSuccess: (user: AuthUser) => void;
   initialMode?: 'login' | 'register';
+  /** Coordonnées déjà saisies dans le formulaire d'origine (pré-remplissage). */
+  defaults?: { firstName?: string; lastName?: string; phone?: string; email?: string };
 }) {
   return (
     <Modal open={open} onClose={onClose} size="sm" title="Validez et suivez vos demandes" subtitle="Créez votre compte ou connectez-vous pour finaliser l’envoi.">
@@ -207,7 +213,7 @@ export function AuthModal({
           </p>
         ))}
       </div>
-      <AuthForm onSuccess={onSuccess} initialMode={initialMode} />
+      <AuthForm onSuccess={onSuccess} initialMode={initialMode} initialValues={defaults} />
     </Modal>
   );
 }

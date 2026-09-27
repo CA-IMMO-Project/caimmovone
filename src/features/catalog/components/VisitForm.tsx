@@ -1,6 +1,6 @@
 /* Formulaire de visite — extrait de LandDetail pour lisibilité. */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CalendarDays, Clock3 } from 'lucide-react';
 import { FormField, Input, Select, Textarea } from '../../../shared/ui';
 import { AccountNote, AuthModal } from '../../auth/AuthModule';
@@ -14,6 +14,17 @@ export default function VisitForm({ land, onDone }: { land: Land; onDone: (ref: 
   const [form, setForm] = useState({ date: '', time: '10:00', fullName: '', phone: '', message: '' });
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
   const today = new Date().toISOString().slice(0, 10);
+
+  // Connecté : coordonnées pré-remplies depuis le compte (comme les autres formulaires).
+  useEffect(() => {
+    if (user) {
+      setForm((f) => ({
+        ...f,
+        fullName: f.fullName || user.fullName,
+        phone: f.phone || user.phone,
+      }));
+    }
+  }, [user]);
 
   const finalize = async (payload: ReservationPayload, asUser: AuthUser) => {
     const ref = nextRequestRef('VIS');
