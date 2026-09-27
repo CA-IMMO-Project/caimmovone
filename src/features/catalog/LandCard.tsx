@@ -60,18 +60,18 @@ export default function LandCard({ land, horizontal = false }: LandCardProps) {
       {/* — Contenu — */}
       <div className={`flex flex-1 flex-col p-6 sm:p-7 ${horizontal ? 'justify-center' : ''}`}>
         <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-navy-900/75">
-          <MapPin className="h-3.5 w-3.5 text-gold-700" />
-          {land.location}
+          <MapPin className="h-3.5 w-3.5 shrink-0 text-gold-700" />
+          <span className="truncate">{land.location}</span>
         </div>
 
-        <h3 className="mt-3 text-xl font-bold leading-snug tracking-tight text-navy-900 sm:text-2xl">
+        <h3 className="mt-3 line-clamp-2 min-h-[3.45rem] text-xl font-bold leading-snug tracking-tight text-navy-900 sm:min-h-[4.15rem] sm:text-2xl">
           <Link to={`/terrains/${land.id}`} className="transition-colors hover:text-navy-800">
             {land.title}
             <span className="absolute inset-0 z-0" aria-hidden />
           </Link>
         </h3>
 
-        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-navy-900/85">
+        <div className="mt-4 flex min-h-[1.75rem] flex-wrap items-center gap-x-5 gap-y-2 text-sm text-navy-900/85">
           <span className="inline-flex items-center gap-2">
             <Maximize2 className="h-4 w-4 text-gold-700" />
             <strong className="font-bold text-navy-900">{formatArea(land.area)}</strong>
@@ -84,7 +84,7 @@ export default function LandCard({ land, horizontal = false }: LandCardProps) {
           <span>{full.payment}</span>
         </div>
 
-        <div className="mt-6 flex items-end justify-between gap-4 border-t border-navy-900/10 pt-5">
+        <div className={`${horizontal ? 'mt-6' : 'mt-auto'} flex items-end justify-between gap-4 border-t border-navy-900/10 pt-5`}>
           <div className="relative z-10 text-xs font-semibold text-navy-900/75">
             {land.titleStatus}
             <span className="mx-1.5 text-navy-900/35">·</span>

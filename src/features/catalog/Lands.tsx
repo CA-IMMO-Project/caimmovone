@@ -6,6 +6,8 @@ import {
   Check,
   Grid2X2,
   List,
+  PanelLeftClose,
+  PanelLeftOpen,
   RotateCcw,
   Search,
   SearchCheck,
@@ -91,6 +93,7 @@ export default function Lands() {
   const [sort, setSort] = useState<LandSort>('recent');
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [mobileFilters, setMobileFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(true); // filtres visibles sur desktop
   const [currentPage, setCurrentPage] = useState(1);
 
   const [regions, setRegions] = useState<string[]>([]);
@@ -175,7 +178,9 @@ export default function Lands() {
       className={`${
         mobileFilters
           ? 'fixed inset-y-0 right-0 z-[70] w-[22rem] max-w-[88vw] overflow-y-auto bg-mist p-7 shadow-2xl transition-transform duration-300'
-          : 'hidden lg:block'
+          : showFilters
+            ? 'hidden lg:block lg:sticky lg:top-28 lg:max-h-[calc(100vh-9rem)] lg:self-start lg:overflow-y-auto'
+            : 'hidden'
       }`}
     >
       <div className="card-soft p-7">
@@ -325,7 +330,7 @@ export default function Lands() {
   );
 
   return (
-    <div className="font-display overflow-hidden bg-mist">
+    <div className="font-display overflow-x-clip bg-mist">
       {/* — Hero navy (style Accueil / À propos) — */}
       <PageHero
         crumb="Acheter"
@@ -341,13 +346,22 @@ export default function Lands() {
       {/* — Listing — */}
       <section className="pb-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="gap-10 lg:grid lg:grid-cols-[19.5rem_1fr] xl:gap-14">
+          <div className={showFilters ? "gap-10 lg:grid lg:grid-cols-[19.5rem_1fr] xl:gap-14" : ""}>
             {filterSidebar}
 
             <div>
               {/* Barre outils */}
               <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
                 <div className="flex flex-1 items-center gap-3">
+                  <button
+                    onClick={() => setShowFilters((v) => !v)}
+                    aria-pressed={showFilters}
+                    className="btn-outline hidden !px-4 !py-3 lg:inline-flex"
+                    title={showFilters ? 'Masquer les filtres pour agrandir le catalogue' : 'Afficher les filtres'}
+                  >
+                    {showFilters ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+                    <span className="hidden xl:inline">{showFilters ? 'Masquer les filtres' : 'Filtres'}</span>
+                  </button>
                   <div className="relative max-w-md flex-1">
                     <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-navy-900/60" />
                     <input
