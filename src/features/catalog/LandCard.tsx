@@ -71,7 +71,7 @@ export default function LandCard({ land, horizontal = false }: LandCardProps) {
           </Link>
         </h3>
 
-        <div className="mt-4 flex min-h-[1.75rem] flex-wrap items-center gap-x-5 gap-y-2 text-sm text-navy-900/85">
+        <div className="mt-4 flex min-h-[1.75rem] flex-wrap items-center gap-x-5 gap-y-2 pb-5 text-sm text-navy-900/85">
           <span className="inline-flex items-center gap-2">
             <Maximize2 className="h-4 w-4 text-gold-700" />
             <strong className="font-bold text-navy-900">{formatArea(land.area)}</strong>
@@ -94,7 +94,7 @@ export default function LandCard({ land, horizontal = false }: LandCardProps) {
             to={`/terrains/${land.id}`}
             className="btn-outline relative z-10 !px-5 !py-2.5 !text-xs !font-semibold"
           >
-            Voir le terrain
+            Voir
             <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
           </Link>
         </div>
