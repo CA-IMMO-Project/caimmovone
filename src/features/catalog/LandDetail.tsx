@@ -468,14 +468,14 @@ export default function LandDetail() {
           <button
             onClick={() => setInterest(true)}
             disabled={land.status === 'vendu'}
-            className="btn-gold flex-1 !px-3 !text-xs disabled:cursor-not-allowed disabled:opacity-40"
+            className="btn-gold flex-1 !px-3 !text-sm disabled:cursor-not-allowed disabled:opacity-40"
           >
             Je suis intéressé <ArrowRight className="h-4 w-4" />
           </button>
           <button
             onClick={() => setVisit(true)}
             disabled={land.status === 'vendu'}
-            className="btn-outline flex-1 !px-3 !text-xs disabled:cursor-not-allowed disabled:opacity-40"
+            className="btn-outline flex-1 !px-3 !text-sm disabled:cursor-not-allowed disabled:opacity-40"
           >
             <CalendarDays className="h-4 w-4" /> Demander une visite
           </button>

@@ -52,10 +52,10 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-9 flex items-center justify-between">
           <span className="hidden sm:inline">Chargé d'Affaire Immobilier — Vente de terrains à Madagascar</span>
           <div className="flex items-center gap-4 ml-auto">
-            <a href={PHONE_1_TEL} className="flex items-center hover:text-gold-500 transition-colors">
+            <a href={PHONE_1_TEL} className="flex items-center py-2 hover:text-gold-500 transition-colors">
               <Phone className="w-3.5 h-3.5 mr-1.5" /> {PHONE_1}
             </a>
-            <a href={FB_URL} target="_blank" rel="noopener noreferrer" className="flex items-center hover:text-gold-500 transition-colors">
+            <a href={FB_URL} target="_blank" rel="noopener noreferrer" className="-m-1.5 flex items-center p-2.5 hover:text-gold-500 transition-colors">
               <Facebook className="w-3.5 h-3.5" />
             </a>
           </div>
@@ -185,7 +185,7 @@ export default function Navbar() {
                 <Link
                   to="/compte"
                   aria-label="Mon espace"
-                  className="mr-2 grid h-9 w-9 place-items-center rounded-full bg-gold-500 text-xs font-extrabold text-navy-950"
+                  className="mr-2 grid h-10 w-10 place-items-center rounded-full bg-gold-500 text-xs font-extrabold text-navy-950"
                 >
                   {initials}
                 </Link>
@@ -195,7 +195,7 @@ export default function Navbar() {
                 aria-expanded={isOpen}
                 aria-controls="menu-mobile"
                 aria-label={isOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
-                className="inline-flex items-center justify-center p-2 text-white/80 hover:text-white"
+                className="inline-flex items-center justify-center p-2.5 text-white/80 hover:text-white"
               >
                 {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </button>
@@ -215,22 +215,27 @@ export default function Navbar() {
             >
               <div className="px-4 pt-4 pb-6 space-y-2">
                 {navLinks.map((link) => (
-                  <Link
+                  <NavLink
                     key={link.name}
                     to={link.path}
+                    end
                     onClick={() => setIsOpen(false)}
-                    className="flex items-center px-3 py-3 text-sm font-medium text-white/80 hover:text-gold-500"
+                    className={({ isActive }) =>
+                      `flex items-center px-3 py-3.5 text-sm font-medium transition-colors ${
+                        isActive ? 'text-gold-500' : 'text-white/80 hover:text-gold-500'
+                      }`
+                    }
                   >
                     {link.icon}
                     {link.name}
-                  </Link>
+                  </NavLink>
                 ))}
                 {user ? (
                   <>
                     <Link
                       to="/compte"
                       onClick={() => setIsOpen(false)}
-                      className="flex items-center px-3 py-3 text-sm font-medium text-white/80 hover:text-gold-500"
+                      className="flex items-center px-3 py-3.5 text-sm font-medium text-white/80 hover:text-gold-500"
                     >
                       <UserRound className="w-4 h-4 mr-2" />
                       Mon espace
@@ -238,14 +243,14 @@ export default function Navbar() {
                     <Link
                       to="/compte?tab=favorites"
                       onClick={() => setIsOpen(false)}
-                      className="flex items-center px-3 py-3 text-sm font-medium text-white/80 hover:text-gold-500"
+                      className="flex items-center px-3 py-3.5 text-sm font-medium text-white/80 hover:text-gold-500"
                     >
                       <Heart className="w-4 h-4 mr-2" />
                       Mes favoris
                     </Link>
                     <button
                       onClick={handleLogout}
-                      className="flex w-full items-center px-3 py-3 text-sm font-medium text-white/80 hover:text-red-400"
+                      className="flex w-full items-center px-3 py-3.5 text-sm font-medium text-white/80 hover:text-red-400"
                     >
                       <LogOut className="w-4 h-4 mr-2" />
                       Déconnexion
@@ -255,7 +260,7 @@ export default function Navbar() {
                   <Link
                     to="/connexion?mode=login"
                     onClick={() => setIsOpen(false)}
-                    className="flex items-center px-3 py-3 text-sm font-medium text-white/80 hover:text-gold-500"
+                    className="flex items-center px-3 py-3.5 text-sm font-medium text-white/80 hover:text-gold-500"
                   >
                     <UserRound className="w-4 h-4 mr-2" />
                     Connexion
@@ -267,7 +272,7 @@ export default function Navbar() {
                   rel="noopener noreferrer"
                   onClick={() => setIsOpen(false)}
                   aria-label="Nous contacter sur WhatsApp (nouvel onglet)"
-                  className="flex items-center px-3 py-3 text-sm font-medium text-white/80 hover:text-gold-500"
+                  className="flex items-center px-3 py-3.5 text-sm font-medium text-white/80 hover:text-gold-500"
                 >
                   <Phone className="w-4 h-4 mr-2" />
                   Nous contacter

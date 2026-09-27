@@ -217,13 +217,13 @@ export function Modal({
                 <button
                   onClick={onClose}
                   aria-label="Fermer"
-                  className="rounded-full border border-navy-900/20 p-2.5 text-navy-900/75 transition hover:bg-mist hover:text-navy-900"
+                  className="rounded-full border border-navy-900/20 p-3 text-navy-900/75 transition hover:bg-mist hover:text-navy-900"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
             )}
-            <div className="px-8 py-7">{children}</div>
+            <div className="px-8 pt-7 pb-[calc(1.75rem+env(safe-area-inset-bottom))]">{children}</div>
           </motion.div>
         </motion.div>
       )}

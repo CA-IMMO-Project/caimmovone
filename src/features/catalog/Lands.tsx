@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import LandCard from './LandCard';
 import Pagination from '../../shared/Pagination';
-import { EmptyState, Eyebrow, Input, PageHero, Select } from '../../shared/ui';
+import { EmptyState, Eyebrow, Input, PageHero, Select, useBodyScrollLock } from '../../shared/ui';
 import { Land, Relief } from '../../types';
 import { fetchLands, fetchRegions, fetchZones, LandFilters, LandSort } from '../../lib/api';
 import { formatAriary } from '../../lib/format';
@@ -94,6 +94,7 @@ export default function Lands() {
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [mobileFilters, setMobileFilters] = useState(false);
   const [showFilters, setShowFilters] = useState(true); // filtres visibles sur desktop
+  useBodyScrollLock(mobileFilters); // page figée derrière le tiroir de filtres
   const [currentPage, setCurrentPage] = useState(1);
 
   const [regions, setRegions] = useState<string[]>([]);
@@ -199,7 +200,7 @@ export default function Lands() {
               <RotateCcw className="h-3.5 w-3.5" /> Réinitialiser
             </button>
             {mobileFilters && (
-              <button onClick={() => setMobileFilters(false)} aria-label="Fermer les filtres" className="rounded-full border border-navy-900/10 p-2 lg:hidden">
+              <button onClick={() => setMobileFilters(false)} aria-label="Fermer les filtres" className="rounded-full border border-navy-900/10 p-2.5 lg:hidden">
                 <X className="h-4 w-4" />
               </button>
             )}
@@ -347,6 +348,15 @@ export default function Lands() {
       <section className="pb-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className={showFilters ? "gap-10 lg:grid lg:grid-cols-[19.5rem_1fr] xl:gap-14" : ""}>
+            {mobileFilters && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="fixed inset-0 z-[60] bg-navy-950/50 backdrop-blur-sm lg:hidden"
+                onClick={() => setMobileFilters(false)}
+                aria-hidden
+              />
+            )}
             {filterSidebar}
 
             <div>

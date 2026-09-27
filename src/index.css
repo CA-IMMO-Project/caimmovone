@@ -138,3 +138,44 @@ html {
   transform: none;
   box-shadow: none;
 }
+
+
+/* ==========================================================================
+   Confort tactile (mobile first) — appliqué à tout le site
+   - text-size-adjust : iOS ne gonfle pas les textes en paysage
+   - tap-highlight transparent : plus de flash gris au tap (Android)
+   - touch-action: manipulation : supprime le délai double-tap zoom
+   ========================================================================== */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a, button, [role="button"], input, select, textarea, label, summary {
+  touch-action: manipulation;
+}
+
+/* Sur appareils tactiles uniquement (desktop strictement inchangé) */
+@media (hover: none) and (pointer: coarse) {
+  /* iOS Safari zoome toute la page au focus d'un champ < 16px :
+     on force 16px pour supprimer ce zoom incontrôlé. */
+  .input, .select,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select, textarea {
+    font-size: 1rem;
+  }
+
+  /* Cibles tactiles confortables (≥ 44px) pour les chips de filtrage */
+  .chip, .chip-on, .chip-off {
+    min-height: 2.75rem;
+  }
+
+  /* Retour d'appui : léger effet d'enfoncement au lieu du simple survol */
+  .btn:active, .btn-gold:active, .btn-navy:active, .btn-outline:active, .btn-ghost:active {
+    transform: scale(0.97);
+  }
+}

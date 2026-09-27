@@ -61,13 +61,13 @@ function DroneIcon({ className = '', spin = false }: { className?: string; spin?
   );
 }
 
-function GoldButton({ to, children, small = false }: { to: string; children: ReactNode; small?: boolean }) {
+function GoldButton({ to, children, small = false, className = '' }: { to: string; children: ReactNode; small?: boolean; className?: string }) {
   return (
     <Link
       to={to}
-      className={`inline-flex items-center gap-2 rounded-full bg-gold-500 font-semibold text-navy-900 shadow-lg shadow-gold-500/30 transition hover:bg-gold-400 hover:-translate-y-0.5 ${
+      className={`inline-flex items-center justify-center gap-2 rounded-full bg-gold-500 font-semibold text-navy-900 shadow-lg shadow-gold-500/30 transition hover:bg-gold-400 hover:-translate-y-0.5 ${
         small ? 'px-5 py-2.5 text-xs' : 'px-7 py-3.5 text-sm'
-      }`}
+      } ${className}`}
     >
       {children} <ArrowRight className="w-4 h-4" />
     </Link>
@@ -114,10 +114,10 @@ export default function Home() {
               de la première idée jusqu’à la signature.
             </p>
             <div className="flex flex-wrap gap-4">
-              <GoldButton to="/terrains">Découvrir nos biens</GoldButton>
+              <GoldButton to="/terrains" className="w-full sm:w-auto">Découvrir nos biens</GoldButton>
               <a
                 href={PHONE_1_TEL}
-                className="inline-flex items-center gap-2 rounded-full border border-white/60 px-7 py-3.5 text-sm font-medium transition hover:bg-white hover:text-navy-900"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/60 px-7 py-3.5 text-sm font-medium transition hover:bg-white hover:text-navy-900 w-full sm:w-auto"
               >
                 <Phone className="w-4 h-4" /> Parler à notre équipe
               </a>

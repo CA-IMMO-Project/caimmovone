@@ -57,7 +57,7 @@ export default function Realisations() {
                     key={c || 'all'}
                     onClick={() => setCategory(c)}
                     aria-pressed={category === c}
-                    className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+                    className={`rounded-full px-4 py-2.5 text-xs font-semibold transition ${
                       category === c
                         ? 'bg-navy-900 text-white shadow-lg shadow-navy-900/20'
                         : 'border border-navy-900/12 bg-white text-navy-900/80 hover:text-navy-900'
