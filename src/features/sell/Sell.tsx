@@ -191,7 +191,7 @@ export default function Sell() {
 
   /* ————— Formulaire en 5 étapes ————— */
   return (
-    <div className="font-display overflow-hidden bg-mist">
+    <div className="font-display overflow-x-clip bg-mist">
       {/* — Hero navy (style Accueil / À propos) — */}
       <PageHero
         crumb="Vendre"

@@ -148,7 +148,7 @@ export default function LandDetail() {
   ];
 
   return (
-        <div className="font-display overflow-hidden bg-mist pb-24 lg:pb-0">
+        <div className="font-display overflow-x-clip bg-mist pb-24 lg:pb-0">
       {/* — Barre supérieure — */}
       <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center justify-between gap-4">

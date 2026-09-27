@@ -193,7 +193,7 @@ export default function SearchRequest() {
   /* --- Formulaire en 4 étapes --- */
 
   return (
-    <div className="font-display overflow-hidden bg-mist">
+    <div className="font-display overflow-x-clip bg-mist">
       {/* — Hero navy (style Accueil / À propos) — */}
       <PageHero
         crumb="Recherche"
