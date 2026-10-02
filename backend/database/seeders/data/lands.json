@@ -1,0 +1,494 @@
+[
+ {
+  "id": "1",
+  "title": "Terrain résidentiel à Ambohidratrimo",
+  "description": "Belle parcelle plate idéale pour construction de villa, dans un quartier résidentiel calme en pleine expansion, à 15 minutes d'Antananarivo.",
+  "price": 45000000,
+  "region": "Antananarivo",
+  "location": "Ambohidratrimo, Antananarivo",
+  "coordinates": [
+   -18.8167,
+   47.4333
+  ],
+  "imageUrl": "/media/terrains/highlands.jpg",
+  "gallery": [
+   "/media/terrains/highlands.jpg",
+   "/media/terrains/colline.jpg",
+   "/media/terrains/plaine.jpg"
+  ],
+  "features": [
+   "Terrain plat",
+   "Accès route bitumée",
+   "Eau et électricité à proximité",
+   "Quartier résidentiel"
+  ],
+  "area": 800,
+  "titleStatus": "Titre Foncier",
+  "status": "disponible",
+  "zone": "Ambohidratrimo",
+  "relief": "Plat",
+  "access": "Route bitumée à 200 m",
+  "water": true,
+  "electricity": true,
+  "documents": [
+   "Titre foncier",
+   "Plan topographique",
+   "Certificat de situation juridique"
+  ],
+  "payment": "Comptant ou facilité",
+  "paymentMode": "comptant-ou-facilite",
+  "downPayment": "30 % minimum",
+  "installments": "Jusqu’à 10 mois",
+  "verified": true,
+  "featured": true
+ },
+ {
+  "id": "2",
+  "title": "Grand lot constructible à Ivato",
+  "description": "Vaste terrain proche de l'aéroport international d'Ivato, parfait pour un projet immobilier ou commercial d'envergure.",
+  "price": 120000000,
+  "region": "Antananarivo",
+  "location": "Ivato, Antananarivo",
+  "coordinates": [
+   -18.7969,
+   47.4788
+  ],
+  "imageUrl": "/media/terrains/plaine.jpg",
+  "gallery": [
+   "/media/terrains/plaine.jpg",
+   "/media/terrains/highlands.jpg",
+   "/media/terrains/colline.jpg"
+  ],
+  "features": [
+   "Proche aéroport",
+   "Grande superficie",
+   "Idéal projet commercial",
+   "Bornage effectué"
+  ],
+  "area": 2500,
+  "titleStatus": "Titre Foncier",
+  "status": "disponible",
+  "zone": "Ivato",
+  "relief": "Plat",
+  "access": "Route goudronnée à 80 m",
+  "water": true,
+  "electricity": true,
+  "documents": [
+   "Titre foncier",
+   "Plan topographique",
+   "Certificat de situation juridique"
+  ],
+  "payment": "Comptant ou facilité",
+  "paymentMode": "comptant-ou-facilite",
+  "downPayment": "35 % minimum",
+  "installments": "Jusqu’à 12 mois",
+  "verified": true,
+  "featured": true
+ },
+ {
+  "id": "3",
+  "title": "Parcelle avec vue sur Antananarivo",
+  "description": "Terrain en hauteur offrant une vue panoramique sur la capitale, environnement calme et sécurisé à Itaosy.",
+  "price": 32000000,
+  "region": "Antananarivo",
+  "location": "Itaosy, Antananarivo",
+  "coordinates": [
+   -18.9333,
+   47.4667
+  ],
+  "imageUrl": "/media/terrains/colline.jpg",
+  "gallery": [
+   "/media/terrains/colline.jpg",
+   "/media/terrains/highlands.jpg",
+   "/media/terrains/plaine.jpg"
+  ],
+  "features": [
+   "Vue panoramique",
+   "Terrain en pente douce",
+   "Quartier sécurisé"
+  ],
+  "area": 600,
+  "titleStatus": "Cadastré",
+  "status": "disponible",
+  "zone": "Itaosy",
+  "relief": "Pente douce",
+  "access": "Piste carrossable de 250 m",
+  "water": false,
+  "electricity": true,
+  "documents": [
+   "Certificat cadastral",
+   "Plan topographique"
+  ],
+  "payment": "Facilité jusqu’à 10 mois",
+  "paymentMode": "facilite",
+  "downPayment": "25 % minimum",
+  "installments": "Jusqu’à 10 mois",
+  "verified": true
+ },
+ {
+  "id": "4",
+  "title": "Terrain bord de mer à Toamasina",
+  "description": "Rare opportunité en bord de mer, proche du port de Toamasina. Idéal pour résidence secondaire ou investissement touristique.",
+  "price": 85000000,
+  "region": "Toamasina",
+  "location": "Toamasina I, Atsinanana",
+  "coordinates": [
+   -18.1492,
+   49.4023
+  ],
+  "imageUrl": "/media/terrains/littoral.jpg",
+  "gallery": [
+   "/media/terrains/littoral.jpg",
+   "/media/terrains/plaine.jpg",
+   "/media/terrains/colline.jpg"
+  ],
+  "features": [
+   "Bord de mer",
+   "Proche port",
+   "Potentiel touristique",
+   "Accès direct plage"
+  ],
+  "area": 1500,
+  "titleStatus": "Titre Foncier",
+  "status": "disponible",
+  "zone": "Toamasina I",
+  "relief": "Plat",
+  "access": "Accès direct plage",
+  "water": true,
+  "electricity": true,
+  "documents": [
+   "Titre foncier",
+   "Plan de bornage"
+  ],
+  "payment": "Comptant",
+  "paymentMode": "comptant",
+  "downPayment": "Paiement comptant",
+  "installments": "Non disponible",
+  "verified": true
+ },
+ {
+  "id": "5",
+  "title": "Terrain agricole fertile à Brickaville",
+  "description": "Grande étendue de terre fertile propice à l'agriculture (litchis, girofle, vanille), route praticable toute l'année.",
+  "price": 60000000,
+  "region": "Toamasina",
+  "location": "Brickaville, Atsinanana",
+  "coordinates": [
+   -18.8167,
+   49.0667
+  ],
+  "imageUrl": "/media/terrains/agricole.jpg",
+  "gallery": [
+   "/media/terrains/agricole.jpg",
+   "/media/terrains/ouest.jpg",
+   "/media/terrains/plaine.jpg"
+  ],
+  "features": [
+   "Sol fertile",
+   "Culture de rente",
+   "Point d'eau naturel",
+   "Accès route"
+  ],
+  "area": 30000,
+  "titleStatus": "Titre en cours",
+  "status": "disponible",
+  "zone": "Brickaville",
+  "relief": "Pente douce",
+  "access": "Route praticable toute l’année",
+  "water": true,
+  "electricity": false,
+  "documents": [
+   "Demande de titre en cours",
+   "Plan parcellaire"
+  ],
+  "payment": "Facilité jusqu’à 12 mois",
+  "paymentMode": "facilite",
+  "downPayment": "30 % minimum",
+  "installments": "Jusqu’à 12 mois",
+  "verified": false
+ },
+ {
+  "id": "6",
+  "title": "Terrain constructible à Mahajanga",
+  "description": "Parcelle proche du centre-ville de Mahajanga, quartier dynamique, idéale pour construction ou commerce.",
+  "price": 55000000,
+  "region": "Mahajanga",
+  "location": "Mahajanga Be, Boeny",
+  "coordinates": [
+   -15.7167,
+   46.3167
+  ],
+  "imageUrl": "/media/terrains/ouest.jpg",
+  "gallery": [
+   "/media/terrains/ouest.jpg",
+   "/media/terrains/agricole.jpg",
+   "/media/terrains/plaine.jpg"
+  ],
+  "features": [
+   "Proche centre-ville",
+   "Terrain plat",
+   "Fort potentiel commercial"
+  ],
+  "area": 900,
+  "titleStatus": "Titre Foncier",
+  "status": "réservé",
+  "zone": "Mahajanga Be",
+  "relief": "Plat",
+  "access": "Route bitumée à 50 m",
+  "water": true,
+  "electricity": true,
+  "documents": [
+   "Titre foncier",
+   "Plan topographique"
+  ],
+  "payment": "Comptant ou facilité",
+  "paymentMode": "comptant-ou-facilite",
+  "downPayment": "40 % minimum",
+  "installments": "Jusqu’à 6 mois",
+  "verified": true
+ },
+ {
+  "id": "7",
+  "title": "Terrain vue mer à Nosy Be",
+  "description": "Superbe terrain surplombant l'océan Indien à Nosy Be, emplacement recherché pour projet hôtelier ou villa de luxe.",
+  "price": 180000000,
+  "region": "Nosy Be",
+  "location": "Nosy Be, Diana",
+  "coordinates": [
+   -13.3167,
+   48.2667
+  ],
+  "imageUrl": "/media/terrains/littoral.jpg",
+  "gallery": [
+   "/media/terrains/littoral.jpg",
+   "/media/terrains/colline.jpg",
+   "/media/terrains/plaine.jpg"
+  ],
+  "features": [
+   "Vue mer imprenable",
+   "Zone touristique",
+   "Potentiel hôtelier",
+   "Accès route"
+  ],
+  "area": 3000,
+  "titleStatus": "Titre Foncier",
+  "status": "disponible",
+  "zone": "Nosy Be",
+  "relief": "Pente forte",
+  "access": "Route goudronnée à 300 m",
+  "water": false,
+  "electricity": true,
+  "documents": [
+   "Titre foncier",
+   "Plan topographique",
+   "Étude de sol"
+  ],
+  "payment": "Comptant",
+  "paymentMode": "comptant",
+  "downPayment": "Paiement comptant",
+  "installments": "Non disponible",
+  "verified": true,
+  "featured": true
+ },
+ {
+  "id": "8",
+  "title": "Terrain résidentiel à Fianarantsoa",
+  "description": "Belle parcelle dans les hauts plateaux, climat tempéré, idéale pour construction familiale.",
+  "price": 22000000,
+  "region": "Fianarantsoa",
+  "location": "Fianarantsoa, Haute Matsiatra",
+  "coordinates": [
+   -21.4536,
+   47.0854
+  ],
+  "imageUrl": "/media/terrains/highlands.jpg",
+  "gallery": [
+   "/media/terrains/highlands.jpg",
+   "/media/terrains/colline.jpg",
+   "/media/terrains/agricole.jpg"
+  ],
+  "features": [
+   "Climat tempéré",
+   "Terrain plat",
+   "Quartier calme"
+  ],
+  "area": 700,
+  "titleStatus": "Cadastré",
+  "status": "disponible",
+  "zone": "Fianarantsoa",
+  "relief": "Plat",
+  "access": "Route bitumée à 150 m",
+  "water": true,
+  "electricity": true,
+  "documents": [
+   "Certificat cadastral",
+   "Plan topographique"
+  ],
+  "payment": "Facilité jusqu’à 10 mois",
+  "paymentMode": "facilite",
+  "downPayment": "25 % minimum",
+  "installments": "Jusqu’à 10 mois",
+  "verified": true
+ },
+ {
+  "id": "9",
+  "title": "Terrain proche plage à Toliara",
+  "description": "Parcelle à quelques minutes des plages de Toliara, environnement paisible, idéal projet résidentiel ou touristique.",
+  "price": 40000000,
+  "region": "Toliara",
+  "location": "Toliara, Atsimo-Andrefana",
+  "coordinates": [
+   -23.35,
+   43.6667
+  ],
+  "imageUrl": "/media/terrains/littoral.jpg",
+  "gallery": [
+   "/media/terrains/littoral.jpg",
+   "/media/terrains/ouest.jpg",
+   "/media/terrains/plaine.jpg"
+  ],
+  "features": [
+   "Proche plage",
+   "Climat ensoleillé",
+   "Potentiel touristique"
+  ],
+  "area": 1000,
+  "titleStatus": "Titre en cours",
+  "status": "disponible",
+  "zone": "Toliara",
+  "relief": "Plat",
+  "access": "Piste carrossable de 400 m",
+  "water": false,
+  "electricity": false,
+  "documents": [
+   "Demande de titre en cours",
+   "Plan parcellaire"
+  ],
+  "payment": "Comptant ou facilité",
+  "paymentMode": "comptant-ou-facilite",
+  "downPayment": "30 % minimum",
+  "installments": "Jusqu’à 8 mois",
+  "verified": false
+ },
+ {
+  "id": "10",
+  "title": "Lot à Ambatobe, quartier résidentiel prisé",
+  "description": "Terrain dans un des quartiers les plus recherchés de la capitale, entouré de résidences de standing.",
+  "price": 95000000,
+  "region": "Antananarivo",
+  "location": "Ambatobe, Antananarivo",
+  "coordinates": [
+   -18.8833,
+   47.5333
+  ],
+  "imageUrl": "/media/terrains/colline.jpg",
+  "gallery": [
+   "/media/terrains/colline.jpg",
+   "/media/terrains/highlands.jpg",
+   "/media/terrains/plaine.jpg"
+  ],
+  "features": [
+   "Quartier de standing",
+   "Sécurisé",
+   "Proche écoles internationales"
+  ],
+  "area": 1000,
+  "titleStatus": "Titre Foncier",
+  "status": "disponible",
+  "zone": "Ambatobe",
+  "relief": "Pente douce",
+  "access": "Route bitumée à 100 m",
+  "water": true,
+  "electricity": true,
+  "documents": [
+   "Titre foncier",
+   "Plan topographique",
+   "Certificat de situation juridique"
+  ],
+  "payment": "Comptant ou facilité",
+  "paymentMode": "comptant-ou-facilite",
+  "downPayment": "35 % minimum",
+  "installments": "Jusqu’à 12 mois",
+  "verified": true
+ },
+ {
+  "id": "11",
+  "title": "Terrain à Ankadikely Ilafy",
+  "description": "Parcelle bien située à proximité des grands axes routiers, en pleine zone de développement urbain.",
+  "price": 38000000,
+  "region": "Antananarivo",
+  "location": "Ankadikely Ilafy, Antananarivo",
+  "coordinates": [
+   -18.85,
+   47.55
+  ],
+  "imageUrl": "/media/terrains/plaine.jpg",
+  "gallery": [
+   "/media/terrains/plaine.jpg",
+   "/media/terrains/highlands.jpg",
+   "/media/terrains/colline.jpg"
+  ],
+  "features": [
+   "Zone en développement",
+   "Accès grand axe",
+   "Bornage effectué"
+  ],
+  "area": 750,
+  "titleStatus": "Titre Foncier",
+  "status": "vendu",
+  "zone": "Ankadikely Ilafy",
+  "relief": "Plat",
+  "access": "Route goudronnée à 120 m",
+  "water": true,
+  "electricity": true,
+  "documents": [
+   "Titre foncier",
+   "Plan topographique"
+  ],
+  "payment": "Comptant",
+  "paymentMode": "comptant",
+  "downPayment": "Paiement comptant",
+  "installments": "Non disponible",
+  "verified": true
+ },
+ {
+  "id": "12",
+  "title": "Terrain à Diego Suarez (Antsiranana)",
+  "description": "Belle parcelle dans la baie de Diego Suarez, proche des plages et du centre économique du Nord.",
+  "price": 70000000,
+  "region": "Diego Suarez",
+  "location": "Antsiranana, Diana",
+  "coordinates": [
+   -12.2787,
+   49.2917
+  ],
+  "imageUrl": "/media/terrains/littoral.jpg",
+  "gallery": [
+   "/media/terrains/littoral.jpg",
+   "/media/terrains/ouest.jpg",
+   "/media/terrains/plaine.jpg"
+  ],
+  "features": [
+   "Proche baie",
+   "Zone économique",
+   "Potentiel touristique"
+  ],
+  "area": 1200,
+  "titleStatus": "Titre Foncier",
+  "status": "disponible",
+  "zone": "Antsiranana",
+  "relief": "Plat",
+  "access": "Route goudronnée à 250 m",
+  "water": true,
+  "electricity": true,
+  "documents": [
+   "Titre foncier",
+   "Plan topographique"
+  ],
+  "payment": "Facilité jusqu’à 12 mois",
+  "paymentMode": "facilite",
+  "downPayment": "30 % minimum",
+  "installments": "Jusqu’à 12 mois",
+  "verified": true
+ }
+]
