@@ -5,6 +5,7 @@ import { getLands } from '../lib/store';
 import { fullName as requestName, getBuyRequests } from './crm/model';
 import { Client, ClientFields, createClient, deleteClient, emptyClientFields, getClient, getClients, getSearches, saveClient } from './crm/people';
 import { Badge, Column, DataTable, Field, Info, Modal, Section, Stat, btnDanger, btnGold, btnIcon, btnOutline, btnPrimary, exportCsv, fmtAr, fmtDate, input } from './crm/kit';
+import { phoneError } from '../lib/validate';
 
 const BASE = '/admin/clients';
 
@@ -34,7 +35,7 @@ export function ClientForm({ initial, title, onClose, onSave }: {
         <Field label="Nom complet" required error={tried && !f.fullName.trim() ? 'Champ obligatoire' : undefined} span={2}>
           <input className={input} value={f.fullName} onChange={(e) => set('fullName', e.target.value)} placeholder="Rakoto Andrianina" />
         </Field>
-        <Field label="Téléphone" required error={tried && !f.phone.trim() ? 'Champ obligatoire' : undefined}>
+        <Field label="Téléphone" required error={tried ? (phoneError(f.phone) ?? undefined) : undefined}>
           <input type="tel" className={input} value={f.phone} onChange={(e) => set('phone', e.target.value)} placeholder="034 XX XXX XX" />
         </Field>
         <Field label="Email (facultatif)" error={tried && badEmail ? 'Adresse email invalide' : undefined}>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 import {
@@ -76,7 +76,7 @@ function Switch({
       </span>
       <span className="relative inline-flex shrink-0">
         <input type="checkbox" className="peer sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-        <span className="h-6 w-11 rounded-full bg-navy-900/12 transition-colors peer-checked:bg-brand-accent peer-focus-visible:ring-2 peer-focus-visible:ring-navy-900/50 peer-focus-visible:ring-offset-2" />
+        <span className="h-6 w-11 rounded-full bg-navy-900/12 transition-colors peer-checked:bg-gold-600 peer-focus-visible:ring-2 peer-focus-visible:ring-navy-900/50 peer-focus-visible:ring-offset-2" />
         <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
       </span>
     </label>
@@ -84,18 +84,29 @@ function Switch({
 }
 
 export default function Lands() {
-  const [searchParams] = useSearchParams();
-  const [filters, setFilters] = useState<FilterState>({
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [filters, setFilters] = useState<FilterState>(() => ({
     ...initialFilters,
     q: searchParams.get('q') ?? '',
     region: searchParams.get('region') ?? '',
-  });
-  const [sort, setSort] = useState<LandSort>('recent');
+    zone: searchParams.get('zone') ?? '',
+    minPrice: searchParams.get('min') ?? '',
+    maxPrice: searchParams.get('max') ?? '',
+    minArea: searchParams.get('amin') ?? '',
+    maxArea: searchParams.get('amax') ?? '',
+    relief: (searchParams.get('relief') as Relief | '') ?? '',
+    payment: (searchParams.get('paiement') as FilterState['payment']) ?? '',
+    titleStatus: searchParams.get('titre') ?? '',
+    verifiedOnly: searchParams.get('verifies') === '1',
+    availableOnly: searchParams.get('dispo') !== '0',
+  }));
+  const [sort, setSort] = useState<LandSort>(() => (searchParams.get('tri') as LandSort) ?? 'recent');
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [mobileFilters, setMobileFilters] = useState(false);
   const [showFilters, setShowFilters] = useState(true); // filtres visibles sur desktop
   useBodyScrollLock(mobileFilters); // page figée derrière le tiroir de filtres
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(() => Number(searchParams.get('page') ?? 1) || 1);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   const [regions, setRegions] = useState<string[]>([]);
   const [zones, setZones] = useState<string[]>([]);
@@ -110,6 +121,27 @@ export default function Lands() {
     setFilters({ ...initialFilters, availableOnly: true });
     setCurrentPage(1);
   };
+
+  /* Filtres + page dans l'URL : navigable (retour arrière) et partageable. */
+  useEffect(() => {
+    const p = new URLSearchParams();
+    if (filters.q) p.set('q', filters.q);
+    if (filters.region) p.set('region', filters.region);
+    if (filters.zone) p.set('zone', filters.zone);
+    if (filters.minPrice) p.set('min', filters.minPrice);
+    if (filters.maxPrice) p.set('max', filters.maxPrice);
+    if (filters.minArea) p.set('amin', filters.minArea);
+    if (filters.maxArea) p.set('amax', filters.maxArea);
+    if (filters.relief) p.set('relief', filters.relief);
+    if (filters.payment) p.set('paiement', filters.payment);
+    if (filters.titleStatus) p.set('titre', filters.titleStatus);
+    if (filters.verifiedOnly) p.set('verifies', '1');
+    if (!filters.availableOnly) p.set('dispo', '0');
+    if (sort !== 'recent') p.set('tri', sort);
+    if (currentPage > 1) p.set('page', String(currentPage));
+    setSearchParams(p, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, sort, currentPage]);
 
   useEffect(() => {
     fetchRegions().then(setRegions).catch(() => setRegions([]));
@@ -165,7 +197,7 @@ export default function Lands() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const filterSidebar = (
@@ -178,7 +210,7 @@ export default function Lands() {
       }}
       className={`${
         mobileFilters
-          ? 'fixed inset-y-0 right-0 z-[70] w-[22rem] max-w-[88vw] overflow-y-auto bg-mist p-7 shadow-2xl transition-transform duration-300'
+          ? 'fixed inset-y-0 right-0 z-[70] w-[22rem] max-w-[88vw] overflow-y-auto bg-brand-50 p-7 shadow-2xl transition-transform duration-300'
           : showFilters
             ? 'hidden lg:block lg:sticky lg:top-28 lg:max-h-[calc(100vh-9rem)] lg:self-start lg:overflow-y-auto'
             : 'hidden'
@@ -208,8 +240,10 @@ export default function Lands() {
         </div>
 
         <div className="mt-7 space-y-7">
+          <Switch checked={filters.availableOnly} onChange={(v) => update('availableOnly', v)} title="Disponibles uniquement" hint="Masquer les terrains réservés ou vendus" />
+
           <div>
-            <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.24em] text-navy-900/70">Localisation</h3>
+            <h3 className="mb-4 text-sm font-semibold text-navy-900">Localisation</h3>
             <div className="space-y-3">
               <Select value={filters.region} onChange={(e) => update('region', e.target.value)}>
                 <option value="">Toutes les régions</option>
@@ -227,27 +261,51 @@ export default function Lands() {
           </div>
 
           <div className="border-t border-navy-900/8 pt-6">
-            <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.24em] text-navy-900/70">Prix total</h3>
+            <h3 className="mb-4 text-sm font-semibold text-navy-900">Prix total</h3>
+            <div className="mb-3 flex flex-wrap gap-2">
+              {([
+                { label: '< 30 M', min: '', max: '30000000' },
+                { label: '30 – 80 M', min: '30000000', max: '80000000' },
+                { label: '80 – 150 M', min: '80000000', max: '150000000' },
+                { label: '> 150 M', min: '150000000', max: '' },
+              ] as const).map((r) => {
+                const on = filters.minPrice === r.min && filters.maxPrice === r.max && (r.min || r.max);
+                return (
+                  <button
+                    key={r.label}
+                    onClick={() => {
+                      update('minPrice', on ? '' : r.min);
+                      update('maxPrice', on ? '' : r.max);
+                    }}
+                    className={on ? 'chip-on' : 'chip-off !bg-white/70'}
+                  >
+                    {r.label}
+                  </button>
+                );
+              })}
+            </div>
             <div className="grid grid-cols-2 gap-3">
-              <Input type="number" min={0} placeholder="Min." value={filters.minPrice} onChange={(e) => update('minPrice', e.target.value)} />
-              <Input type="number" min={0} placeholder="Max." value={filters.maxPrice} onChange={(e) => update('maxPrice', e.target.value)} />
+              <Input type="number" min={0} inputMode="numeric" aria-label="Prix minimum en Ariary" placeholder="Min." value={filters.minPrice} onChange={(e) => update('minPrice', e.target.value)} />
+              <Input type="number" min={0} inputMode="numeric" aria-label="Prix maximum en Ariary" placeholder="Max." value={filters.maxPrice} onChange={(e) => update('maxPrice', e.target.value)} />
             </div>
             <small className="mt-2 block text-xs font-normal text-navy-900/65">Montants en Ariary (Ar)</small>
           </div>
 
           <details className="group border-t border-navy-900/8 pt-6">
-            <summary className="cursor-pointer select-none text-xs font-semibold uppercase tracking-[0.24em] text-navy-900/85 hover:text-navy-900">Plus de filtres</summary>
+            <summary className="cursor-pointer select-none text-sm font-semibold text-navy-900 hover:text-gold-700">Plus de filtres</summary>
             <div className="mt-5 space-y-7">
           <div className="border-t border-navy-900/8 pt-6">
-            <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.24em] text-navy-900/70">Superficie</h3>
+            <h3 className="mb-4 text-sm font-semibold text-navy-900">Superficie</h3>
             <div className="grid grid-cols-2 gap-3">
-              <Input type="number" min={0} placeholder="Min. (m²)" value={filters.minArea} onChange={(e) => update('minArea', e.target.value)} />
-              <Input type="number" min={0} placeholder="Max. (m²)" value={filters.maxArea} onChange={(e) => update('maxArea', e.target.value)} />
+              <Input type="number" min={0} inputMode="numeric" aria-label="Surface minimum en m²" placeholder="Min. (m²)" value={filters.minArea} onChange={(e) => update('minArea', e.target.value)} />
+              <Input type="number" min={0} inputMode="numeric" aria-label="Surface maximum en m²" placeholder="Max. (m²)" value={filters.maxArea} onChange={(e) => update('maxArea', e.target.value)} />
             </div>
             <Input
               type="number"
               min={0}
               className="mt-3"
+              inputMode="numeric"
+              aria-label="Prix maximum par m² en Ariary"
               placeholder="Prix max / m² (Ar)"
               value={filters.maxPricePerSqm}
               onChange={(e) => update('maxPricePerSqm', e.target.value)}
@@ -255,7 +313,7 @@ export default function Lands() {
           </div>
 
           <div className="border-t border-navy-900/8 pt-6">
-            <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.24em] text-navy-900/70">Relief du terrain</h3>
+            <h3 className="mb-4 text-sm font-semibold text-navy-900">Relief du terrain</h3>
             <div className="flex flex-wrap gap-2">
               {RELIEF_OPTIONS.map((r) => (
                 <button
@@ -271,7 +329,7 @@ export default function Lands() {
           </div>
 
           <div className="border-t border-navy-900/8 pt-6">
-            <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.24em] text-navy-900/70">Mode de paiement</h3>
+            <h3 className="mb-4 text-sm font-semibold text-navy-900">Mode de paiement</h3>
             <div className="space-y-2.5">
               {(
                 [
@@ -305,7 +363,7 @@ export default function Lands() {
           </div>
 
           <div className="border-t border-navy-900/8 pt-6">
-            <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.24em] text-navy-900/70">Statut du titre</h3>
+            <h3 className="mb-4 text-sm font-semibold text-navy-900">Statut du titre</h3>
             <Select value={filters.titleStatus} onChange={(e) => update('titleStatus', e.target.value)}>
               <option value="">Tous les statuts</option>
               {TITLE_STATUS_OPTIONS.map((s) => (
@@ -314,9 +372,6 @@ export default function Lands() {
             </Select>
           </div>
 
-          <div className="space-y-5 border-t border-navy-900/8 pt-6">
-            <Switch checked={filters.availableOnly} onChange={(v) => update('availableOnly', v)} title="Disponibles uniquement" hint="Masquer les terrains réservés ou vendus" />
-          </div>
             </div>
           </details>
         </div>
@@ -331,11 +386,11 @@ export default function Lands() {
   );
 
   return (
-    <div className="font-display overflow-x-clip bg-mist">
+    <div className="font-display overflow-x-clip bg-brand-50">
       {/* — Hero navy (style Accueil / À propos) — */}
       <PageHero
-        crumb="Acheter"
         pill="Terrains à vendre"
+        image="/media/terrains/plaine.jpg"
         title={
           <>
             Trouvez l’emplacement de votre <span className="text-gold-500">prochain projet</span>
@@ -348,15 +403,6 @@ export default function Lands() {
       <section className="pb-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className={showFilters ? "gap-10 lg:grid lg:grid-cols-[19.5rem_1fr] xl:gap-14" : ""}>
-            {mobileFilters && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="fixed inset-0 z-[60] bg-navy-950/50 backdrop-blur-sm lg:hidden"
-                onClick={() => setMobileFilters(false)}
-                aria-hidden
-              />
-            )}
             {filterSidebar}
 
             <div>
@@ -431,6 +477,7 @@ export default function Lands() {
               </div>
 
               {/* Compteurs + chips actifs */}
+              <div ref={resultsRef} className="scroll-mt-28" />
               <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
                 <p className="text-sm font-normal text-navy-900/80">
                   <strong className="font-medium text-navy-900">
@@ -458,8 +505,8 @@ export default function Lands() {
               </div>
 
               {/* Résultats */}
-              {loading ? (
-                <div className={`grid gap-7 ${view === 'grid' ? 'md:grid-cols-2 xl:grid-cols-3' : 'grid-cols-1'}`}>
+              {loading && lands.length === 0 ? (
+                <div className={`grid gap-7 ${view === 'grid' ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
                   {Array.from({ length: 6 }).map((_, i) => (
                     <div key={i} className="card-soft animate-pulse overflow-hidden">
                       <div className="h-60 bg-navy-900/5" />
@@ -472,7 +519,7 @@ export default function Lands() {
                   ))}
                 </div>
               ) : currentItems.length > 0 ? (
-                <div className={`grid gap-7 ${view === 'grid' ? 'md:grid-cols-2 xl:grid-cols-3' : 'grid-cols-1'}`}>
+                <div className={`grid gap-7 ${view === 'grid' ? (showFilters ? 'md:grid-cols-2' : 'md:grid-cols-2 xl:grid-cols-3') : 'grid-cols-1'}`}>
                   {currentItems.map((land, idx) => (
                     <motion.div
                       key={land.id}

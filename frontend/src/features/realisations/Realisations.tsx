@@ -36,9 +36,10 @@ export default function Realisations() {
   const shown = items.filter((r) => !category || r.category === category);
 
   return (
-    <div className="font-display overflow-hidden bg-mist">
+    <div className="font-display overflow-hidden bg-brand-50">
       <PageHero
         pill="Nos réalisations"
+        image="/media/terrains/littoral.jpg"
         title={
           <>
             Des projets concrets, <span className="text-gold-500">livrés et sécurisés</span>
@@ -266,7 +267,7 @@ function RealisationModal({ r, onClose }: { r: Realisation; onClose: () => void 
       {meta.length > 0 && (
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {meta.map(({ icon: Icon, label, value }) => (
-            <div key={label} className="rounded-xl bg-mist px-4 py-3">
+            <div key={label} className="rounded-xl bg-brand-50 px-4 py-3">
               <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-navy-900/60">
                 <Icon className="h-3.5 w-3.5 text-gold-700" /> {label}
               </p>

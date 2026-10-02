@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Public;
 
 use App\Http\Controllers\Controller;
 use App\Models\Client;
+use App\Support\Phone;
 use App\Models\Search;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ class SearchController extends Controller
 {
     public function store(Request $request): JsonResponse
     {
+        $request->merge(['phone' => Phone::normalize($request->input('phone'))]);
         $data = $request->validate([
             'fullName' => 'required|string|max:150',
             'phone' => 'required|string|max:40',
@@ -35,6 +37,10 @@ class SearchController extends Controller
             'suggestNearby' => 'nullable|boolean',
             'criteria' => 'nullable|string|max:5000',
         ]);
+
+        if (! Phone::isValid($data['phone'])) {
+            return response()->json(['message' => Phone::message(), 'errors' => ['phone' => [Phone::message()]]], 422);
+        }
 
         $client = Client::findOrCreateFromRequest($data);
 

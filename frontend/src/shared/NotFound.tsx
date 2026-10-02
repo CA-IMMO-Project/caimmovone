@@ -6,7 +6,7 @@ import { EmptyState, PageHero } from './ui';
 export default function NotFound() {
   const navigate = useNavigate();
   return (
-    <div className="font-display overflow-hidden bg-mist">
+    <div className="font-display overflow-hidden bg-brand-50">
       <PageHero
         pill="Erreur 404"
         title={

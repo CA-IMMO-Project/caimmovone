@@ -52,7 +52,23 @@ class Realisation extends Model
     public function toAdminArray(): array
     {
         return array_merge($this->toPublicArray(), [
-            'photos' => $this->photos ?? [],
+            // L'écran admin attend des fiches de fichiers (id, name, type…).
+            // Les photos historisées comme simples URL (seed, imports) sont
+            // converties à la volée.
+            'photos' => array_map(function ($p) {
+                if (is_array($p)) {
+                    return $p;
+                }
+                $url = (string) $p;
+
+                return [
+                    'id' => 'seed-' . substr(md5($url), 0, 10),
+                    'name' => basename($url) ?: $url,
+                    'type' => 'image/' . (pathinfo($url, PATHINFO_EXTENSION) ?: 'jpeg'),
+                    'size' => 0,
+                    'url' => $url,
+                ];
+            }, $this->photos ?? []),
             'updatedAt' => $this->updated_at?->toIso8601String(),
         ]);
     }

@@ -202,7 +202,13 @@ export async function createSearch(
 }
 
 export function getRealisations(): Realisation[] {
-  return cache.realisations;
+  // Certaines photos peuvent être de simples URL (données seedées) :
+  // on les normalise en fiches de fichiers pour l'écran admin.
+  const asFile = (p: StoredFile | string): StoredFile =>
+    typeof p === 'string'
+      ? { id: `seed-${p}`, name: p.split('/').pop() ?? p, type: 'image/jpeg', size: 0, url: p }
+      : p;
+  return cache.realisations.map((r) => ({ ...r, photos: (r.photos ?? []).map(asFile) }));
 }
 export async function saveRealisation(r: Realisation): Promise<Realisation> {
   const item = { ...r, updatedAt: new Date().toISOString() };

@@ -7,7 +7,7 @@ import {
   Search, Repeat, Building2, Wallet, Cpu, View, MonitorPlay, Footprints,
   Globe, Ruler,
 } from 'lucide-react';
-import { PHONE_1_TEL, WHATSAPP_URL } from '../../lib/contact';
+import { PHONE_1_TEL } from '../../lib/contact';
 import LandCard from '../catalog/LandCard';
 import { fetchLands } from '../../services/landService';
 import type { Land } from '../../types';
@@ -187,7 +187,7 @@ export default function Home() {
       )}
 
       {/* ================= OBJECTIF ================= */}
-      <section className="relative bg-mist py-16 md:py-24">
+      <section className="relative bg-brand-50 py-16 md:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid gap-10 lg:grid-cols-12 items-center">
           <motion.div {...fadeUp} className="lg:col-span-4">
             <Eyebrow>Notre objectif</Eyebrow>
@@ -278,7 +278,7 @@ export default function Home() {
                 { icon: View, label: 'Visite virtuelle' },
                 { icon: MonitorPlay, label: 'Présentation à distance' },
               ].map(({ icon: Icon, label }) => (
-                <div key={label} className="flex items-center gap-3 rounded-full bg-mist pl-2 pr-5 py-2 shadow-sm">
+                <div key={label} className="flex items-center gap-3 rounded-full bg-brand-50 pl-2 pr-5 py-2 shadow-sm">
                   <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-navy-900 shadow">
                     <Icon className="w-5 h-5" />
                   </span>
@@ -341,15 +341,12 @@ export default function Home() {
             <Link to="/terrains" className="inline-flex items-center gap-2 rounded-full border border-white/60 px-5 py-2.5 text-xs font-medium transition hover:bg-white hover:text-navy-900">
               Voir nos terrains <ArrowRight className="w-4 h-4" />
             </Link>
-            <a
-              href={WHATSAPP_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Nous contacter sur WhatsApp (nouvel onglet)"
-              className="inline-flex items-center gap-2 rounded-full border border-white/60 px-5 py-2.5 text-xs font-medium transition hover:bg-white hover:text-navy-900"
-            >
-              <Phone className="w-4 h-4" /> Nous contacter
-            </a>
+            <Link
+                to="/contact"
+                className="inline-flex items-center gap-2 rounded-full border border-white/60 px-5 py-2.5 text-xs font-medium transition hover:bg-white hover:text-navy-900"
+              >
+                <Phone className="w-4 h-4" /> Nous contacter
+              </Link>
           </motion.div>
         </div>
         <svg className="absolute -bottom-px left-0 block w-full h-10 md:h-14" viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden>

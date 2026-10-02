@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { Home, Map, Phone, Tag, Menu, X, Facebook, Hammer } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { FB_URL, PHONE_1, PHONE_1_TEL, WHATSAPP_URL } from '../lib/contact';
+import { FB_URL, PHONE_1, PHONE_1_TEL } from '../lib/contact';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false); // menu mobile
@@ -68,15 +68,12 @@ export default function Navbar() {
             </div>
 
             <div className="hidden md:flex items-center gap-3">
-              <a
-                href={WHATSAPP_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Nous contacter sur WhatsApp (nouvel onglet)"
+              <Link
+                to="/contact"
                 className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-navy-900 bg-gold-500 rounded-full shadow-lg shadow-gold-500/30 hover:bg-gold-400 transition-colors"
               >
                 <Phone className="w-4 h-4" /> Nous contacter
-              </a>
+              </Link>
             </div>
 
             {/* Mobile menu button */}
@@ -121,17 +118,14 @@ export default function Navbar() {
                     {link.name}
                   </NavLink>
                 ))}
-                <a
-                  href={WHATSAPP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  to="/contact"
                   onClick={() => setIsOpen(false)}
-                  aria-label="Nous contacter sur WhatsApp (nouvel onglet)"
                   className="flex items-center px-3 py-3.5 text-sm font-medium text-white/80 hover:text-gold-500"
                 >
                   <Phone className="w-4 h-4 mr-2" />
                   Nous contacter
-                </a>
+                </Link>
                 <Link
                   to="/vendre"
                   onClick={() => setIsOpen(false)}

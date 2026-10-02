@@ -111,7 +111,7 @@ export default function About() {
           transition={{ delay: 0.5 }}
           className="absolute right-8 bottom-36 z-10 hidden md:flex items-center gap-5 rounded-2xl bg-white p-5 pr-7 text-navy-900 shadow-2xl"
         >
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-mist">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-50">
             <Users className="w-6 h-6 text-gold-700" />
           </span>
           <div>
@@ -223,7 +223,7 @@ export default function About() {
       </section>
 
       {/* ================= HISTOIRE + MISSION ================= */}
-      <section id="histoire" className="bg-mist py-14 md:py-16 scroll-mt-24">
+      <section id="histoire" className="bg-brand-50 py-14 md:py-16 scroll-mt-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid gap-10 lg:grid-cols-12 items-center">
           <motion.div {...fadeUp} className="lg:col-span-7">
             <SectionTitle title="Notre histoire" subtitle="Un parcours construit sur la confiance, l’engagement et la passion de l’immobilier." />

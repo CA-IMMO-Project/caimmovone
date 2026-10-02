@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Public;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\Land;
+use App\Support\Phone;
 use App\Models\SiteRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,8 @@ class RequestController extends Controller
 {
     public function store(Request $request): JsonResponse
     {
+        // Téléphone : format contrôlé + normalisé (rapprochement client fiable).
+        $request->merge(['phone' => Phone::normalize($request->input('phone'))]);
         $data = $request->validate([
             'kind' => 'required|in:interet,visite,recherche,vente',
             'fullName' => 'required|string|max:150',
@@ -37,6 +40,10 @@ class RequestController extends Controller
             'visitTime' => 'nullable|string|max:40',
         ]);
 
+        if (! Phone::isValid($data['phone'])) {
+            return response()->json(['message' => Phone::message(), 'errors' => ['phone' => [Phone::message()]]], 422);
+        }
+
         // Le terrain concerné (si la demande porte sur une fiche) doit exister.
         $land = null;
         if (! empty($data['landId'])) {
@@ -46,6 +53,28 @@ class RequestController extends Controller
 
         // Fiche client (rapprochée par email ou téléphone).
         $client = Client::findOrCreateFromRequest($data);
+
+        // Anti-doublon : un même client qui renvoie la même demande sur le
+        // même terrain (achat ou visite) retrouve sa demande existante plutôt
+        // qu'une seconde fiche. Fenêtre de 30 jours — au-delà, on considère
+        // qu'il s'agit d'un nouveau besoin.
+        if ($land !== null && in_array($data['kind'], ['interet', 'visite'], true)) {
+            $dupe = SiteRequest::query()
+                ->where('client_id', $client->id)
+                ->where('kind', $data['kind'])
+                ->where('land_id', $land->id)
+                ->where('created_at', '>=', now()->subDays(30))
+                ->first();
+
+            if ($dupe !== null) {
+                $label = $data['kind'] === 'visite' ? 'de visite' : "d'achat";
+
+                return response()->json([
+                    'ref' => $dupe->ref,
+                    'message' => "Vous avez déjà une demande {$label} en cours sur ce terrain ({$dupe->ref}). Notre équipe vous recontacte très vite.",
+                ], 409);
+            }
+        }
 
         // Champs complémentaires rangés dans meta (tout ce qui n'a pas de colonne).
         $meta = [];
@@ -72,7 +101,8 @@ class RequestController extends Controller
             'email' => $data['email'] ?? null,
             'message' => $data['message'] ?? null,
             'meta' => $meta,
-            'status' => 'Nouvelle',
+            // Une visite a son propre cycle de vie, distinct des achats.
+            'status' => $data['kind'] === 'visite' ? 'Demandée' : 'Nouvelle',
             'priority' => 'Haute',
             'source' => 'Site web',
         ]);

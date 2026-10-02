@@ -1,4 +1,4 @@
-import { Phone, MapPin, Facebook } from 'lucide-react';
+import { Phone, MapPin, Facebook, Send } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { FB_URL, PHONE_1, PHONE_1_TEL, PHONE_2, PHONE_2_TEL } from '../lib/contact';
 
@@ -65,6 +65,10 @@ export default function Footer() {
               <li className="flex items-center">
                 <Facebook className="w-5 h-5 mr-3 text-gold-500 shrink-0" />
                 <a href={FB_URL} target="_blank" rel="noopener noreferrer" className="inline-block py-1.5 hover:text-gold-500 transition-colors">CA IMMO sur Facebook</a>
+              </li>
+              <li className="flex items-center">
+                <Send className="w-5 h-5 mr-3 text-gold-500 shrink-0" />
+                <Link to="/contact" className="inline-block py-1.5 hover:text-gold-500 transition-colors">Formulaire de contact</Link>
               </li>
             </ul>
           </div>

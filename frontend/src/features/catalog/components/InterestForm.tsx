@@ -7,6 +7,7 @@ import { createReservation } from '../../../services/requestService';
 import { AnimatePresence, motion } from 'motion/react';
 import { formatAriary } from '../../../lib/format';
 import { landReference } from '../../../lib/land';
+import { phoneError, emailError } from '../../../lib/validate';
 import type { Land, ReservationPayload } from '../../../types';
 
 export default function InterestForm({ land, onDone }: { land: Land; onDone: (ref: string) => void }) {
@@ -31,9 +32,17 @@ export default function InterestForm({ land, onDone }: { land: Land; onDone: (re
 
   const next = () => {
     setError(null);
-    if (step === 0 && (!form.firstName.trim() || !form.lastName.trim() || !form.phone.trim() || !form.email.trim())) {
-      setError('Veuillez compléter vos coordonnées avant de continuer.');
-      return;
+    if (step === 0) {
+      if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim()) {
+        setError('Veuillez compléter vos coordonnées avant de continuer.');
+        return;
+      }
+      const phone = phoneError(form.phone);
+      const email = emailError(form.email);
+      if (phone || email) {
+        setError(phone ?? email);
+        return;
+      }
     }
     setStep((s) => Math.min(s + 1, 2));
   };
@@ -47,8 +56,9 @@ export default function InterestForm({ land, onDone }: { land: Land; onDone: (re
     try {
       const ref = await createReservation(payload); // référence générée par le backend
       onDone(ref);
-    } catch {
-      setError('L\u2019enregistrement a \u00e9chou\u00e9. V\u00e9rifiez votre connexion puis r\u00e9essayez.');
+    } catch (e) {
+      // Message du serveur quand il en fournit un (ex. demande d\u00e9j\u00e0 en cours sur ce terrain).
+      setError(e instanceof Error && e.message !== '' ? e.message : 'L\u2019enregistrement a \u00e9chou\u00e9. V\u00e9rifiez votre connexion puis r\u00e9essayez.');
     }
   };
 
@@ -105,10 +115,10 @@ export default function InterestForm({ land, onDone }: { land: Land; onDone: (re
               <div>
                 <div className="grid gap-5 sm:grid-cols-2">
                   <FormField label="Prénom" required>
-                    <Input placeholder="Votre prénom" value={form.firstName} onChange={(e) => set('firstName', e.target.value)} />
+                    <Input placeholder="Ex. Andry" value={form.firstName} onChange={(e) => set('firstName', e.target.value)} />
                   </FormField>
                   <FormField label="Nom" required>
-                    <Input placeholder="Votre nom" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} />
+                    <Input placeholder="Ex. Rakoto" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} />
                   </FormField>
                   <FormField label="Téléphone" required>
                     <Input type="tel" placeholder="+261 34 00 000 00" value={form.phone} onChange={(e) => set('phone', e.target.value)} />

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { MapPin, LandPlot, Maximize2, ArrowRight } from 'lucide-react';
+import { MapPin, Maximize2, ArrowRight } from 'lucide-react';
 import { Land } from '../../types';
 import { landReference, normalizeLand, pricePerSqm } from '../../lib/land';
 import { formatArea, formatAriary } from '../../lib/format';
@@ -27,9 +27,18 @@ export default function LandCard({ land, horizontal = false }: LandCardProps) {
           referrerPolicy="no-referrer"
         />
 
+        {/* Statut du titre : premier critère de confiance — sur la photo */}
+        <span className="absolute left-4 top-4 rounded-full bg-white/95 px-3.5 py-1.5 text-xs font-bold text-navy-900 shadow-md backdrop-blur-md">
+          {full.titleStatus}
+        </span>
+        {(land.status === 'vendu' || land.status === 'réservé') && (
+          <span className={`absolute right-4 top-4 rounded-full px-3.5 py-1.5 text-xs font-bold text-white shadow-md ${land.status === 'vendu' ? 'bg-gray-700' : 'bg-amber-500'}`}>
+            {land.status === 'vendu' ? 'Vendu' : 'Réservé'}
+          </span>
+        )}
         <div className="absolute bottom-4 left-4 rounded-2xl bg-white/95 px-4 py-2.5 shadow-lg shadow-navy-900/10 backdrop-blur-md">
-          <div className="text-lg font-extrabold leading-none tracking-tight text-navy-900">{formatAriary(land.price)}</div>
-          <div className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-navy-900/75">
+          <div className="text-lg font-extrabold leading-none tracking-tight text-navy-900 tabular-nums whitespace-nowrap">{formatAriary(land.price)}</div>
+          <div className="mt-1 text-xs font-semibold text-navy-900/75 whitespace-nowrap">
             {formatAriary(pricePerSqm(land))} / m²
           </div>
         </div>
@@ -42,7 +51,7 @@ export default function LandCard({ land, horizontal = false }: LandCardProps) {
           <span className="truncate">{land.location}</span>
         </div>
 
-        <h3 className="mt-3 line-clamp-2 min-h-[3.45rem] text-xl font-bold leading-snug tracking-tight text-navy-900 sm:min-h-[4.15rem] sm:text-2xl">
+        <h3 className="mt-3 line-clamp-2 min-h-[2.75em] text-xl font-bold leading-snug tracking-tight text-navy-900 sm:text-2xl">
           <Link to={`/terrains/${land.id}`} className="transition-colors hover:text-navy-800">
             {land.title}
             <span className="absolute inset-0 z-0" aria-hidden />
@@ -54,27 +63,17 @@ export default function LandCard({ land, horizontal = false }: LandCardProps) {
             <Maximize2 className="h-4 w-4 text-gold-700" />
             <strong className="font-bold text-navy-900">{formatArea(land.area)}</strong>
           </span>
-          <span className="inline-flex items-center gap-2">
-            <LandPlot className="h-4 w-4 text-gold-700" />
-            {full.relief}
-          </span>
-          <span className="text-navy-900/40">•</span>
           <span>{full.payment}</span>
         </div>
 
         <div className={`${horizontal ? 'mt-6' : 'mt-auto'} flex items-end justify-between gap-4 border-t border-navy-900/10 pt-5`}>
+          {/* Un seul arrêt clavier : le lien étiré sur toute la carte. */}
           <div className="relative z-10 text-xs font-semibold text-navy-900/75">
-            {land.titleStatus}
-            <span className="mx-1.5 text-navy-900/35">·</span>
             Réf. {landReference(full)}
           </div>
-          <Link
-            to={`/terrains/${land.id}`}
-            className="btn-outline relative z-10 !px-5 !py-2.5 !text-xs !font-semibold"
-          >
-            Voir
-            <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-          </Link>
+          <span className="relative z-10 inline-flex items-center gap-1 text-xs font-bold text-gold-700">
+            Voir le terrain <ArrowRight className="h-3.5 w-3.5" />
+          </span>
         </div>
       </div>
 

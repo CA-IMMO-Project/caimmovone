@@ -22,9 +22,11 @@ import {
 } from 'lucide-react';
 import { ChoiceCards, ErrorBanner, FormField, Input, Modal, PageHero, ProgressSteps, RequestSuccess, Select, Textarea } from '../../shared/ui';
 import { fetchZones } from '../../services/landService';
-import { createReservation } from '../../services/requestService';
-import type { ReservationPayload } from '../../types';
+import { createSearchRequest } from '../../services/requestService';
+import type { SearchSubmission } from '../../services/requestService';
+
 import { PHONE_1, PHONE_1_TEL } from '../../lib/contact';
+import { phoneError, emailError } from '../../lib/validate';
 
 /* --- Constantes du cahier des charges --- */
 
@@ -103,9 +105,17 @@ export default function SearchRequest() {
   /* --- Navigation par étapes avec validation --- */
   const next = () => {
     setError(null);
-    if (step === 0 && (!form.firstName.trim() || !form.lastName.trim() || !form.phone.trim() || !form.email.trim())) {
-      setError('Veuillez compléter vos coordonnées avant de continuer.');
-      return;
+    if (step === 0) {
+      if (!form.firstName.trim() || !form.lastName.trim() || !form.phone.trim() || !form.email.trim()) {
+        setError('Veuillez compléter vos coordonnées avant de continuer.');
+        return;
+      }
+      const phone = phoneError(form.phone);
+      const email = emailError(form.email);
+      if (phone || email) {
+        setError(phone ?? email);
+        return;
+      }
     }
     if (step === 1 && !form.zone && !form.otherZones.trim()) {
       setError('Indiquez au moins une zone recherchée.');
@@ -142,14 +152,33 @@ export default function SearchRequest() {
     return lines.join('\n');
   };
 
-  const finalize = async (payload: ReservationPayload) => {
+  const finalize = async (payload: SearchSubmission) => {
     setError(null);
     try {
-      const ref = await createReservation(payload); // référence générée par le backend
+      const ref = await createSearchRequest(payload); // référence REC-… générée par le backend
       setDone(ref);
     } catch {
       setError("L’enregistrement a échoué. Vérifiez votre connexion puis réessayez.");
     }
+  };
+
+  /* Vocabulaire de l'écran « Recherches spécifiques » du back office. */
+  const USAGE_TO_SEARCH: Record<ProjectType, string> = {
+    'Résidentiel': 'Habitation',
+    'Investissement': 'Investissement',
+    'Agricole': 'Agriculture',
+    'Commercial': 'Commerce',
+    'Touristique': 'Hôtellerie / tourisme',
+  };
+  const budgetMax = () => {
+    if (form.budget === BUDGET_CUSTOM) return Number(form.customBudget) || 0;
+    const r = BUDGET_RANGES.find((b) => b.label === form.budget);
+    return r?.max ?? r?.min ?? 0;
+  };
+  const areaBounds = () => {
+    if (form.area === AREA_CUSTOM) return { min: 0, max: Number(form.customArea) || 0 };
+    const r = AREA_RANGES.find((a) => a.label === form.area);
+    return { min: r?.min ?? 0, max: r?.max ?? r?.min ?? 0 };
   };
 
   const submit = () => {
@@ -158,27 +187,32 @@ export default function SearchRequest() {
       setError('Merci d’accepter d’être contacté(e) au sujet de votre recherche.');
       return;
     }
-    const payload: ReservationPayload = {
-      kind: 'recherche',
+    const bounds = areaBounds();
+    const zone = form.zone === 'Autre zone' ? form.otherZones || 'Zone libre' : form.zone;
+    finalize({
       fullName: `${form.firstName} ${form.lastName}`.trim(),
       phone: form.phone,
       email: form.email || undefined,
-      budget: budgetText,
-      projectName: `${form.usage} — ${form.zone === 'Autre zone' ? form.otherZones || 'Zone libre' : form.zone || form.otherZones}`,
-      message: composeMessage(),
-    };
-    finalize(payload);
+      usage: USAGE_TO_SEARCH[form.usage],
+      budgetMax: budgetMax(),
+      areaMin: bounds.min,
+      areaMax: bounds.max,
+      mainZone: zone,
+      otherZones: form.zone !== 'Autre zone' ? form.otherZones : '',
+      flexible: form.flexible,
+      criteria: composeMessage(),
+    });
   };
 
 
   /* --- Formulaire en 4 étapes --- */
 
   return (
-    <div className="font-display overflow-x-clip bg-mist">
+    <div className="font-display overflow-x-clip bg-brand-50">
       {/* — Hero navy (style Accueil / À propos) — */}
       <PageHero
-        crumb="Recherche"
         pill="Recherche sur mesure"
+        image="/media/terrains/colline.jpg"
         title={
           <>
             Confiez-nous la recherche de votre <span className="text-gold-500">terrain idéal</span>

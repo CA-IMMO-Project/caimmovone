@@ -97,6 +97,13 @@ export interface BuyRequest extends Person {
   createdAt: string;
   updatedAt: string;
   source: string;
+  /** Type de demande : achat (interet) ou visite — distingué dans la liste. */
+  kind?: 'interet' | 'visite' | 'recherche' | 'vente';
+  /** Créneau souhaité par le visiteur (demandes de visite du site public). */
+  visitDate?: string;
+  visitTime?: string;
+  /** Commentaire laissé par le visiteur (formulaires du site public). */
+  message?: string;
   paymentMode: string;
   budgetMin: number;
   budgetMax: number;
@@ -245,7 +252,8 @@ export function getBuyRequests(): BuyRequest[] {
     ...r,
     clientId: r.clientId ?? `cli-${r.id}`,
     landId: r.landId ?? String((i % 12) + 1),
-    notes: r.notes ?? [], contacts: r.contacts ?? [],
+    kind: r.kind ?? 'interet',
+    history: r.history ?? [], notes: r.notes ?? [], contacts: r.contacts ?? [],
     attachments: r.attachments ?? [], actions: r.actions ?? [],
   }));
 }

@@ -21,6 +21,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/realisations', [PublicApi\RealisationController::class, 'index']);
     Route::post('/requests', [PublicApi\RequestController::class, 'store'])->middleware('throttle:12,1');
     Route::post('/searches', [PublicApi\SearchController::class, 'store'])->middleware('throttle:12,1');
+    Route::post('/land-files', [PublicApi\LandFileController::class, 'store'])->middleware('throttle:12,1');
     Route::post('/messages', [PublicApi\MessageController::class, 'store'])->middleware('throttle:12,1');
 
     /* ---------- Back office ---------- */

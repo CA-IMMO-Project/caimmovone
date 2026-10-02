@@ -40,14 +40,16 @@ Compte administrateur créé par le seeder (à changer en production) :
 | GET | `/api/v1/lands` | Catalogue complet |
 | GET | `/api/v1/lands/{id}` | Fiche terrain |
 | GET | `/api/v1/realisations` | Réalisations publiées |
-| POST | `/api/v1/requests` | **Demande unifiée** (throttlée 12/min) |
-| POST | `/api/v1/messages` | Message de contact |
+| POST | `/api/v1/requests` | **Demande achat / visite** (throttlée 12/min) |
+| POST | `/api/v1/searches` | Recherche sur mesure → écran « Recherches » (REC-) |
+| POST | `/api/v1/land-files` | Dépôt de terrain → écran « Dossiers de vente » (VEN-) |
+| POST | `/api/v1/messages` | Message de contact → écran « Messages » |
 
 **POST /api/v1/requests** — corps (camelCase, comme le frontend) :
 
 ```json
 {
-  "kind": "interet",            // interet | visite | recherche | vente
+  "kind": "interet",            // interet | visite
   "fullName": "Jean Rakoto",    // requis
   "phone": "034 00 111 22",     // requis
   "email": "jean@exemple.mg",   // facultatif

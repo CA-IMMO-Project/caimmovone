@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, CalendarDays, Map, ShoppingBag, Tag, Users, Compass, Hammer, Mail, LogOut, ExternalLink, Lock, Menu, X } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, CalendarCheck, Map, ShoppingBag, Tag, Users, Compass, Hammer, Mail, LogOut, ExternalLink, Lock, Menu, X } from 'lucide-react';
 import { isAuthenticated, login, logout } from '../lib/store';
 import { bootstrap, ApiError } from '../services/adminService';
 import { hydrate, resetCache, isHydrated } from './crm/sync';
@@ -10,6 +10,7 @@ const links = [
   { to: '/admin/agenda', label: 'Agenda', icon: CalendarDays },
   { to: '/admin/clients', label: 'Base clients', icon: Users },
   { to: '/admin/achats', label: 'Demandes d’achat', icon: ShoppingBag },
+  { to: '/admin/visites', label: 'Visites', icon: CalendarCheck },
   { to: '/admin/recherches', label: 'Recherches spécifiques', icon: Compass },
   { to: '/admin/dossiers-terrains', label: 'À vendre', icon: Tag },
   { to: '/admin/terrains', label: 'Catalogue du site', icon: Map },
@@ -50,7 +51,7 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-mist text-navy-900 font-display">
+    <div className="min-h-screen bg-brand-50 text-navy-900 font-display">
       <aside
         className={`fixed inset-y-0 left-0 z-40 w-64 bg-navy-950 text-white flex flex-col transition-transform lg:translate-x-0 ${
           open ? 'translate-x-0' : '-translate-x-full'

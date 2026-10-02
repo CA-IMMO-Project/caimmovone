@@ -24,9 +24,11 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import MapVisual from '../../shared/MapVisual';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import LandCard from './LandCard';
-import { ChoiceCards, EmptyState, ErrorBanner, Eyebrow, FormField, Input, Modal, ProgressSteps, RequestSuccess, Select, Textarea, useBodyScrollLock } from '../../shared/ui';
+import { ChoiceCards, EmptyState, ErrorBanner, Eyebrow, FormField, Input, Modal, ProgressSteps, RequestSuccess, Select, Textarea, useBodyScrollLock, useDialogFocus } from '../../shared/ui';
 import InterestForm from './components/InterestForm';
 import VisitForm from './components/VisitForm';
 import { Land } from '../../types';
@@ -45,6 +47,7 @@ export default function LandDetail() {
   const [related, setRelated] = useState<Land[]>([]);
 
   const [lightbox, setLightbox] = useState<number | null>(null);
+  const lightboxRef = useDialogFocus(lightbox !== null, () => setLightbox(null));
   useBodyScrollLock(lightbox !== null); // page figée derrière la visionneuse
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
@@ -61,7 +64,7 @@ export default function LandDetail() {
         fetchLands({}).then((all) => {
           const others = all.filter((l) => l.id !== found.id);
           const sameRegion = others.filter((l) => l.region === found.region);
-          setRelated([...sameRegion, ...others.filter((l) => l.region !== found.region)].slice(0, 3));
+          setRelated([...sameRegion, ...others.filter((l) => l.region !== found.region)].filter((l) => l.status !== 'vendu').slice(0, 3));
         });
       }
     }).catch(() => setLand(null));
@@ -85,7 +88,7 @@ export default function LandDetail() {
 
   if (land === undefined) {
     return (
-      <div className="grid min-h-[60vh] place-items-center bg-mist">
+      <div className="grid min-h-[60vh] place-items-center bg-brand-50">
         <p className="animate-pulse text-sm font-normal text-navy-900/75">Chargement du terrain…</p>
       </div>
     );
@@ -93,7 +96,7 @@ export default function LandDetail() {
 
   if (land === null || !full) {
     return (
-      <div className="bg-mist px-4 py-20 md:py-28">
+      <div className="bg-brand-50 px-4 py-20 md:py-28">
         <div className="mx-auto max-w-2xl">
           <EmptyState
             icon={MapPin}
@@ -135,6 +138,15 @@ export default function LandDetail() {
     }
   };
 
+  /* Repère doré vectoriel — pas d'icône Leaflet externe. */
+  const pin = L.divIcon({
+    className: '',
+    html: '<svg width="34" height="46" viewBox="0 0 34 46" xmlns="http://www.w3.org/2000/svg"><path d="M17 0C7.6 0 0 7.6 0 17c0 12 17 29 17 29s17-17 17-29C34 7.6 26.4 0 17 0z" fill="#e5ad0b" stroke="#0b1e42" stroke-width="2"/><circle cx="17" cy="17" r="6.5" fill="#0b1e42"/></svg>',
+    iconSize: [34, 46],
+    iconAnchor: [17, 44],
+    popupAnchor: [0, -40],
+  });
+
   const specs = [
     { icon: Maximize2, label: 'Superficie', value: formatArea(land.area) },
     { icon: LandPlot, label: 'Relief', value: full.relief },
@@ -144,7 +156,7 @@ export default function LandDetail() {
   ];
 
   return (
-        <div className="font-display overflow-x-clip bg-mist pb-24 lg:pb-0">
+        <div className="font-display overflow-x-clip bg-brand-50 pb-24 lg:pb-0">
       {/* — Barre supérieure — */}
       <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -178,21 +190,19 @@ export default function LandDetail() {
             </span>
           </button>
           <div className="grid gap-3">
-            {[1, 2].map((g) => (
+            {full.gallery.slice(1, 3).map((src, i) => (
               <button
-                key={g}
-                onClick={() => setLightbox(g)}
+                key={src}
+                onClick={() => setLightbox(i + 1)}
                 className="group relative h-[10.5rem] overflow-hidden rounded-3xl bg-navy-900/5 md:h-[14.5rem]"
               >
-                {full.gallery[g] && (
-                  <img
-                    src={full.gallery[g]}
-                    alt={`Vue du terrain ${g + 1}`}
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-                    referrerPolicy="no-referrer"
-                  />
-                )}
-                {g === 2 && full.gallery.length > 3 && (
+                <img
+                  src={src}
+                  alt={`Vue du terrain ${i + 2}`}
+                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                  referrerPolicy="no-referrer"
+                />
+                {i === 1 && full.gallery.length > 3 && (
                   <span className="absolute bottom-4 right-4 rounded-full bg-white/92 px-4 py-2 text-xs font-semibold text-navy-900 backdrop-blur-md">
                     Toutes les photos <span className="text-gold-700">+{full.gallery.length - 3}</span>
                   </span>
@@ -209,7 +219,16 @@ export default function LandDetail() {
           <div>
             {/* Titre */}
             <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }}>
-              <h1 className="mt-5 max-w-2xl text-3xl font-bold leading-tight tracking-tight text-navy-900 md:text-5xl">
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-navy-900 px-3.5 py-1.5 text-xs font-bold text-white">{full.titleStatus}</span>
+                  {land.verified && <span className="rounded-full bg-green-100 px-3.5 py-1.5 text-xs font-bold text-green-800">Vérifié</span>}
+                  {land.status !== 'disponible' && (
+                    <span className={`rounded-full px-3.5 py-1.5 text-xs font-bold text-white ${land.status === 'vendu' ? 'bg-gray-700' : 'bg-amber-500'}`}>
+                      {land.status === 'vendu' ? 'Vendu' : 'Réservé'}
+                    </span>
+                  )}
+                </div>
+                <h1 className="mt-5 max-w-2xl text-3xl font-bold leading-tight tracking-tight text-navy-900 md:text-5xl">
                 {land.title}
               </h1>
               <p className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-normal text-navy-900/80">
@@ -222,9 +241,9 @@ export default function LandDetail() {
             </motion.div>
 
             {/* Caractéristiques clés */}
-            <div className="mt-10 grid grid-cols-2 gap-y-7 border-y border-navy-900/8 py-8 sm:grid-cols-3 lg:grid-cols-5">
-              {specs.map(({ icon: Icon, label, value }, i) => (
-                <div key={label} className={`px-2 ${i > 0 ? 'sm:border-l sm:border-navy-900/8 sm:pl-6' : ''}`}>
+            <div className="mt-10 grid grid-cols-2 gap-x-4 gap-y-7 border-y border-navy-900/8 py-8 sm:grid-cols-3 lg:grid-cols-5">
+              {specs.map(({ icon: Icon, label, value }) => (
+                <div key={label} className="px-2">
                   <Icon className="h-4.5 w-4.5 text-gold-700" strokeWidth={2} />
                   <small className="mt-3 block text-xs font-semibold uppercase tracking-[0.18em] text-navy-900/65">{label}</small>
                   <strong className="mt-1 block text-sm font-medium leading-snug text-navy-900">{value}</strong>
@@ -273,7 +292,22 @@ export default function LandDetail() {
               </div>
               {land.coordinates ? (
                 <div className="mt-6 overflow-hidden rounded-3xl border border-navy-900/8">
-                  <MapVisual label={full.zone} pin={{ x: 50, y: 52 }} className="h-[22rem]" />
+                  <MapContainer
+                      center={[lat || -18.8792, lng || 47.5079]}
+                      zoom={14}
+                      scrollWheelZoom={false}
+                      className="h-[22rem] w-full rounded-3xl"
+                      attributionControl={false}
+                    >
+                      <TileLayer
+                        attribution="&copy; OpenStreetMap"
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      />
+                      <Marker position={[lat || -18.8792, lng || 47.5079]} icon={pin}>
+                        <Popup>{land.title}</Popup>
+                      </Marker>
+                    </MapContainer>
+                    <p className="mt-3 text-xs text-navy-900/60">Carte OpenStreetMap — position indicative.</p>
                 </div>
               ) : (
                 <div className="mt-6 rounded-3xl border border-dashed border-navy-900/15 bg-white/60 px-8 py-14 text-center text-sm font-normal text-navy-900/75">
@@ -372,14 +406,15 @@ export default function LandDetail() {
                     disabled={land.status === 'vendu'}
                     className="btn-gold mt-8 w-full disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    Je suis intéressé <ArrowRight className="h-4 w-4" />
+                    <span className="min-[420px]:hidden">Intéressé</span>
+            <span className="hidden min-[420px]:inline">Je suis intéressé</span> <ArrowRight className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => setVisit(true)}
                     disabled={land.status === 'vendu'}
                     className="btn-outline mt-3 w-full disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    <CalendarDays className="h-4 w-4" /> Demander une visite
+                    <CalendarDays className="h-4 w-4" /> <span className="min-[420px]:hidden">Visite</span><span className="hidden min-[420px]:inline">Demander une visite</span>
                   </button>
                   <p className="mt-4 text-center text-xs font-normal text-navy-900/70">
                     Réponse d’un conseiller sous 24 h ouvrées.
@@ -483,6 +518,7 @@ export default function LandDetail() {
       {/* — Visionneuse — */}
       {lightbox !== null && (
         <motion.div
+          ref={lightboxRef}
           role="dialog"
           aria-modal="true"
           aria-label="Visionneuse de photos"

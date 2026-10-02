@@ -564,16 +564,35 @@ export function NotesPanel({ notes, onAdd }: { notes: Note[]; onAdd: (n: Note) =
 }
 
 // ---------- Fenêtre modale simple ----------
-export function Modal({ title, children, onClose, footer }: { title: string; children: ReactNode; onClose: () => void; footer?: ReactNode }) {
+/* Modale du back office — même habillage que le site public (grandes
+   arrondis, en-tête titre + fermeture ronde, pied de modale), et le contenu
+   déroule DANS la modale comme les longs formulaires de l'admin. */
+export function Modal({ title, children, onClose, footer, wide }: { title: string; children: ReactNode; onClose: () => void; footer?: ReactNode; wide?: boolean }) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-start sm:items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b">
-          <h3 className="font-semibold text-navy-900">{title}</h3>
-          <button type="button" className={btnIcon} onClick={onClose} aria-label="Fermer"><X className="w-4 h-4" /></button>
+    <div
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-navy-950/40 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className={`max-h-[92vh] w-full overflow-y-auto overscroll-contain rounded-t-[2rem] bg-white shadow-2xl outline-none sm:rounded-[2rem] ${wide ? 'max-w-3xl' : 'max-w-xl'}`}
+      >
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-6 border-b border-navy-900/10 bg-white px-7 pt-6 pb-5">
+          <h3 className="text-xl font-bold tracking-tight text-navy-900">{title}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fermer"
+            className="rounded-full border border-navy-900/20 p-2.5 text-navy-900/75 transition hover:bg-brand-50 hover:text-navy-900"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
-        <div className="p-5 space-y-4">{children}</div>
-        {footer && <div className="flex justify-end gap-2 px-5 py-4 border-t bg-gray-50 rounded-b-2xl">{footer}</div>}
+        <div className="px-7 pt-6 pb-7">{children}</div>
+        {footer && <div className="sticky bottom-0 flex justify-end gap-2 border-t border-navy-900/10 bg-white px-7 py-4">{footer}</div>}
       </div>
     </div>
   );

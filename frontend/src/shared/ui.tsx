@@ -27,21 +27,32 @@ export function PageHero({
   pill,
   title,
   lead,
+  image,
   children,
 }: {
-  crumb?: string;
   pill: string;
   title: ReactNode;
   lead?: ReactNode;
+  /** Photo en fond à droite, dégradée vers le bleu marine (style maison). */
+  image?: string;
   children?: ReactNode;
 }) {
   return (
     <section className="relative overflow-hidden bg-navy-900 pb-28 pt-10 text-white md:pb-32">
+      {/* Photo à droite en fondu — comme l'en-tête de la page Contact de référence */}
+      {image && (
+        <div className="absolute inset-y-0 right-0 hidden w-[58%] md:block" aria-hidden>
+          <img src={image} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+          <div className="absolute inset-0 bg-gradient-to-r from-navy-900 via-navy-900/75 to-navy-900/10" />
+          <div className="absolute inset-0 bg-gradient-to-t from-navy-900/80 via-transparent to-transparent" />
+        </div>
+      )}
+
       {/* Galettes dorées organiques — signature des pages Accueil / À propos */}
       <svg className="absolute left-0 top-8 h-24 w-5 text-gold-500 md:h-32 md:w-7" viewBox="0 0 30 160" aria-hidden>
         <path fill="currentColor" d="M0,0 C30,30 30,120 0,160 Z" />
       </svg>
-      <svg className="absolute bottom-16 right-0 h-32 w-8 text-gold-500" viewBox="0 0 40 180" aria-hidden>
+      <svg className="absolute bottom-16 right-0 z-10 h-32 w-8 text-gold-500" viewBox="0 0 40 180" aria-hidden>
         <path fill="currentColor" d="M40,0 C0,40 0,140 40,180 Z" />
       </svg>
 
@@ -51,7 +62,7 @@ export function PageHero({
         </span>
         <h1 className="mt-4 max-w-2xl text-4xl font-extrabold leading-[1.05] tracking-tight md:text-5xl">{title}</h1>
         {lead && <p className="mt-5 max-w-xl text-sm leading-relaxed text-white/80 md:text-base">{lead}</p>}
-        {children}
+        {children && <div className="w-full pt-5">{children}</div>}
       </div>
 
       {/* Courbe descendante vers le fond de page */}
@@ -217,7 +228,7 @@ export function Modal({
                 <button
                   onClick={onClose}
                   aria-label="Fermer"
-                  className="rounded-full border border-navy-900/20 p-3 text-navy-900/75 transition hover:bg-mist hover:text-navy-900"
+                  className="rounded-full border border-navy-900/20 p-3 text-navy-900/75 transition hover:bg-brand-50 hover:text-navy-900"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -422,7 +433,7 @@ export function ChoiceCards<T extends string>({
             onClick={() => onChange(o.value)}
             className={`flex items-center gap-4 rounded-2xl px-5 py-4 text-left transition-all duration-300 ${
               selected
-                ? 'bg-white shadow-lg shadow-navy-900/5 ring-2 ring-gold-500'
+                ? 'border border-gold-500 bg-gold-500/10 shadow-lg shadow-gold-500/10'
                 : 'border border-navy-900/40 bg-white/80 hover:border-navy-900/60 hover:bg-white'
             }`}
           >

@@ -19,8 +19,9 @@ import {
   WalletCards,
 } from 'lucide-react';
 import { ChoiceCards, ErrorBanner, Eyebrow, FormField, Input, Modal, PageHero, ProgressSteps, RequestSuccess, Select, Textarea, UploadZone } from '../../shared/ui';
-import { createReservation } from '../../services/requestService';
-import type { ReservationPayload } from '../../types';
+import { phoneError, emailError, isPositiveNumber } from '../../lib/validate';
+import { createLandFileRequest } from '../../services/requestService';
+import type { LandFileSubmission } from '../../services/requestService';
 import MapVisual, { MapPinPos } from '../../shared/MapVisual';
 
 const STEP_LABELS = ['Qui vend ?', 'Votre terrain', 'Où est-il ?', 'Vos documents', 'Prix et conditions'];
@@ -140,10 +141,10 @@ export default function Sell() {
     return lines.join('\n');
   };
 
-  const finalize = async (payload: ReservationPayload) => {
+  const finalize = async (payload: LandFileSubmission) => {
     setError(null);
     try {
-      const ref = await createReservation(payload); // référence générée par le backend
+      const ref = await createLandFileRequest(payload); // référence VEN-… générée par le backend
       setDone(ref);
     } catch {
       setError("L’envoi a échoué. Vérifiez votre connexion puis réessayez.");
@@ -152,31 +153,77 @@ export default function Sell() {
 
   const submit = () => {
     setError(null);
+    if (!form.firstName.trim() || !form.lastName.trim()) {
+      setError('Merci de renseigner le prénom et le nom du propriétaire.');
+      return;
+    }
+    const phone = phoneError(form.phone);
+    if (phone) { setError(phone); return; }
+    const email = emailError(form.email);
+    if (email) { setError(email); return; }
+    if (!form.idNumber.trim()) {
+      setError('Merci d’indiquer le numéro de votre pièce d’identité.');
+      return;
+    }
+    if (!form.title.trim()) {
+      setError('Donnez un titre à votre annonce (ex. « Terrain clos à Ivato »).');
+      return;
+    }
+    if (!isPositiveNumber(form.area)) {
+      setError('Indiquez la surface du terrain en m² (ex. 650).');
+      return;
+    }
+    if (!isPositiveNumber(form.price)) {
+      setError('Indiquez le prix souhaité en Ariary (ex. 120000000).');
+      return;
+    }
     if (!consents.c1 || !consents.c2 || !consents.c3) {
       setError('Merci d’accepter les trois confirmations avant d’envoyer votre dossier.');
       return;
     }
-    const payload: ReservationPayload = {
-      kind: 'vente',
+    finalize({
       fullName: `${form.firstName} ${form.lastName}`.trim(),
       phone: form.phone,
       email: form.email || undefined,
-      profession: form.profession || undefined,
-      budget: `${form.price} Ar souhaités`,
-      projectName: `${form.title} — ${form.commune || form.region}`,
-      message: composeMessage(),
-    };
-    finalize(payload);
+      birthDate: form.birthDate,
+      profession: form.profession,
+      country: form.country,
+      bankAccount: form.bankAccount,
+      idType: form.idType,
+      idNumber: form.idNumber,
+      title: form.title,
+      area: Number(form.area) || 0,
+      price: Number(form.price) || 0,
+      description: form.description,
+      relief: form.relief,
+      access: form.access,
+      water: form.water,
+      electricity: form.electricity,
+      region: form.region,
+      district: form.district,
+      commune: form.commune,
+      fokontany: form.fokontany,
+      directions: form.directions,
+      payment: form.payment,
+      paymentDuration: form.duration,
+      deposit: form.deposit === 'Personnalisé' ? `${form.customDeposit || '—'} %` : form.deposit,
+      photoNames: photos,
+      videoNames: video,
+      docNames: docs,
+      docTypes,
+      idFileNames: idFiles,
+      summary: composeMessage(),
+    });
   };
 
 
   /* ————— Formulaire en 5 étapes ————— */
   return (
-    <div className="font-display overflow-x-clip bg-mist">
+    <div className="font-display overflow-x-clip bg-brand-50">
       {/* — Hero navy (style Accueil / À propos) — */}
       <PageHero
-        crumb="Vendre"
         pill="Vendre avec CA IMMO"
+        image="/media/terrains/agricole.jpg"
         title={
           <>
             Proposez votre terrain en toute <span className="text-gold-500">confiance</span>
@@ -252,10 +299,10 @@ export default function Sell() {
                       <div className="space-y-7">
                         <div className="grid gap-5 sm:grid-cols-2">
                           <FormField label="Prénom" required>
-                            <Input placeholder="Votre prénom" value={form.firstName} onChange={(e) => set('firstName', e.target.value)} />
+                            <Input placeholder="Ex. Andry" value={form.firstName} onChange={(e) => set('firstName', e.target.value)} />
                           </FormField>
                           <FormField label="Nom" required>
-                            <Input placeholder="Votre nom" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} />
+                            <Input placeholder="Ex. Rakoto" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} />
                           </FormField>
                           <FormField label="Téléphone" required>
                             <Input type="tel" placeholder="+261 34 00 000 00" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
@@ -410,7 +457,7 @@ export default function Sell() {
                         </FormField>
 
                         {pin && (
-                          <div className="flex items-center gap-4 rounded-2xl bg-brand-accent/5 px-6 py-4">
+                          <div className="flex items-center gap-4 rounded-2xl bg-gold-600/5 px-6 py-4">
                             <MapPin className="h-5 w-5 shrink-0 text-green-700" />
                             <div>
                               <strong className="block text-sm font-medium text-navy-900">Emplacement indiqué sur la carte</strong>

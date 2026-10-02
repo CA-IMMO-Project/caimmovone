@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Public;
 
 use App\Http\Controllers\Controller;
 use App\Models\ContactMessage;
+use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -19,6 +20,13 @@ class MessageController extends Controller
             'subject' => 'nullable|string|max:200',
             'message' => 'required|string|max:5000',
         ]);
+
+        if (! empty($data['phone'])) {
+            $data['phone'] = Phone::normalize($data['phone']);
+            if (! Phone::isValid($data['phone'])) {
+                return response()->json(['message' => Phone::message(), 'errors' => ['phone' => [Phone::message()]]], 422);
+            }
+        }
 
         ContactMessage::create([
             'full_name' => $data['fullName'],

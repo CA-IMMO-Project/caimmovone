@@ -85,7 +85,15 @@ class SiteRequest extends Model
         $detail = $this->detail ?? [];
         [$firstName, $lastName] = $this->splitName($detail['firstName'] ?? null, $detail['lastName'] ?? null);
 
-        return array_merge($detail, [
+        // meta : champs complémentaires du site public (date/heure de visite,
+        // budget…). Le détail CRM, plus riche, reste prioritaire s'il existe.
+        $meta = $this->meta ?? [];
+
+        return array_merge([
+            // champs tableaux toujours présents pour l'écran « Demandes »
+            'history' => [], 'notes' => [], 'contacts' => [],
+            'attachments' => [], 'actions' => [],
+        ], $meta, $detail, [
             'id' => (string) $this->id,
             'ref' => $this->ref,
             'kind' => $this->kind,
@@ -99,6 +107,7 @@ class SiteRequest extends Model
             'phone' => $detail['phone'] ?? $this->phone,
             'dialCode' => $detail['dialCode'] ?? '',
             'email' => $detail['email'] ?? $this->email,
+            'message' => $detail['message'] ?? $this->message,
             'createdAt' => $this->created_at?->toIso8601String(),
             'updatedAt' => $this->updated_at?->toIso8601String(),
         ]);

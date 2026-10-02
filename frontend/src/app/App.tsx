@@ -20,11 +20,13 @@ import Dashboard from '../admin/Dashboard';
 import AdminLands from '../admin/AdminLands';
 import { AdminMessages } from '../admin/AdminRequests';
 import { BuyRequestDetail, BuyRequestForm, BuyRequestList } from '../admin/BuyRequests';
+import { VisitDetail, VisitList } from '../admin/Visits';
 import { LandFileDetail, LandFileForm, LandFileList } from '../admin/LandFiles';
 import { ClientDetail, ClientList } from '../admin/Clients';
 import { SearchDetail, SearchList } from '../admin/Searches';
 import AdminRealisations from '../admin/Realisations';
 import Agenda from '../admin/Agenda';
+import ContactPage from '../features/contact/ContactPage';
 
 /** Remonte en haut de page à chaque changement de route (comportement attendu d'un site). */
 function ScrollToTop() {
@@ -58,8 +60,8 @@ export default function App() {
           <Route path="/terrains/:id" element={<LandDetail />} />
           <Route path="/recherche" element={<SearchRequest />} />
           <Route path="/about" element={<About />} />
-          {/* Contact (formulaire) supprimé : « Nous contacter » ouvre WhatsApp directement */}
-          <Route path="/contact" element={<Navigate to="/" replace />} />
+          {/* Contact : page dédiée (style page de référence — hero, coordonnées, formulaire) */}
+          <Route path="/contact" element={<ContactPage />} />
           <Route path="/connexion" element={<Navigate to="/" replace />} />
           <Route path="/vendre" element={<Sell />} />
           <Route path="/reservation" element={<Navigate to="/vendre" replace />} />
@@ -74,6 +76,8 @@ export default function App() {
           <Route path="achats/nouveau" element={<BuyRequestForm />} />
           <Route path="achats/:id" element={<BuyRequestDetail />} />
           <Route path="achats/:id/modifier" element={<BuyRequestForm key="edit" />} />
+          <Route path="visites" element={<VisitList />} />
+          <Route path="visites/:id" element={<VisitDetail />} />
           <Route path="dossiers-terrains" element={<LandFileList />} />
           <Route path="dossiers-terrains/nouveau" element={<LandFileForm />} />
           <Route path="dossiers-terrains/:id" element={<LandFileDetail />} />

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, FileDown, FileSpreadsheet, History, Mail, MessageSquarePlus, Paperclip, Pencil,
-  Phone, PhoneCall, Plus, Printer, Save, Search, User, Wallet, MapPin, Target, ShieldCheck, Eye, Landmark,
+  Phone, PhoneCall, Plus, Printer, Save, Search, SlidersHorizontal, User, Wallet, MapPin, Target, ShieldCheck, Eye, Landmark,
 } from 'lucide-react';
 import { getLands } from '../lib/store';
 import {
@@ -61,10 +61,14 @@ const columns: Column<BuyRequest>[] = [
 ];
 
 // ======================= LISTE =======================
+/** L'écran n'affiche que les achats — les visites ont leur propre écran. */
+const loadPurchaseRequests = () => getBuyRequests().filter((r) => (r.kind ?? 'interet') !== 'visite');
+
 export function BuyRequestList() {
   const navigate = useNavigate();
-  const [rows, setRows] = useState(getBuyRequests);
+  const [rows, setRows] = useState(loadPurchaseRequests);
   const [q, setQ] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   const [f, setF] = useState({ region: '', status: '', agent: '', pay: '', priority: '', from: '', to: '', budgetMax: 0 });
   const [selected, setSelected] = useState<string[]>([]);
   const [bulkStatus, setBulkStatus] = useState('');
@@ -86,11 +90,12 @@ export function BuyRequestList() {
       const r = getBuyRequest(id);
       if (r && r.status !== bulkStatus) saveBuyRequest({ ...r, status: bulkStatus as BuyStatus, history: [...r.history, historyEntry(`Statut changé : ${r.status} → ${bulkStatus}`)] });
     });
-    setRows(getBuyRequests());
+    setRows(loadPurchaseRequests());
     setSelected([]);
     setBulkStatus('');
   };
   const chosen = () => (selected.length ? filtered.filter((r) => selected.includes(r.id)) : filtered);
+  const activeFilters = [f.region, f.status, f.agent, f.priority, f.pay, f.from, f.to].filter(Boolean).length + (f.budgetMax ? 1 : 0);
   const active = rows.filter((r) => !['Achat finalisé', 'Refusée', 'Archivée'].includes(r.status));
 
   return (
@@ -114,17 +119,27 @@ export function BuyRequestList() {
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher par référence, nom, téléphone, email, commune…" className={`${input} pl-9`} />
+          <button
+            type="button"
+            onClick={() => setShowFilters((v) => !v)}
+            className={`absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${showFilters ? 'bg-navy-900 text-white' : 'text-navy-900 hover:bg-gray-100'}`}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" /> Filtres
+            {activeFilters > 0 && <span className="grid h-4 min-w-4 place-items-center rounded-full bg-gold-500 px-1 text-[10px] font-bold text-navy-900">{activeFilters}</span>}
+          </button>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2">
-          <Select value={f.region} onChange={(v) => set('region', v)} options={REGIONS} placeholder="Toutes régions" />
-          <Select value={f.status} onChange={(v) => set('status', v)} options={BUY_STATUSES} placeholder="Tous statuts" />
-          <Select value={f.agent} onChange={(v) => set('agent', v)} options={AGENTS} placeholder="Tous agents" />
-          <Select value={f.priority} onChange={(v) => set('priority', v)} options={PRIORITIES} placeholder="Toutes priorités" />
-          <Select value={f.pay} onChange={(v) => set('pay', v)} options={BUY_PAYMENT} placeholder="Tout paiement" />
-          <NumberInput value={f.budgetMax} onChange={(v) => set('budgetMax', v)} placeholder="Budget ≤" suffix="Ar" />
-          <DateFilter label="Du" value={f.from} onChange={(v) => set('from', v)} />
-          <DateFilter label="Au" value={f.to} onChange={(v) => set('to', v)} />
-        </div>
+        {showFilters && (
+          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2">
+            <Select value={f.region} onChange={(v) => set('region', v)} options={REGIONS} placeholder="Toutes régions" />
+            <Select value={f.status} onChange={(v) => set('status', v)} options={BUY_STATUSES} placeholder="Tous statuts" />
+            <Select value={f.agent} onChange={(v) => set('agent', v)} options={AGENTS} placeholder="Tous agents" />
+            <Select value={f.priority} onChange={(v) => set('priority', v)} options={PRIORITIES} placeholder="Toutes priorités" />
+            <Select value={f.pay} onChange={(v) => set('pay', v)} options={BUY_PAYMENT} placeholder="Tout paiement" />
+            <NumberInput value={f.budgetMax} onChange={(v) => set('budgetMax', v)} placeholder="Budget ≤" suffix="Ar" />
+            <DateFilter label="Du" value={f.from} onChange={(v) => set('from', v)} />
+            <DateFilter label="Au" value={f.to} onChange={(v) => set('to', v)} />
+          </div>
+        )}
         <div className="flex flex-wrap items-center gap-2 pt-1">
           {selected.length > 0 && (
             <>

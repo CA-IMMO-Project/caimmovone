@@ -27,7 +27,9 @@ class Client extends Model
     public static function findOrCreateFromRequest(array $data): self
     {
         $email = trim((string) ($data['email'] ?? ''));
-        $phone = trim((string) ($data['phone'] ?? ''));
+        // Normalisation des séparateurs : deux écritures du même numéro
+        // doivent désigner la même fiche client.
+        $phone = \App\Support\Phone::normalize($data['phone'] ?? '');
 
         $client = null;
         if ($email !== '') {
