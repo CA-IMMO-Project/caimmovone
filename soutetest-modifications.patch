@@ -1,0 +1,1982 @@
+diff --git a/RESTYLE-CA-IMMO.md b/RESTYLE-CA-IMMO.md
+new file mode 100644
+index 0000000..f06b63a
+--- /dev/null
++++ b/RESTYLE-CA-IMMO.md
+@@ -0,0 +1,70 @@
++# Modifications apportées au frontend
++
++Travail réalisé sur `frontend/` uniquement — **aucun fichier ajouté au projet,
++aucune modification du backend Laravel ni des services API**. Les URLs
++existantes (`/terrains`, `/terrains/:id`, …) sont conservées.
++
++## 1. Restyle du site public (charte CA-IMMO)
++
++Alignement sur la charte du dépôt de référence **CA-IMMO-Project/CA-IMMO-Frontend-** :
++marine `#0b1e42` + or `#f7c325`, boutons dorés arrondis à ombre dorée, cartes
++arrondies à ombre douce, fonds blanc / brume `#f3f6fb`, titres Poppins,
++« eyebrow » à tiret doré. Pages concernées : Accueil, Terrains, Détail terrain,
++Recherche, Vendre, À propos, Contact, Navbar/Footer. **Réalisations inchangée.**
++
++| Fichier | Changements |
++|---|---|
++| `src/index.css` | Couleur `--color-mist` (#f3f6fb) pour les fonds de section ; titres Poppins dans les pages publiques. |
++| `src/shared/ui.tsx` | `PageHero` : variante `flat` (en-tête sans courbe) ; `ProgressSteps` : étape active or, passées marine. |
++| `src/layout/Navbar.tsx` | Style référence ; lien « Accueil » retiré (le logo y mène). |
++| `src/features/home/Home.tsx` | Sections « En quelques mots », « Nos solutions », « Nos engagements ». |
++| `src/features/catalog/Lands.tsx` | Héros avec recherche rapide + en-tête de résultats. |
++| `src/features/catalog/LandCard.tsx` | Carte terrain réécrite au style référence. |
++| `src/features/catalog/LandDetail.tsx` | Carte prix à liseré or, carte « Votre conseiller », barre Retour/Partager. |
++| `src/features/search/SearchRequest.tsx` | Encart marine à gauche, étapes dorées. |
++| `src/features/sell/Sell.tsx` | Encart marine à gauche, étapes dorées. |
++| `src/features/contact/ContactPage.tsx` | Mise aux couleurs de la charte. |
++| `src/features/about/About.tsx` | Mise aux couleurs de la charte. |
++
++Les fils d'Ariane « Accueil › … » ont été **supprimés** de toutes les pages
++(redondants avec le logo et le menu).
++
++## 2. Validation des formulaires publics
++
++- **Champs obligatoires bloquants** à chaque étape : on ne peut plus passer à
++  l'étape suivante si un champ requis est vide ou invalide (Recherche : zone,
++  budget/surface personnalisés ; Vendre : coordonnées + téléphone/email
++  vérifiés dès l'étape 1, n° de pièce, superficie et prix numériques positifs).
++- **Téléphone** : les lettres sont bloquées à la saisie (`sanitizePhone` dans
++  `src/lib/validate.ts`) sur Recherche, Vendre et Contact ; format malgache
++  vérifié (`034 12 345 67` ou `+261 34 12 345 67`).
++
++## 3. Uniformisation des listes du back-office
++
++Deux composants partagés dans `src/admin/crm/kit.tsx` appliqués aux 7 écrans
++(Base clients, Demandes d'achat, Visites, Recherches, À vendre, Terrains,
++Messages) :
++
++- **`PageHeader`** : en-tête identique (titre + sous-titre + action à droite) ;
++- **`ListToolbar`** : recherche avec icône, bouton « Filtres » dépliable avec
++  pastille du nombre de filtres actifs, actions groupées, exports
++  Excel / PDF / Imprimer toujours au même endroit.
++
++Améliorations UX transverses :
++
++- tri par défaut « à traiter d'abord, puis plus récentes » sur toutes les listes ;
++- dates relatives « il y a 2 h / hier / il y a 3 j » (date exacte au survol) — `RelDate` ;
++- lignes non traitées surlignées (fond bleuté) — prop `rowClass` de `DataTable` ;
++- téléphones cliquables `tel:` sans ouvrir la fiche — `TelLink` ;
++- Messages : non lus en tête avec liseré doré + pastille + étiquette « Non lu »
++  + compteur, recherche et filtre statut uniformes.
++
++## Application du patch
++
++```bash
++# à la racine du dépôt soutetest
++git apply soutetest-modifications.patch
++git status          # vérifier les fichiers modifiés
++npm --prefix frontend install
++npm --prefix frontend run lint    # tsc --noEmit : doit passer sans erreur
++```
+diff --git a/frontend/src/admin/AdminLands.tsx b/frontend/src/admin/AdminLands.tsx
+index b495637..8d48e94 100644
+--- a/frontend/src/admin/AdminLands.tsx
++++ b/frontend/src/admin/AdminLands.tsx
+@@ -5,6 +5,7 @@ import { Land, Lot, TitleStatus } from '../types';
+ import { deleteLand, getLands, newId, resetLands, saveLand } from '../lib/store';
+ import { formatAriary, formatArea } from '../lib/format';
+ import { Badge, Card, PageHeader, btnGhost, btnPrimary, inputClass } from './ui';
++import { ListToolbar, Select } from './crm/kit';
+ import SaleDialog from './SaleDialog';
+ import { ClientRows, InterestDialog, LotDialog } from './LotDialog';
+ import { getBuyRequests } from './crm/model';
+@@ -73,16 +74,13 @@ export default function AdminLands() {
+         }
+       />
+ 
+-      <Card className="p-4 mb-4 flex flex-wrap gap-3">
+-        <div className="relative flex-1 min-w-[200px]">
+-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher par titre ou localisation…" className={`${inputClass} pl-9`} />
+-        </div>
+-        <select value={status} onChange={(e) => setStatus(e.target.value)} className={`${inputClass} w-auto`}>
+-          <option value="">Tous les statuts</option>
+-          {LAND_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+-        </select>
+-      </Card>
++      <ListToolbar
++        q={q}
++        onQ={setQ}
++        placeholder="Rechercher par titre ou localisation…"
++        filters={<Select value={status} onChange={setStatus} options={LAND_STATUSES} placeholder="Tous les statuts" />}
++        activeFilters={status ? 1 : 0}
++      />
+ 
+       <Card className="overflow-x-auto">
+         <table className="w-full text-sm">
+diff --git a/frontend/src/admin/AdminRequests.tsx b/frontend/src/admin/AdminRequests.tsx
+index d2cb914..17080aa 100644
+--- a/frontend/src/admin/AdminRequests.tsx
++++ b/frontend/src/admin/AdminRequests.tsx
+@@ -5,15 +5,7 @@ import {
+   deleteMessage, getMessages, updateMessage,
+ } from '../lib/store';
+ import { Card, PageHeader, REQUEST_STATUSES, btnGhost, formatDate, inputClass } from './ui';
+-
+-function StatusFilter({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+-  return (
+-    <select value={value} onChange={(e) => onChange(e.target.value)} className={`${inputClass} w-auto`}>
+-      <option value="">Tous</option>
+-      {REQUEST_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+-    </select>
+-  );
+-}
++import { ListToolbar, Select } from './crm/kit';
+ 
+ function StatusSelect({ value, onChange }: { value: RequestStatus; onChange: (v: RequestStatus) => void }) {
+   return (
+@@ -35,22 +27,42 @@ function Contact({ phone, email }: { phone: string; email?: string }) {
+ export function AdminMessages() {
+   const [items, setItems] = useState(getMessages);
+   const [filter, setFilter] = useState('');
++  const [q, setQ] = useState('');
+ 
+   const update = (id: string, patch: Partial<ContactMessage>) => { updateMessage(id, patch); setItems(getMessages()); };
+   const remove = (id: string) => { if (confirm('Supprimer ce message ?')) { deleteMessage(id); setItems(getMessages()); } };
+ 
+-  const shown = items.filter((m) => !filter || m.status === filter);
++  const s = q.toLowerCase().trim();
++  const shown = items.filter((m) =>
++    (!filter || m.status === filter) &&
++    (!s || [m.firstName, m.lastName, m.phone, m.email ?? '', m.subject ?? '', m.message].join(' ').toLowerCase().includes(s)))
++    .sort((a, b) => {
++      const fresh = (m: ContactMessage) => (m.status === 'nouveau' ? 0 : 1);
++      return fresh(a) - fresh(b) || b.createdAt.localeCompare(a.createdAt); // non lus d'abord, puis plus récents
++    });
++  const unread = items.filter((m) => m.status === 'nouveau').length;
+ 
+   return (
+     <>
+-      <PageHeader title="Messages" subtitle="Messages envoyés depuis la page Contact" action={<StatusFilter value={filter} onChange={setFilter} />} />
++      <PageHeader title="Messages" subtitle={`Messages envoyés depuis la page Contact${unread ? ` — ${unread} non lu(s)` : ''}`} />
++      <ListToolbar
++        q={q}
++        onQ={setQ}
++        placeholder="Rechercher : nom, téléphone, email, sujet…"
++        filters={<Select value={filter} onChange={setFilter} options={REQUEST_STATUSES} placeholder="Tous statuts" />}
++        activeFilters={filter ? 1 : 0}
++      />
+       {shown.length === 0 && <Card className="p-8 text-center text-gray-500">Aucun message.</Card>}
+       <div className="space-y-3">
+         {shown.map((m) => (
+-          <Card key={m.id} className="p-5">
++          <Card key={m.id} className={`p-5 ${m.status === 'nouveau' ? 'border-l-4 border-l-gold-500 bg-gold-400/5' : ''}`}>
+             <div className="flex flex-wrap items-start justify-between gap-3">
+               <div>
+-                <p className="font-semibold text-navy-900">{m.firstName} {m.lastName}</p>
++                <p className="font-semibold text-navy-900 flex items-center gap-2">
++                  {m.status === 'nouveau' && <span className="h-2 w-2 rounded-full bg-gold-500" aria-hidden />}
++                  {m.firstName} {m.lastName}
++                  {m.status === 'nouveau' && <span className="text-[10px] font-bold uppercase tracking-wide text-gold-700">Non lu</span>}
++                </p>
+                 <Contact phone={m.phone} email={m.email} />
+               </div>
+               <div className="flex items-center gap-2">
+diff --git a/frontend/src/admin/BuyRequests.tsx b/frontend/src/admin/BuyRequests.tsx
+index c931e64..0b87264 100644
+--- a/frontend/src/admin/BuyRequests.tsx
++++ b/frontend/src/admin/BuyRequests.tsx
+@@ -14,6 +14,7 @@ import {
+   Badge, Choice, Column, DataTable, DateFilter, Field, FileChip, FileDrop, Grid, Info, Modal, NotesPanel, NumberInput, Preview,
+   Section, Select, Stat, Stepper, Tabs, Timeline, btnGold, btnIcon, btnOutline, btnPrimary, exportCsv,
+   fmtAr, fmtDate, fmtDateTime, fmtM2, input, printTable,
++  ListToolbar, PageHeader, RelDate, TelLink,
+ } from './crm/kit';
+ import { removeFile } from './crm/files';
+ import { emptyClientFields, findOrCreateClient, getClient, splitName } from './crm/people';
+@@ -45,7 +46,7 @@ const columns: Column<BuyRequest>[] = [
+     key: 'client', label: 'Client', sort: (r) => fullName(r).toLowerCase(), csv: (r) => fullName(r),
+     render: (r) => (<div><p className="font-medium text-navy-900">{fullName(r)}</p><p className="text-xs text-gray-500">{r.propertyType} · {r.source}</p></div>),
+   },
+-  { key: 'phone', label: 'Téléphone', render: (r) => <span className="whitespace-nowrap">{phoneOf(r)}</span>, csv: (r) => phoneOf(r) },
++  { key: 'phone', label: 'Téléphone', render: (r) => <TelLink phone={phoneOf(r)} />, csv: (r) => phoneOf(r) },
+   {
+     key: 'land', label: 'Terrain souhaité', sort: (r) => landLabel(r), csv: (r) => landLabel(r),
+     render: (r) => <span className="block max-w-[220px] truncate" title={landLabel(r)}>{landLabel(r) || <span className="text-red-600">Non rattaché</span>}</span>,
+@@ -55,7 +56,7 @@ const columns: Column<BuyRequest>[] = [
+   { key: 'pay', label: 'Paiement', render: (r) => <span className="whitespace-nowrap">{r.paymentMode ? (isInstalment(r) ? 'Facilité' : 'Comptant') : '—'}</span>, sort: (r) => r.paymentMode, csv: (r) => r.paymentMode },
+   { key: 'agent', label: 'Agent', render: (r) => <span className="whitespace-nowrap">{r.agent}</span>, sort: (r) => r.agent, csv: (r) => r.agent },
+   { key: 'next', label: 'Prochaine action', render: (r) => <ActionLabel a={nextAction(r.actions)} />, sort: (r) => nextAction(r.actions)?.at ?? '9', csv: (r) => { const a = nextAction(r.actions); return a ? `${a.type} ${fmtDateTime(a.at)}` : ''; } },
+-  { key: 'date', label: 'Création', render: (r) => <span className="whitespace-nowrap text-gray-500">{fmtDate(r.createdAt)}</span>, sort: (r) => r.createdAt, csv: (r) => fmtDateTime(r.createdAt) },
++  { key: 'date', label: 'Création', render: (r) => <RelDate iso={r.createdAt} />, sort: (r) => r.createdAt, csv: (r) => fmtDateTime(r.createdAt) },
+   { key: 'prio', label: 'Priorité', render: (r) => <Badge value={r.priority} />, sort: (r) => PRIORITIES.indexOf(r.priority), csv: (r) => r.priority },
+   { key: 'status', label: 'Statut', render: (r) => <Badge value={r.status} dot />, sort: (r) => BUY_STATUSES.indexOf(r.status), csv: (r) => r.status },
+ ];
+@@ -68,7 +69,6 @@ export function BuyRequestList() {
+   const navigate = useNavigate();
+   const [rows, setRows] = useState(loadPurchaseRequests);
+   const [q, setQ] = useState('');
+-  const [showFilters, setShowFilters] = useState(false);
+   const [f, setF] = useState({ region: '', status: '', agent: '', pay: '', priority: '', from: '', to: '', budgetMax: 0 });
+   const [selected, setSelected] = useState<string[]>([]);
+   const [bulkStatus, setBulkStatus] = useState('');
+@@ -81,7 +81,11 @@ export function BuyRequestList() {
+       (!f.region || r.region === f.region) && (!f.status || r.status === f.status) && (!f.agent || r.agent === f.agent) &&
+       (!f.priority || r.priority === f.priority) && (!f.pay || r.paymentMode === f.pay) &&
+       (!f.from || r.createdAt.slice(0, 10) >= f.from) && (!f.to || r.createdAt.slice(0, 10) <= f.to) &&
+-      (!f.budgetMax || (r.budgetMin || 0) <= f.budgetMax));
++      (!f.budgetMax || (r.budgetMin || 0) <= f.budgetMax))
++      .sort((a, b) => {
++        const fresh = (r: BuyRequest) => (r.status === 'Nouvelle' || r.status === 'À contacter' ? 0 : 1);
++        return fresh(a) - fresh(b) || b.createdAt.localeCompare(a.createdAt); // à traiter d'abord, puis plus récentes
++      });
+   }, [rows, q, f]);
+ 
+   const applyBulk = () => {
+@@ -100,13 +104,11 @@ export function BuyRequestList() {
+ 
+   return (
+     <>
+-      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+-        <div>
+-          <h1 className="text-2xl font-bold text-navy-900">Demandes d’achat</h1>
+-          <p className="text-sm text-gray-500 mt-1">Personnes souhaitant acheter un terrain ou un bien immobilier</p>
+-        </div>
+-        <Link to={`${BASE}/nouveau`} className={btnGold}><Plus className="w-4 h-4" /> Nouvelle demande</Link>
+-      </div>
++      <PageHeader
++        title="Demandes d’achat"
++        subtitle="Personnes souhaitant acheter un terrain ou un bien immobilier"
++        action={<Link to={`${BASE}/nouveau`} className={btnGold}><Plus className="w-4 h-4" /> Nouvelle demande</Link>}
++      />
+ 
+       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+         <Stat label="Dossiers actifs" value={active.length} />
+@@ -115,21 +117,13 @@ export function BuyRequestList() {
+         <Stat label="Achats finalisés" value={rows.filter((r) => r.status === 'Achat finalisé').length} tone="text-blue-700" />
+       </div>
+ 
+-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4 space-y-3">
+-        <div className="relative">
+-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher par référence, nom, téléphone, email, commune…" className={`${input} pl-9`} />
+-          <button
+-            type="button"
+-            onClick={() => setShowFilters((v) => !v)}
+-            className={`absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${showFilters ? 'bg-navy-900 text-white' : 'text-navy-900 hover:bg-gray-100'}`}
+-          >
+-            <SlidersHorizontal className="w-3.5 h-3.5" /> Filtres
+-            {activeFilters > 0 && <span className="grid h-4 min-w-4 place-items-center rounded-full bg-gold-500 px-1 text-[10px] font-bold text-navy-900">{activeFilters}</span>}
+-          </button>
+-        </div>
+-        {showFilters && (
+-          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2">
++      <ListToolbar
++        q={q}
++        onQ={setQ}
++        placeholder="Rechercher par référence, nom, téléphone, email, commune…"
++        activeFilters={activeFilters}
++        filters={
++          <>
+             <Select value={f.region} onChange={(v) => set('region', v)} options={REGIONS} placeholder="Toutes régions" />
+             <Select value={f.status} onChange={(v) => set('status', v)} options={BUY_STATUSES} placeholder="Tous statuts" />
+             <Select value={f.agent} onChange={(v) => set('agent', v)} options={AGENTS} placeholder="Tous agents" />
+@@ -138,28 +132,26 @@ export function BuyRequestList() {
+             <NumberInput value={f.budgetMax} onChange={(v) => set('budgetMax', v)} placeholder="Budget ≤" suffix="Ar" />
+             <DateFilter label="Du" value={f.from} onChange={(v) => set('from', v)} />
+             <DateFilter label="Au" value={f.to} onChange={(v) => set('to', v)} />
+-          </div>
++          </>
++        }
++        bulk={selected.length > 0 && (
++          <>
++            <Select value={bulkStatus} onChange={setBulkStatus} options={BUY_STATUSES} placeholder={`Statut pour ${selected.length} dossier(s)…`} className="w-auto" />
++            <button className={btnPrimary} onClick={applyBulk} disabled={!bulkStatus}>Appliquer</button>
++          </>
+         )}
+-        <div className="flex flex-wrap items-center gap-2 pt-1">
+-          {selected.length > 0 && (
+-            <>
+-              <Select value={bulkStatus} onChange={setBulkStatus} options={BUY_STATUSES} placeholder={`Statut pour ${selected.length} dossier(s)…`} className="w-auto" />
+-              <button className={btnPrimary} onClick={applyBulk} disabled={!bulkStatus}>Appliquer</button>
+-            </>
+-          )}
+-          <div className="flex gap-2 ml-auto">
+-            <button className={btnOutline} onClick={() => exportCsv(chosen(), columns, 'demandes-achat')}><FileSpreadsheet className="w-4 h-4" /> Excel</button>
+-            <button className={btnOutline} onClick={() => printTable(chosen(), columns, 'Demandes d’achat')}><FileDown className="w-4 h-4" /> PDF</button>
+-            <button className={btnOutline} onClick={() => printTable(chosen(), columns, 'Demandes d’achat')}><Printer className="w-4 h-4" /> Imprimer</button>
+-          </div>
+-        </div>
+-      </div>
++        exportRows={chosen}
++        exportColumns={columns}
++        exportName="demandes-achat"
++        exportTitle="Demandes d’achat"
++      />
+ 
+       <DataTable
+         rows={filtered}
+         columns={columns}
+         selected={selected}
+         onSelect={setSelected}
++        rowClass={(r) => (r.status === 'Nouvelle' || r.status === 'À contacter' ? 'bg-blue-50/60' : '')}
+         onOpen={(r) => navigate(`${BASE}/${r.id}`)}
+         rowActions={(r) => (
+           <>
+diff --git a/frontend/src/admin/Clients.tsx b/frontend/src/admin/Clients.tsx
+index 25d2ce6..0f7d000 100644
+--- a/frontend/src/admin/Clients.tsx
++++ b/frontend/src/admin/Clients.tsx
+@@ -4,7 +4,7 @@ import { ArrowLeft, FileSpreadsheet, Mail, Pencil, Phone, Plus, Search, Shopping
+ import { getLands } from '../lib/store';
+ import { fullName as requestName, getBuyRequests } from './crm/model';
+ import { Client, ClientFields, createClient, deleteClient, emptyClientFields, getClient, getClients, getSearches, saveClient } from './crm/people';
+-import { Badge, Column, DataTable, Field, Info, Modal, Section, Stat, btnDanger, btnGold, btnIcon, btnOutline, btnPrimary, exportCsv, fmtAr, fmtDate, input } from './crm/kit';
++import { Badge, Column, DataTable, Field, Info, ListToolbar, Modal, PageHeader, RelDate, Section, Select, Stat, TelLink, btnDanger, btnGold, btnIcon, btnOutline, btnPrimary, fmtAr, fmtDate, input } from './crm/kit';
+ import { phoneError } from '../lib/validate';
+ 
+ const BASE = '/admin/clients';
+@@ -55,36 +55,38 @@ export function ClientForm({ initial, title, onClose, onSave }: {
+ const columns: Column<Client>[] = [
+   { key: 'ref', label: 'Référence', render: (c) => <span className="font-mono text-xs font-semibold">{c.ref}</span>, sort: (c) => c.ref, csv: (c) => c.ref },
+   { key: 'name', label: 'Client', render: (c) => <span className="font-medium text-navy-900">{c.fullName}</span>, sort: (c) => c.fullName.toLowerCase(), csv: (c) => c.fullName },
+-  { key: 'phone', label: 'Téléphone', render: (c) => <span className="whitespace-nowrap">{c.phone}</span>, csv: (c) => c.phone },
++  { key: 'phone', label: 'Téléphone', render: (c) => <TelLink phone={c.phone} />, csv: (c) => c.phone },
+   { key: 'email', label: 'Email', render: (c) => c.email || '—', csv: (c) => c.email },
+   { key: 'budget', label: 'Budget', render: (c) => <span className="whitespace-nowrap">{c.budget ? (Number(c.budget) ? fmtAr(Number(c.budget)) : c.budget) : '—'}</span>, csv: (c) => c.budget },
+   { key: 'profession', label: 'Profession', render: (c) => c.profession || '—', sort: (c) => c.profession, csv: (c) => c.profession },
+   { key: 'nat', label: 'Nationalité', render: (c) => c.nationality || '—', sort: (c) => c.nationality, csv: (c) => c.nationality },
+   { key: 'source', label: 'Source', render: (c) => <span className={`text-xs px-2 py-0.5 rounded-full ${c.source === 'Site web' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700'}`}>{c.source}</span>, sort: (c) => c.source, csv: (c) => c.source },
+-  { key: 'date', label: 'Inscrit le', render: (c) => <span className="text-gray-500 whitespace-nowrap">{fmtDate(c.createdAt)}</span>, sort: (c) => c.createdAt, csv: (c) => fmtDate(c.createdAt) },
++  { key: 'date', label: 'Inscrit le', render: (c) => <RelDate iso={c.createdAt} />, sort: (c) => c.createdAt, csv: (c) => fmtDate(c.createdAt) },
+ ];
+ 
+ export function ClientList() {
+   const navigate = useNavigate();
+   const [rows, setRows] = useState(getClients);
+   const [q, setQ] = useState('');
++  const [source, setSource] = useState('');
+   const [selected, setSelected] = useState<string[]>([]);
+   const [creating, setCreating] = useState(false);
+ 
+   const filtered = useMemo(() => {
+     const s = q.toLowerCase().trim();
+-    return rows.filter((c) => !s || [c.ref, c.fullName, c.phone, c.email, c.profession, c.nationality].join(' ').toLowerCase().includes(s));
+-  }, [rows, q]);
++    return rows.filter((c) =>
++      (!s || [c.ref, c.fullName, c.phone, c.email, c.profession, c.nationality].join(' ').toLowerCase().includes(s)) &&
++      (!source || c.source === source))
++      .sort((a, b) => b.createdAt.localeCompare(a.createdAt)); // inscrits les plus récents d'abord
++  }, [rows, q, source]);
+ 
+   return (
+     <>
+-      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+-        <div>
+-          <h1 className="text-2xl font-bold text-navy-900">Base clients</h1>
+-          <p className="text-sm text-gray-500 mt-1">Clients inscrits depuis le site ou créés dans le backoffice</p>
+-        </div>
+-        <button onClick={() => setCreating(true)} className={btnGold}><Plus className="w-4 h-4" /> Nouveau client</button>
+-      </div>
++      <PageHeader
++        title="Base clients"
++        subtitle="Clients inscrits depuis le site ou créés dans le backoffice"
++        action={<button onClick={() => setCreating(true)} className={btnGold}><Plus className="w-4 h-4" /> Nouveau client</button>}
++      />
+ 
+       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-5">
+         <Stat label="Clients" value={rows.length} />
+@@ -92,13 +94,17 @@ export function ClientList() {
+         <Stat label="Créés au backoffice" value={rows.filter((c) => c.source === 'Backoffice').length} />
+       </div>
+ 
+-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4 flex flex-wrap gap-2">
+-        <div className="relative flex-1 min-w-[220px]">
+-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher : nom, téléphone, email, profession…" className={`${input} pl-9`} />
+-        </div>
+-        <button className={btnOutline} onClick={() => exportCsv(selected.length ? filtered.filter((c) => selected.includes(c.id)) : filtered, columns, 'clients')}><FileSpreadsheet className="w-4 h-4" /> Excel</button>
+-      </div>
++      <ListToolbar
++        q={q}
++        onQ={setQ}
++        placeholder="Rechercher : nom, téléphone, email, profession…"
++        filters={<Select value={source} onChange={setSource} options={['Site web', 'Backoffice']} placeholder="Toutes sources" />}
++        activeFilters={source ? 1 : 0}
++        exportRows={() => (selected.length ? filtered.filter((c) => selected.includes(c.id)) : filtered)}
++        exportColumns={columns}
++        exportName="clients"
++        exportTitle="Base clients"
++      />
+ 
+       <DataTable rows={filtered} columns={columns} selected={selected} onSelect={setSelected} onOpen={(c) => navigate(`${BASE}/${c.id}`)} />
+ 
+diff --git a/frontend/src/admin/LandFiles.tsx b/frontend/src/admin/LandFiles.tsx
+index 6572ffd..16fd991 100644
+--- a/frontend/src/admin/LandFiles.tsx
++++ b/frontend/src/admin/LandFiles.tsx
+@@ -16,6 +16,7 @@ import {
+   Badge, Choice, Column, DataTable, DateFilter, Field, FileChip, FileDrop, Grid, Info, MapPicker, Modal, MultiChoice, NotesPanel,
+   NumberInput, Preview, Section, Select, Stat, Stepper, Tabs, Thumb, Timeline, btnDanger, btnGold, btnIcon, btnOutline,
+   btnPrimary, exportCsv, fmtAr, fmtDate, fmtDateTime, fmtM2, fmtNum, input, printHtml, printTable,
++  ListToolbar, PageHeader, RelDate,
+ } from './crm/kit';
+ import { removeFile, useFileUrl } from './crm/files';
+ import { NotFound } from './BuyRequests';
+@@ -52,7 +53,7 @@ const columns: Column<LandFile>[] = [
+   { key: 'ppm', label: 'Prix/m²', render: (f) => <span className="whitespace-nowrap text-gray-600">{f.pricePerM2 ? `${fmtNum(f.pricePerM2)} Ar` : '—'}</span>, sort: (f) => f.pricePerM2, csv: (f) => f.pricePerM2, className: 'text-right' },
+   { key: 'pay', label: 'Paiement', render: (f) => <span className="whitespace-nowrap">{payShort(f)}</span>, sort: (f) => f.salePayment, csv: (f) => f.salePayment },
+   { key: 'agent', label: 'Agent', render: (f) => <span className="whitespace-nowrap">{f.agent}</span>, sort: (f) => f.agent, csv: (f) => f.agent },
+-  { key: 'date', label: 'Création', render: (f) => <span className="whitespace-nowrap text-gray-500">{fmtDate(f.createdAt)}</span>, sort: (f) => f.createdAt, csv: (f) => fmtDateTime(f.createdAt) },
++  { key: 'date', label: 'Création', render: (f) => <RelDate iso={f.createdAt} />, sort: (f) => f.createdAt, csv: (f) => fmtDateTime(f.createdAt) },
+   { key: 'prio', label: 'Priorité', render: (f) => <Badge value={f.priority} />, sort: (f) => PRIORITIES.indexOf(f.priority), csv: (f) => f.priority },
+   {
+     key: 'decision', label: 'Décision', sort: (f) => f.decision ?? '', csv: (f) => f.decision ?? '',
+@@ -75,7 +76,11 @@ export function LandFileList() {
+     return rows.filter((r) =>
+       (view === 'archive' ? r.status === 'Archivé' : r.status !== 'Archivé') &&
+       (!s || [r.ref, r.title, fullName(r.owner), r.owner.phone, r.owner.email, r.region, r.district, r.commune, r.fokontany, r.status, r.agent]
+-        .join(' ').toLowerCase().includes(s)));
++        .join(' ').toLowerCase().includes(s)))
++      .sort((a, b) => {
++        const fresh = (r: LandFile) => (r.status === 'Nouveau' || r.status === 'Dossier incomplet' ? 0 : 1);
++        return fresh(a) - fresh(b) || b.createdAt.localeCompare(a.createdAt); // à traiter d'abord, puis plus récents
++      });
+   }, [rows, q, view]);
+ 
+   const applyBulk = () => {
+@@ -94,13 +99,11 @@ export function LandFileList() {
+ 
+   return (
+     <>
+-      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+-        <div>
+-          <h1 className="text-2xl font-bold text-navy-900">À vendre</h1>
+-          <p className="text-sm text-gray-500 mt-1">Terrains que des propriétaires proposent à CA IMMO de vendre</p>
+-        </div>
+-        <Link to={`${BASE}/nouveau`} className={btnGold}><Plus className="w-4 h-4" /> Nouveau terrain à vendre</Link>
+-      </div>
++      <PageHeader
++        title="À vendre"
++        subtitle="Terrains que des propriétaires proposent à CA IMMO de vendre"
++        action={<Link to={`${BASE}/nouveau`} className={btnGold}><Plus className="w-4 h-4" /> Nouveau terrain à vendre</Link>}
++      />
+ 
+       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+         <Stat label="Dossiers" value={rows.length} />
+@@ -109,25 +112,21 @@ export function LandFileList() {
+         <Stat label="Valeur publiée" value={<span className="text-base">{fmtAr(published.reduce((t, r) => t + r.price, 0))}</span>} />
+       </div>
+ 
+-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4 space-y-3">
+-        <div className="relative">
+-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher : référence, titre, propriétaire, téléphone, région, commune, statut, agent…" className={`${input} pl-9`} />
+-        </div>
+-        <div className="flex flex-wrap items-center gap-2 pt-1">
+-          {selected.length > 0 && (
+-            <>
+-              <Select value={bulkStatus} onChange={setBulkStatus} options={LAND_STATUSES} placeholder={`Statut pour ${selected.length} dossier(s)…`} className="w-auto" />
+-              <button className={btnPrimary} onClick={applyBulk} disabled={!bulkStatus}>Appliquer</button>
+-            </>
+-          )}
+-          <div className="flex gap-2 ml-auto">
+-            <button className={btnOutline} onClick={() => exportCsv(chosen(), columns, 'dossiers-terrains')}><FileSpreadsheet className="w-4 h-4" /> Excel</button>
+-            <button className={btnOutline} onClick={() => printTable(chosen(), columns, 'Dossiers terrains')}><FileDown className="w-4 h-4" /> PDF</button>
+-            <button className={btnOutline} onClick={() => printTable(chosen(), columns, 'Dossiers terrains')}><Printer className="w-4 h-4" /> Imprimer</button>
+-          </div>
+-        </div>
+-      </div>
++      <ListToolbar
++        q={q}
++        onQ={setQ}
++        placeholder="Rechercher : référence, titre, propriétaire, téléphone, région, commune, statut, agent…"
++        bulk={selected.length > 0 && (
++          <>
++            <Select value={bulkStatus} onChange={setBulkStatus} options={LAND_STATUSES} placeholder={`Statut pour ${selected.length} dossier(s)…`} className="w-auto" />
++            <button className={btnPrimary} onClick={applyBulk} disabled={!bulkStatus}>Appliquer</button>
++          </>
++        )}
++        exportRows={chosen}
++        exportColumns={columns}
++        exportName="dossiers-terrains"
++        exportTitle="Dossiers terrains"
++      />
+ 
+       <Tabs
+         value={view}
+@@ -143,6 +142,7 @@ export function LandFileList() {
+         columns={columns}
+         selected={selected}
+         onSelect={setSelected}
++        rowClass={(r) => (r.status === 'Nouveau' || r.status === 'Dossier incomplet' ? 'bg-blue-50/60' : '')}
+         onOpen={(r) => navigate(`${BASE}/${r.id}`)}
+         rowActions={(r) => (
+           <>
+diff --git a/frontend/src/admin/Searches.tsx b/frontend/src/admin/Searches.tsx
+index af477ab..5050952 100644
+--- a/frontend/src/admin/Searches.tsx
++++ b/frontend/src/admin/Searches.tsx
+@@ -12,6 +12,7 @@ import { historyEntry } from './crm/model';
+ import {
+   Badge, Choice, Column, DataTable, Field, Info, MapPicker, Modal, NumberInput, Section, Select, Stat, Timeline,
+   btnDanger, btnGold, btnIcon, btnOutline, btnPrimary, fmtAr, fmtDate, fmtDateTime, fmtM2, input,
++  ListToolbar, PageHeader, RelDate, TelLink,
+ } from './crm/kit';
+ 
+ const BASE = '/admin/recherches';
+@@ -83,14 +84,14 @@ function distanceKm(a: [number, number], b: [number, number]) {
+ // ======================= LISTE =======================
+ const columns: Column<SpecificSearch>[] = [
+   { key: 'ref', label: 'Référence', render: (s) => <span className="font-mono text-xs font-semibold">{s.ref}</span>, sort: (s) => s.ref, csv: (s) => s.ref },
+-  { key: 'client', label: 'Client', render: (s) => <div><p className="font-medium text-navy-900">{s.fullName}</p><p className="text-xs text-gray-500">{s.phone}</p></div>, sort: (s) => s.fullName.toLowerCase(), csv: (s) => s.fullName },
++  { key: 'client', label: 'Client', render: (s) => <div><p className="font-medium text-navy-900">{s.fullName}</p><TelLink phone={s.phone} /></div>, sort: (s) => s.fullName.toLowerCase(), csv: (s) => s.fullName },
+   { key: 'zone', label: 'Zone principale', render: (s) => <span>{s.mainZone}</span>, sort: (s) => s.mainZone, csv: (s) => s.mainZone },
+   { key: 'others', label: 'Autres zones', render: (s) => <span className="text-gray-600">{s.otherZones || '—'}</span>, csv: (s) => s.otherZones },
+   { key: 'radius', label: 'Rayon', render: (s) => `${s.radiusKm} km`, sort: (s) => s.radiusKm, csv: (s) => s.radiusKm },
+   { key: 'flex', label: 'Flexible', render: (s) => s.flexible, csv: (s) => s.flexible },
+   { key: 'budget', label: 'Budget max', render: (s) => <span className="whitespace-nowrap">{fmtAr(s.budgetMax)}</span>, sort: (s) => s.budgetMax, csv: (s) => s.budgetMax },
+   { key: 'prop', label: 'Terrains proposés', render: (s) => s.proposals.length, sort: (s) => s.proposals.length, csv: (s) => s.proposals.length },
+-  { key: 'date', label: 'Reçue le', render: (s) => <span className="text-gray-500 whitespace-nowrap">{fmtDate(s.createdAt)}</span>, sort: (s) => s.createdAt, csv: (s) => fmtDate(s.createdAt) },
++  { key: 'date', label: 'Reçue le', render: (s) => <RelDate iso={s.createdAt} />, sort: (s) => s.createdAt, csv: (s) => fmtDate(s.createdAt) },
+   { key: 'status', label: 'Statut', render: (s) => <Badge value={s.status} dot />, sort: (s) => SEARCH_STATUSES.indexOf(s.status), csv: (s) => s.status },
+ ];
+ 
+@@ -102,31 +103,36 @@ export function SearchList() {
+   const [creating, setCreating] = useState(false);
+   const filtered = useMemo(() => {
+     const s = q.toLowerCase().trim();
+-    return rows.filter((r) => !s || [r.ref, r.fullName, r.phone, r.mainZone, r.otherZones, r.targetZone, r.status].join(' ').toLowerCase().includes(s));
++    return rows.filter((r) => !s || [r.ref, r.fullName, r.phone, r.mainZone, r.otherZones, r.targetZone, r.status].join(' ').toLowerCase().includes(s))
++      .sort((a, b) => {
++        const fresh = (r: SpecificSearch) => (r.status === 'Nouvelle' ? 0 : 1);
++        return fresh(a) - fresh(b) || b.createdAt.localeCompare(a.createdAt); // nouvelles d'abord, puis plus récentes
++      });
+   }, [rows, q]);
+ 
+   return (
+     <>
+-      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+-        <div>
+-          <h1 className="text-2xl font-bold text-navy-900">Recherches de terrain spécifique</h1>
+-          <p className="text-sm text-gray-500 mt-1">Clients qui cherchent un terrain précis, et les terrains qu’on leur a proposés</p>
+-        </div>
+-        <button className={btnGold} onClick={() => setCreating(true)}><Plus className="w-4 h-4" /> Nouvelle recherche</button>
+-      </div>
++      <PageHeader
++        title="Recherches de terrain spécifique"
++        subtitle="Clients qui cherchent un terrain précis, et les terrains qu’on leur a proposés"
++        action={<button className={btnGold} onClick={() => setCreating(true)}><Plus className="w-4 h-4" /> Nouvelle recherche</button>}
++      />
+       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+         <Stat label="Recherches" value={rows.length} />
+         <Stat label="Nouvelles" value={rows.filter((r) => r.status === 'Nouvelle').length} tone="text-blue-700" />
+         <Stat label="Avec terrains proposés" value={rows.filter((r) => r.proposals.length).length} tone="text-amber-600" />
+         <Stat label="Trouvées" value={rows.filter((r) => r.status === 'Trouvé').length} tone="text-blue-700" />
+       </div>
+-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4">
+-        <div className="relative">
+-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher : client, téléphone, zone, statut…" className={`${input} pl-9`} />
+-        </div>
+-      </div>
+-      <DataTable rows={filtered} columns={columns} selected={selected} onSelect={setSelected} onOpen={(r) => navigate(`${BASE}/${r.id}`)} />
++      <ListToolbar
++        q={q}
++        onQ={setQ}
++        placeholder="Rechercher : client, téléphone, zone, statut…"
++        exportRows={() => (selected.length ? filtered.filter((r) => selected.includes(r.id)) : filtered)}
++        exportColumns={columns}
++        exportName="recherches"
++        exportTitle="Recherches de terrain"
++      />
++      <DataTable rows={filtered} columns={columns} selected={selected} onSelect={setSelected} rowClass={(r) => (r.status === 'Nouvelle' ? 'bg-blue-50/60' : '')} onOpen={(r) => navigate(`${BASE}/${r.id}`)} />
+       {creating && <NewSearchDialog onClose={() => setCreating(false)} onCreated={(s) => { setRows(getSearches()); navigate(`${BASE}/${s.id}`); }} />}
+     </>
+   );
+diff --git a/frontend/src/admin/Visits.tsx b/frontend/src/admin/Visits.tsx
+index 7859a2e..791ae2f 100644
+--- a/frontend/src/admin/Visits.tsx
++++ b/frontend/src/admin/Visits.tsx
+@@ -15,6 +15,7 @@ import { getClient } from './crm/people';
+ import {
+   Badge, Column, DataTable, Section, Select, Stat, Timeline, btnIcon, btnOutline,
+   exportCsv, fmtAr, fmtDate, input,
++  ListToolbar, PageHeader, RelDate, TelLink,
+ } from './crm/kit';
+ 
+ const BASE = '/admin/visites';
+@@ -39,7 +40,7 @@ const columns: Column<BuyRequest>[] = [
+   { key: 'client', label: 'Client', render: (r) => (
+     <div>
+       <p className="font-medium text-navy-900">{fullName(r)}</p>
+-      <p className="text-xs text-gray-500">{r.phone}</p>
++      <TelLink phone={r.phone} />
+     </div>
+   ), sort: (r) => fullName(r).toLowerCase(), csv: (r) => fullName(r) },
+   { key: 'land', label: 'Terrain', render: (r) => {
+@@ -48,7 +49,7 @@ const columns: Column<BuyRequest>[] = [
+     }, sort: (r) => r.landId, csv: (r) => getLands().find((l) => l.id === r.landId)?.title ?? '' },
+   { key: 'date', label: 'Visite souhaitée', render: (r) => <span className="whitespace-nowrap">{fmtVisitDate(r)}</span>, sort: (r) => r.visitDate ?? '', csv: (r) => fmtVisitDate(r) },
+   { key: 'status', label: 'Statut', render: (r) => <Badge value={visitStatusOf(r)} dot />, sort: (r) => VISIT_STATUSES.indexOf(visitStatusOf(r)), csv: (r) => visitStatusOf(r) },
+-  { key: 'created', label: 'Reçue le', render: (r) => <span className="text-gray-500 whitespace-nowrap">{fmtDate(r.createdAt)}</span>, sort: (r) => r.createdAt, csv: (r) => fmtDate(r.createdAt) },
++  { key: 'created', label: 'Reçue le', render: (r) => <RelDate iso={r.createdAt} />, sort: (r) => r.createdAt, csv: (r) => fmtDate(r.createdAt) },
+ ];
+ 
+ export function VisitList() {
+@@ -62,6 +63,9 @@ export function VisitList() {
+     const land = getLands().find((l) => l.id === r.landId);
+     return (!status || visitStatusOf(r) === status) &&
+       (!s || [r.ref, fullName(r), r.phone, r.email, land?.title ?? ''].join(' ').toLowerCase().includes(s));
++  }).sort((a, b) => {
++    const fresh = (r: BuyRequest) => (visitStatusOf(r) === 'Demandée' ? 0 : 1);
++    return fresh(a) - fresh(b) || b.createdAt.localeCompare(a.createdAt); // à confirmer d'abord, puis plus récentes
+   });
+ 
+   const demandees = rows.filter((r) => visitStatusOf(r) === 'Demandée').length;
+@@ -70,15 +74,10 @@ export function VisitList() {
+ 
+   return (
+     <>
+-      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+-        <div>
+-          <h1 className="text-2xl font-bold text-navy-900">Demandes de visite</h1>
+-          <p className="text-sm text-gray-500 mt-1">Visites demandées depuis le site — confirmation et suivi</p>
+-        </div>
+-        <div className="flex gap-2">
+-          <button className={btnOutline} onClick={() => exportCsv(filtered, columns, 'visites')}><CalendarDays className="w-4 h-4" /> Excel</button>
+-        </div>
+-      </div>
++      <PageHeader
++        title="Demandes de visite"
++        subtitle="Visites demandées depuis le site — confirmation et suivi"
++      />
+ 
+       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+         <Stat label="À confirmer" value={demandees} tone="text-blue-700" />
+@@ -87,21 +86,24 @@ export function VisitList() {
+         <Stat label="Total" value={rows.length} />
+       </div>
+ 
+-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4 space-y-3">
+-        <div className="relative">
+-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher par référence, nom, téléphone, terrain…" className={`${input} pl-9`} />
+-        </div>
+-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+-          <Select value={status} onChange={setStatus} options={[...VISIT_STATUSES]} placeholder="Tous statuts" />
+-        </div>
+-      </div>
++      <ListToolbar
++        q={q}
++        onQ={setQ}
++        placeholder="Rechercher par référence, nom, téléphone, terrain…"
++        filters={<Select value={status} onChange={setStatus} options={[...VISIT_STATUSES]} placeholder="Tous statuts" />}
++        activeFilters={status ? 1 : 0}
++        exportRows={() => filtered}
++        exportColumns={columns}
++        exportName="visites"
++        exportTitle="Demandes de visite"
++      />
+ 
+       <DataTable
+         rows={filtered}
+         columns={columns}
+         selected={[]}
+         onSelect={() => {}}
++        rowClass={(r) => (visitStatusOf(r) === 'Demandée' ? 'bg-blue-50/60' : '')}
+         onOpen={(r) => navigate(`${BASE}/${r.id}`)}
+       />
+     </>
+diff --git a/frontend/src/admin/crm/kit.tsx b/frontend/src/admin/crm/kit.tsx
+index ff203d1..a3aaee6 100644
+--- a/frontend/src/admin/crm/kit.tsx
++++ b/frontend/src/admin/crm/kit.tsx
+@@ -1,7 +1,7 @@
+ // Composants partagés des modules « Demandes d'achat » et « Terrains ».
+ import { ReactNode, useMemo, useRef, useState } from 'react';
+ import {
+-  ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Download, Eye, FileText, Film, Upload, X,
++  ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Download, Eye, FileDown, FileSpreadsheet, FileText, Film, Printer, Search, SlidersHorizontal, Upload, X,
+ } from 'lucide-react';
+ import { Circle, MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet';
+ import L from 'leaflet';
+@@ -25,6 +25,39 @@ export const fmtAr = (n: number) => (n ? `${new Intl.NumberFormat('fr-FR').forma
+ export const fmtNum = (n: number) => new Intl.NumberFormat('fr-FR').format(n);
+ export const fmtM2 = (n: number) => (n ? `${fmtNum(n)} m²` : '—');
+ export const fmtDate = (iso?: string) => (iso ? new Date(iso).toLocaleDateString('fr-FR') : '—');
++/** Date relative, scannable : « il y a 2 h », « hier », puis date courte. */
++export function fmtRelative(iso?: string): string {
++  if (!iso) return '—';
++  const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
++  if (min < 1) return 'à l’instant';
++  if (min < 60) return `il y a ${min} min`;
++  const h = Math.floor(min / 60);
++  if (h < 24) return `il y a ${h} h`;
++  const d = Math.floor(h / 24);
++  if (d === 1) return 'hier';
++  if (d < 7) return `il y a ${d} j`;
++  return fmtDate(iso);
++}
++
++/** Cellule date relative (date exacte au survol). */
++export function RelDate({ iso }: { iso?: string }) {
++  return <span className="whitespace-nowrap text-gray-500" title={fmtDateTime(iso)}>{fmtRelative(iso)}</span>;
++}
++
++/** Téléphone cliquable dans une ligne de tableau (n'ouvre pas la fiche). */
++export function TelLink({ phone }: { phone?: string }) {
++  if (!phone) return <span className="text-gray-400">—</span>;
++  return (
++    <a
++      href={`tel:${phone.replace(/\s/g, '')}`}
++      onClick={(e) => e.stopPropagation()}
++      className="whitespace-nowrap text-navy-900 underline-offset-2 hover:text-gold-700 hover:underline"
++    >
++      {phone}
++    </a>
++  );
++}
++
+ export const fmtDateTime = (iso?: string) =>
+   iso ? new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '—';
+ 
+@@ -234,9 +267,11 @@ export interface Column<T> {
+   className?: string;
+ }
+ 
+-export function DataTable<T extends { id: string }>({ rows, columns, onOpen, selected, onSelect, rowActions, pageSize = 10 }: {
++export function DataTable<T extends { id: string }>({ rows, columns, onOpen, selected, onSelect, rowActions, rowClass, pageSize = 10 }: {
+   rows: T[]; columns: Column<T>[]; onOpen: (row: T) => void;
+-  selected: string[]; onSelect: (ids: string[]) => void; rowActions?: (row: T) => ReactNode; pageSize?: number;
++  selected: string[]; onSelect: (ids: string[]) => void; rowActions?: (row: T) => ReactNode;
++  /** Classe additionnelle par ligne (ex. surligner les dossiers non traités). */
++  rowClass?: (row: T) => string; pageSize?: number;
+ }) {
+   const [sortKey, setSortKey] = useState<string>('');
+   const [dir, setDir] = useState<1 | -1>(1);
+@@ -285,7 +320,7 @@ export function DataTable<T extends { id: string }>({ rows, columns, onOpen, sel
+           </thead>
+           <tbody className="divide-y divide-gray-100">
+             {shown.map((r) => (
+-              <tr key={r.id} className={`hover:bg-gold-400/5 cursor-pointer ${selected.includes(r.id) ? 'bg-gold-400/10' : ''}`} onClick={() => onOpen(r)}>
++              <tr key={r.id} className={`hover:bg-gold-400/5 cursor-pointer ${selected.includes(r.id) ? 'bg-gold-400/10' : rowClass?.(r) ?? ''}`} onClick={() => onOpen(r)}>
+                 <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                   <input
+                     type="checkbox"
+@@ -625,3 +660,68 @@ export function DateFilter({ label, value, onChange }: { label: string; value: s
+     </div>
+   );
+ }
++
++// ---------- Coquille commune des listes ----------
++
++/** En-tête de page uniforme : titre + sous-titre à gauche, action à droite. */
++export { PageHeader } from '../ui';
++
++/**
++ * Barre d'outils uniforme de toutes les listes du back-office :
++ * recherche, panneau « Filtres » dépliable avec compteur, actions groupées
++ * et exports Excel / PDF / Imprimer — toujours au même endroit.
++ */
++export function ListToolbar<T>({
++  q, onQ, placeholder, filters, activeFilters = 0, bulk,
++  exportRows, exportColumns, exportName, exportTitle,
++}: {
++  q: string;
++  onQ: (v: string) => void;
++  placeholder?: string;
++  /** Contenu du panneau de filtres ; affiche le bouton « Filtres » s'il est fourni. */
++  filters?: ReactNode;
++  /** Nombre de filtres actifs (pastille sur le bouton « Filtres »). */
++  activeFilters?: number;
++  /** Zone d'actions groupées (affichée à gauche des exports). */
++  bulk?: ReactNode;
++  /** Lignes à exporter (sélection si présente, sinon lignes filtrées). */
++  exportRows?: () => T[];
++  exportColumns?: Column<T>[];
++  exportName?: string;
++  exportTitle?: string;
++}) {
++  const [open, setOpen] = useState(false);
++  const canExport = !!(exportRows && exportColumns);
++  const title = exportTitle ?? exportName ?? 'Liste';
++  return (
++    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4 space-y-3">
++      <div className="relative">
++        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
++        <input value={q} onChange={(e) => onQ(e.target.value)} placeholder={placeholder ?? 'Rechercher…'} className={`${input} pl-9 ${filters ? 'pr-28' : ''}`} />
++        {filters && (
++          <button
++            type="button"
++            onClick={() => setOpen((v) => !v)}
++            className={`absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${open ? 'bg-navy-900 text-white' : 'text-navy-900 hover:bg-gray-100'}`}
++          >
++            <SlidersHorizontal className="w-3.5 h-3.5" /> Filtres
++            {activeFilters > 0 && <span className="grid h-4 min-w-4 place-items-center rounded-full bg-gold-500 px-1 text-[10px] font-bold text-navy-900">{activeFilters}</span>}
++          </button>
++        )}
++      </div>
++      {filters && open && <div className="grid grid-cols-2 md:grid-cols-4 gap-2">{filters}</div>}
++      {(bulk || canExport) && (
++        <div className="flex flex-wrap items-center gap-2 pt-1">
++          {bulk}
++          {canExport && (
++            <div className="flex gap-2 ml-auto">
++              <button className={btnOutline} onClick={() => exportCsv(exportRows!(), exportColumns!, exportName ?? 'export')}><FileSpreadsheet className="w-4 h-4" /> Excel</button>
++              <button className={btnOutline} onClick={() => printTable(exportRows!(), exportColumns!, title)}><FileDown className="w-4 h-4" /> PDF</button>
++              <button className={btnOutline} onClick={() => printTable(exportRows!(), exportColumns!, title)}><Printer className="w-4 h-4" /> Imprimer</button>
++            </div>
++          )}
++        </div>
++      )}
++    </div>
++  );
++}
+diff --git a/frontend/src/features/catalog/LandCard.tsx b/frontend/src/features/catalog/LandCard.tsx
+index 388330a..fe0f03d 100644
+--- a/frontend/src/features/catalog/LandCard.tsx
++++ b/frontend/src/features/catalog/LandCard.tsx
+@@ -1,5 +1,6 @@
+ import { Link } from 'react-router-dom';
+-import { MapPin, Maximize2, ArrowRight } from 'lucide-react';
++import { useState } from 'react';
++import { MapPin, Maximize2, ArrowRight, ShieldCheck, LandPlot, CircleDollarSign, Heart } from 'lucide-react';
+ import { Land } from '../../types';
+ import { landReference, normalizeLand, pricePerSqm } from '../../lib/land';
+ import { formatArea, formatAriary } from '../../lib/format';
+@@ -9,8 +10,12 @@ interface LandCardProps {
+   horizontal?: boolean;
+ }
+ 
++/* Carte terrain — style « PropertyCard » de la charte de référence CA IMMO :
++   badge « Vérifié » doré sur la photo, favoris, prix en bas de carte et
++   bouton « Voir le terrain » sur fond bleu brume. */
+ export default function LandCard({ land, horizontal = false }: LandCardProps) {
+   const full = normalizeLand(land);
++  const [fav, setFav] = useState(false);
+ 
+   return (
+     <article
+@@ -19,7 +24,7 @@ export default function LandCard({ land, horizontal = false }: LandCardProps) {
+       }`}
+     >
+       {/* — Visuel — */}
+-      <div className={`relative overflow-hidden bg-navy-900/5 ${horizontal ? 'h-56 md:h-full md:min-h-[15.5rem]' : 'h-60 sm:h-64'}`}>
++      <div className={`relative overflow-hidden bg-navy-900/5 ${horizontal ? 'h-56 md:h-full md:min-h-[14rem]' : 'h-52 sm:h-56'}`}>
+         <img
+           src={full.gallery[0]}
+           alt={land.title}
+@@ -27,56 +32,82 @@ export default function LandCard({ land, horizontal = false }: LandCardProps) {
+           referrerPolicy="no-referrer"
+         />
+ 
+-        {/* Statut du titre : premier critère de confiance — sur la photo */}
+-        <span className="absolute left-4 top-4 rounded-full bg-white/95 px-3.5 py-1.5 text-xs font-bold text-navy-900 shadow-md backdrop-blur-md">
+-          {full.titleStatus}
+-        </span>
+-        {(land.status === 'vendu' || land.status === 'réservé') && (
+-          <span className={`absolute right-4 top-4 rounded-full px-3.5 py-1.5 text-xs font-bold text-white shadow-md ${land.status === 'vendu' ? 'bg-gray-700' : 'bg-amber-500'}`}>
+-            {land.status === 'vendu' ? 'Vendu' : 'Réservé'}
+-          </span>
+-        )}
+-        <div className="absolute bottom-4 left-4 rounded-2xl bg-white/95 px-4 py-2.5 shadow-lg shadow-navy-900/10 backdrop-blur-md">
+-          <div className="text-lg font-extrabold leading-none tracking-tight text-navy-900 tabular-nums whitespace-nowrap">{formatAriary(land.price)}</div>
+-          <div className="mt-1 text-xs font-semibold text-navy-900/75 whitespace-nowrap">
+-            {formatAriary(pricePerSqm(land))} / m²
+-          </div>
++        {/* Badges de confiance — comme la référence : « Vérifié » doré + statut */}
++        <div className="absolute left-4 top-4 flex items-center gap-2">
++          {full.verified && (
++            <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-500 px-3 py-1.5 text-xs font-bold text-navy-900 shadow-md">
++              <ShieldCheck className="h-3.5 w-3.5" /> Vérifié
++            </span>
++          )}
++          {(land.status === 'vendu' || land.status === 'réservé') && (
++            <span className={`rounded-full px-3 py-1.5 text-xs font-bold text-white shadow-md ${land.status === 'vendu' ? 'bg-gray-700' : 'bg-amber-500'}`}>
++              {land.status === 'vendu' ? 'Vendu' : 'Réservé'}
++            </span>
++          )}
+         </div>
++
++        {/* Favori */}
++        <button
++          type="button"
++          onClick={(e) => {
++            e.preventDefault();
++            setFav((v) => !v);
++          }}
++          aria-label={fav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
++          aria-pressed={fav}
++          className={`absolute right-4 top-4 z-10 grid h-9 w-9 place-items-center rounded-full shadow-md backdrop-blur-md transition ${
++            fav ? 'bg-gold-500 text-navy-900' : 'bg-white/90 text-navy-900/70 hover:text-navy-900'
++          }`}
++        >
++          <Heart className="h-4 w-4" fill={fav ? 'currentColor' : 'none'} />
++        </button>
+       </div>
+ 
+       {/* — Contenu — */}
+-      <div className={`flex flex-1 flex-col p-6 sm:p-7 ${horizontal ? 'justify-center' : ''}`}>
+-        <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-navy-900/75">
+-          <MapPin className="h-3.5 w-3.5 shrink-0 text-gold-700" />
++      <div className={`flex flex-1 flex-col p-6 ${horizontal ? 'justify-center' : ''}`}>
++        <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-navy-900/70">
++          <MapPin className="h-3.5 w-3.5 shrink-0 text-gold-600" />
+           <span className="truncate">{land.location}</span>
+         </div>
+ 
+-        <h3 className="mt-3 line-clamp-2 min-h-[2.75em] text-xl font-bold leading-snug tracking-tight text-navy-900 sm:text-2xl">
++        <h3 className="mt-2.5 line-clamp-2 min-h-[2.6em] text-lg font-bold leading-snug tracking-tight text-navy-900 sm:text-xl">
+           <Link to={`/terrains/${land.id}`} className="transition-colors hover:text-navy-800">
+             {land.title}
+             <span className="absolute inset-0 z-0" aria-hidden />
+           </Link>
+         </h3>
+ 
+-        <div className="mt-4 flex min-h-[1.75rem] flex-wrap items-center gap-x-5 gap-y-2 pb-5 text-sm text-navy-900/85">
++        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-navy-900/85">
+           <span className="inline-flex items-center gap-2">
+-            <Maximize2 className="h-4 w-4 text-gold-700" />
++            <Maximize2 className="h-4 w-4 text-navy-900/60" />
+             <strong className="font-bold text-navy-900">{formatArea(land.area)}</strong>
+           </span>
+-          <span>{full.payment}</span>
++          <span className="inline-flex items-center gap-2">
++            <LandPlot className="h-4 w-4 text-navy-900/60" />
++            {full.relief}
++          </span>
+         </div>
+ 
+-        <div className={`${horizontal ? 'mt-6' : 'mt-auto'} flex items-end justify-between gap-4 border-t border-navy-900/10 pt-5`}>
+-          {/* Un seul arrêt clavier : le lien étiré sur toute la carte. */}
+-          <div className="relative z-10 text-xs font-semibold text-navy-900/75">
+-            Réf. {landReference(full)}
++        <p className="mt-2.5 flex items-center gap-2 text-xs font-medium text-navy-900/75">
++          <CircleDollarSign className="h-4 w-4 shrink-0 text-navy-900/55" />
++          {full.payment} · {full.titleStatus}
++        </p>
++
++        <div className={`${horizontal ? 'mt-6' : 'mt-auto'} flex items-end justify-between gap-4 border-t border-navy-900/10 pt-4`}>
++          <div>
++            <strong className="block text-lg font-extrabold leading-none tracking-tight text-navy-900 tabular-nums whitespace-nowrap">
++              {formatAriary(land.price)}
++            </strong>
++            <span className="mt-1 block text-xs font-medium text-navy-900/60 whitespace-nowrap">
++              {formatAriary(pricePerSqm(land))} / m² · Réf. {landReference(full)}
++            </span>
+           </div>
+-          <span className="relative z-10 inline-flex items-center gap-1 text-xs font-bold text-gold-700">
++          {/* Un seul arrêt clavier : le lien étiré sur toute la carte. */}
++          <span className="relative z-10 inline-flex shrink-0 items-center gap-1.5 rounded-full bg-mist px-4 py-2.5 text-xs font-bold text-navy-900 transition-colors group-hover:bg-gold-500">
+             Voir le terrain <ArrowRight className="h-3.5 w-3.5" />
+           </span>
+         </div>
+       </div>
+-
+     </article>
+   );
+ }
+diff --git a/frontend/src/features/catalog/LandDetail.tsx b/frontend/src/features/catalog/LandDetail.tsx
+index 4b12f30..35debd5 100644
+--- a/frontend/src/features/catalog/LandDetail.tsx
++++ b/frontend/src/features/catalog/LandDetail.tsx
+@@ -16,7 +16,9 @@ import {
+   LandPlot,
+   MapPin,
+   Maximize2,
++  MessageCircle,
+   Navigation,
++  Phone as PhoneIcon,
+   Route as RoadIcon,
+   Share2,
+   ShieldCheck,
+@@ -24,6 +26,7 @@ import {
+   X,
+   Zap,
+ } from 'lucide-react';
++import { PHONE_1, PHONE_1_TEL, WHATSAPP_URL } from '../../lib/contact';
+ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+ import L from 'leaflet';
+ import 'leaflet/dist/leaflet.css';
+@@ -163,12 +166,10 @@ export default function LandDetail() {
+           <button onClick={() => navigate('/terrains')} className="btn-ghost !px-4 !py-2.5 !text-xs">
+             <ArrowLeft className="h-4 w-4" /> Retour aux terrains
+           </button>
+-          <div className="flex items-center gap-2">
+-            <button onClick={share} className="btn-outline !px-5 !py-2.5 !text-xs">
+-              <Share2 className="h-4 w-4" />
+-              {shared ? 'Lien copié !' : 'Partager'}
+-            </button>
+-          </div>
++          <button onClick={share} className="btn-outline !px-5 !py-2.5 !text-xs">
++            <Share2 className="h-4 w-4" />
++            {shared ? 'Lien copié !' : 'Partager'}
++          </button>
+         </div>
+       </div>
+ 
+@@ -378,9 +379,9 @@ export default function LandDetail() {
+                 que la page Vendre et le site de référence. Sur mobile, les deux
+                 boutons vivent dans la barre fixe en bas d'écran. */}
+             <div className="lg:sticky lg:top-28">
+-              <div className="card-soft p-8">
++              <div className="card-soft overflow-hidden border-t-4 border-t-gold-500 p-8">
+                 <span className="text-xs font-semibold uppercase tracking-[0.22em] text-navy-900/70">Prix du terrain</span>
+-                <strong className="mt-2 block font-serif text-3xl font-bold text-navy-900">
++                <strong className="mt-2 block text-3xl font-extrabold tracking-tight text-navy-900">
+                   {formatAriary(land.price)}
+                 </strong>
+                 <small className="mt-1 block text-xs font-normal text-navy-900/75">soit {formatAriary(perSqm)} / m²</small>
+@@ -422,6 +423,28 @@ export default function LandDetail() {
+                 </div>
+               </div>
+ 
++              {/* Votre conseiller — carte de la référence */}
++              <div className="card-soft mt-5 p-6">
++                <div className="flex items-center gap-3.5">
++                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-navy-900 text-sm font-extrabold text-white">
++                    CA
++                  </span>
++                  <div className="min-w-0">
++                    <small className="block text-xs font-normal text-navy-900/65">Votre conseiller</small>
++                    <strong className="block truncate text-sm font-bold text-navy-900">CA IMMO</strong>
++                    <small className="block text-xs font-medium text-navy-900/80">{PHONE_1}</small>
++                  </div>
++                </div>
++                <div className="mt-5 grid grid-cols-2 gap-2.5">
++                  <a href={PHONE_1_TEL} className="btn-outline !px-3 !py-2.5 !text-xs">
++                    <PhoneIcon className="h-3.5 w-3.5" /> Appeler
++                  </a>
++                  <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="btn-outline !px-3 !py-2.5 !text-xs">
++                    <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
++                  </a>
++                </div>
++              </div>
++
+               {/* Conseil sécurité */}
+               <div className="mt-5 flex items-start gap-3.5 rounded-[1.5rem] border border-gold-500/25 bg-gold-500/8 px-6 py-5">
+                 <ShieldCheck className="mt-0.5 h-4.5 w-4.5 shrink-0 text-gold-700" />
+diff --git a/frontend/src/features/catalog/Lands.tsx b/frontend/src/features/catalog/Lands.tsx
+index c2978a6..6777039 100644
+--- a/frontend/src/features/catalog/Lands.tsx
++++ b/frontend/src/features/catalog/Lands.tsx
+@@ -386,9 +386,10 @@ export default function Lands() {
+   );
+ 
+   return (
+-    <div className="font-display overflow-x-clip bg-brand-50">
+-      {/* — Hero navy (style Accueil / À propos) — */}
++    <div className="font-display overflow-x-clip bg-white">
++      {/* — Hero navy (style référence : fil d'Ariane + recherche rapide) — */}
+       <PageHero
++        flat
+         pill="Terrains à vendre"
+         image="/media/terrains/plaine.jpg"
+         title={
+@@ -396,42 +397,57 @@ export default function Lands() {
+             Trouvez l’emplacement de votre <span className="text-gold-500">prochain projet</span>
+           </>
+         }
+-        lead="Une sélection resserrée de parcelles contrôlées à travers Madagascar — titres sécurisés, visites accompagnées et conseils de notre équipe locale, de la première recherche jusqu’au notaire."
+-      />
++        lead="Explorez les terrains sélectionnés et contrôlés par CA IMMO à Madagascar : titres vérifiés, accompagnement de confiance."
++      >
++        <form
++          onSubmit={(e) => e.preventDefault()}
++          className="flex max-w-xl items-center gap-3 rounded-full bg-white py-1.5 pl-5 pr-1.5 text-navy-900 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.45)]"
++        >
++          <Search className="h-5 w-5 shrink-0 text-navy-900/60" aria-hidden />
++          <input
++            type="text"
++            value={filters.q}
++            onChange={(e) => update('q', e.target.value)}
++            aria-label="Rechercher une commune, un quartier ou un terrain"
++            placeholder="Rechercher une commune, un quartier ou un terrain…"
++            className="w-full bg-transparent py-2 text-sm font-medium text-navy-900 outline-none placeholder:text-navy-900/45"
++          />
++          <button type="submit" className="btn-gold shrink-0 !px-6 !py-2.5 !shadow-none">
++            Rechercher
++          </button>
++        </form>
++      </PageHero>
+ 
+       {/* — Listing — */}
+-      <section className="pb-24">
++      <section className="pb-24 pt-12">
+         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+           <div className={showFilters ? "gap-10 lg:grid lg:grid-cols-[19.5rem_1fr] xl:gap-14" : ""}>
+             {filterSidebar}
+ 
+             <div>
+-              {/* Barre outils */}
+-              <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
+-                <div className="flex flex-1 items-center gap-3">
++              {/* Barre outils — en-tête de résultats comme la référence */}
++              <div ref={resultsRef} className="scroll-mt-28" />
++              <div className="mb-7 flex flex-wrap items-center justify-between gap-4 border-b border-navy-900/8 pb-6">
++                <div>
++                  <h2 className="text-xl font-bold tracking-tight text-navy-900 md:text-2xl">
++                    {lands.length} terrain{lands.length > 1 ? 's' : ''} disponible{lands.length > 1 ? 's' : ''}
++                  </h2>
++                  <p className="mt-1 text-xs font-medium text-navy-900/60">Catalogue CA IMMO · Madagascar</p>
++                </div>
++
++                <div className="flex flex-wrap items-center gap-3">
+                   <button
+                     onClick={() => setShowFilters((v) => !v)}
+                     aria-pressed={showFilters}
+-                    className="btn-outline hidden !px-4 !py-3 lg:inline-flex"
++                    className="btn-outline hidden !px-4 !py-2.5 !text-xs lg:inline-flex"
+                     title={showFilters ? 'Masquer les filtres pour agrandir le catalogue' : 'Afficher les filtres'}
+                   >
+                     {showFilters ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+                     <span className="hidden xl:inline">{showFilters ? 'Masquer les filtres' : 'Filtres'}</span>
+                   </button>
+-                  <div className="relative max-w-md flex-1">
+-                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-navy-900/60" />
+-                    <input
+-                      type="text"
+-                      value={filters.q}
+-                      onChange={(e) => update('q', e.target.value)}
+-                      aria-label="Rechercher une ville ou une commune"
+-                      placeholder="Rechercher une ville, une commune…"
+-                      className="input !rounded-full !py-3 !pl-11"
+-                    />
+-                  </div>
+                   <button
+                     onClick={() => setMobileFilters(true)}
+-                    className="btn-outline relative !px-4 !py-3 lg:hidden"
++                    className="btn-outline relative !px-4 !py-2.5 lg:hidden"
+                     aria-label="Ouvrir les filtres"
+                   >
+                     <SlidersHorizontal className="h-4 w-4" />
+@@ -441,10 +457,7 @@ export default function Lands() {
+                       </span>
+                     )}
+                   </button>
+-                </div>
+-
+-                <div className="flex items-center gap-3">
+-                  <div className="flex overflow-hidden rounded-full border border-navy-900/12">
++                  <div className="flex overflow-hidden rounded-xl border border-navy-900/12">
+                     {(
+                       [
+                         { mode: 'grid' as const, icon: Grid2X2, label: 'Vue grille' },
+@@ -456,35 +469,31 @@ export default function Lands() {
+                         onClick={() => setView(mode)}
+                         aria-label={label}
+                         aria-pressed={view === mode}
+-                        className={`px-3.5 py-2.5 transition ${view === mode ? 'bg-navy-900 text-white' : 'text-navy-900/80 hover:bg-white'}`}
++                        className={`px-3.5 py-2.5 transition ${view === mode ? 'bg-navy-900 text-white' : 'text-navy-900/80 hover:bg-mist'}`}
+                       >
+                         <Icon className="h-4 w-4" />
+                       </button>
+                     ))}
+                   </div>
+-                  <select
+-                    value={sort}
+-                    onChange={(e) => setSort(e.target.value as LandSort)}
+-                    className="select !rounded-full !py-2.5 !pl-4 !pr-9 !text-xs"
+-                    aria-label="Trier les résultats"
+-                  >
+-                    <option value="recent">Plus récents</option>
+-                    <option value="priceAsc">Prix croissant</option>
+-                    <option value="priceDesc">Prix décroissant</option>
+-                    <option value="area">Plus grande surface</option>
+-                  </select>
++                  <label className="flex items-center gap-2 text-xs font-semibold text-navy-900/70">
++                    <span className="hidden sm:inline">Trier :</span>
++                    <select
++                      value={sort}
++                      onChange={(e) => setSort(e.target.value as LandSort)}
++                      className="select !w-auto !rounded-xl !py-2.5 !pl-4 !pr-9 !text-xs"
++                      aria-label="Trier les résultats"
++                    >
++                      <option value="recent">Plus récents</option>
++                      <option value="priceAsc">Prix croissant</option>
++                      <option value="priceDesc">Prix décroissant</option>
++                      <option value="area">Plus grande surface</option>
++                    </select>
++                  </label>
+                 </div>
+               </div>
+ 
+-              {/* Compteurs + chips actifs */}
+-              <div ref={resultsRef} className="scroll-mt-28" />
+-              <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+-                <p className="text-sm font-normal text-navy-900/80">
+-                  <strong className="font-medium text-navy-900">
+-                    {lands.length} terrain{lands.length > 1 ? 's' : ''}
+-                  </strong>{' '}
+-                  à vendre — Madagascar
+-                </p>
++              {/* Chips des filtres actifs */}
++              <div className="mb-8 flex flex-wrap items-center justify-end gap-4">
+                 {activeChips.length > 0 && (
+                   <div className="flex flex-wrap items-center gap-2">
+                     {activeChips.map((chip) => (
+@@ -560,7 +569,7 @@ export default function Lands() {
+             <h2 className="mt-5 text-3xl font-bold leading-tight tracking-tight text-navy-900 md:text-4xl">
+               Confiez-nous la recherche
+               <br />
+-              de votre <span className="font-serif italic">terrain idéal</span>
++              de votre <span className="text-gold-500">terrain idéal</span>
+             </h2>
+             <p className="mt-5 max-w-md text-sm font-normal leading-relaxed text-navy-900/85">
+               Zone, surface, budget, environnement : décrivez-nous votre projet et notre équipe repère, vérifie et
+diff --git a/frontend/src/features/contact/ContactPage.tsx b/frontend/src/features/contact/ContactPage.tsx
+index 70d8638..29522e5 100644
+--- a/frontend/src/features/contact/ContactPage.tsx
++++ b/frontend/src/features/contact/ContactPage.tsx
+@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
+ import { Phone, MapPin, Send, CheckCircle, X, Facebook, Clock } from 'lucide-react';
+ import { FB_URL, PHONE_1, PHONE_1_TEL, PHONE_2, PHONE_2_TEL } from '../../lib/contact';
+ import { createContactMessage } from '../../services/requestService';
+-import { phoneError, emailError } from '../../lib/validate';
++import { phoneError, emailError, sanitizePhone } from '../../lib/validate';
+ import { PageHero } from '../../shared/ui';
+ 
+ const IMG_CONTACT = '/media/terrains/highlands.jpg';
+@@ -95,6 +95,7 @@ export default function ContactPage() {
+   return (
+     <div className="font-display bg-white">
+       <PageHero
++        flat
+         pill="Parlons de votre projet"
+         title={<>Nous <span className="text-gold-500">contacter</span></>}
+         lead="Une question sur un terrain, un titre foncier, une vente ou une recherche ? Notre équipe vous répond rapidement."
+@@ -116,7 +117,7 @@ export default function ContactPage() {
+         </div>
+       </PageHero>
+ 
+-      <section className="bg-brand-50 py-16 md:py-20">
++      <section className="bg-mist py-16 md:py-20">
+         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 sm:px-6 lg:grid-cols-3 lg:px-8">
+           {/* Coordonnées */}
+           <motion.div
+@@ -199,7 +200,7 @@ export default function ContactPage() {
+                 </div>
+                 <div>
+                   <label htmlFor="phone" className={label}>Téléphone</label>
+-                  <input type="tel" id="phone" required autoComplete="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className={field} placeholder="034 12 345 67" />
++                  <input type="tel" id="phone" required autoComplete="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(sanitizePhone(e.target.value))} className={field} placeholder="034 12 345 67" />
+                 </div>
+                 <div>
+                   <label htmlFor="email" className={label}>Email <span className="font-normal text-navy-900/50">(facultatif)</span></label>
+diff --git a/frontend/src/features/home/Home.tsx b/frontend/src/features/home/Home.tsx
+index 1139258..5711626 100644
+--- a/frontend/src/features/home/Home.tsx
++++ b/frontend/src/features/home/Home.tsx
+@@ -4,15 +4,17 @@ import { useEffect, useState } from 'react';
+ import type { ReactNode } from 'react';
+ import {
+   ArrowRight, Phone, Award, FileCheck, Home as HomeIcon, Users, ShieldCheck, MapPinned,
+-  Search, Repeat, Building2, Wallet, Cpu, View, MonitorPlay, Footprints,
+-  Globe, Ruler,
++  LandPlot, Search, HandCoins, Repeat, Building2, Wallet, Cpu, View, MonitorPlay, Footprints,
++  Globe, Eye, Star, HeartHandshake, Tag, Ruler,
+ } from 'lucide-react';
+ import { PHONE_1_TEL } from '../../lib/contact';
+ import LandCard from '../catalog/LandCard';
+ import { fetchLands } from '../../services/landService';
+ import type { Land } from '../../types';
+ 
+-const IMG_HERO = '/media/terrains/highlands.jpg';
++/* Visuels signature de la charte de référence (villa moderne + lotissement). */
++const IMG_HERO = 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=1800&q=80';
++const IMG_LOTS = 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=900&q=80';
+ const IMG_AERIAL = '/media/terrains/colline.jpg';
+ const IMG_SUNSET = '/media/terrains/littoral.jpg';
+ 
+@@ -110,8 +112,8 @@ export default function Home() {
+             </h1>
+             <p className="text-xl md:text-2xl font-semibold mb-6">Votre projet immobilier, notre engagement.</p>
+             <p className="text-sm md:text-base text-white/80 leading-relaxed mb-10 max-w-md">
+-              Achat, vente, recherche sur mesure, lotissement ou maison clé en main : notre équipe vous accompagne
+-              de la première idée jusqu’à la signature.
++              Depuis plus de 12 ans, CA Immo vous accompagne dans vos projets immobiliers à Madagascar : achat, vente,
++              recherche de terrain, lotissement et acquisition de maisons clé en main.
+             </p>
+             <div className="flex flex-wrap gap-4">
+               <GoldButton to="/terrains" className="w-full sm:w-auto">Découvrir nos biens</GoldButton>
+@@ -119,7 +121,7 @@ export default function Home() {
+                 href={PHONE_1_TEL}
+                 className="inline-flex items-center justify-center gap-2 rounded-full border border-white/60 px-7 py-3.5 text-sm font-medium transition hover:bg-white hover:text-navy-900 w-full sm:w-auto"
+               >
+-                <Phone className="w-4 h-4" /> Parler à notre équipe
++                <Phone className="w-4 h-4" /> Parler à un conseiller
+               </a>
+             </div>
+           </motion.div>
+@@ -152,9 +154,60 @@ export default function Home() {
+         </svg>
+       </section>
+ 
++      {/* ================= EN QUELQUES MOTS ================= */}
++      <section className="relative bg-white py-16 md:py-20">
++        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid gap-12 lg:grid-cols-12 items-center">
++          <motion.div {...fadeUp} className="lg:col-span-4 relative mx-auto w-full max-w-sm">
++            <div className="absolute -left-4 top-6 bottom-0 right-10 rounded-[2rem] bg-gold-500 -rotate-6" />
++            <img
++              src={IMG_LOTS}
++              alt="Lotissement vu du ciel"
++              className="relative h-72 w-full rounded-[2rem] object-cover shadow-2xl -rotate-3 border-4 border-white"
++              referrerPolicy="no-referrer"
++            />
++          </motion.div>
++
++          <motion.div {...fadeUp} className="lg:col-span-5">
++            <Eyebrow>CA Immo en quelques mots</Eyebrow>
++            <h2 className="text-3xl md:text-4xl font-bold text-navy-900 leading-tight mb-6">
++              Une expertise immobilière au service de vos projets
++            </h2>
++            <p className="text-sm text-slate-600 leading-relaxed mb-4">
++              CA Immo est <strong className="text-navy-900">une entreprise immobilière avec plus de 12 ans d’expérience</strong>,
++              spécialisée dans les projets immobiliers à Madagascar. Nous vous accompagnons dans l’achat et la vente de terrains,
++              le lotissement, la recherche de biens spécifiques et les projets de maisons clé en main.
++            </p>
++            <p className="text-sm text-slate-600 leading-relaxed mb-8">
++              Notre priorité est de vous proposer une solution adaptée à vos besoins, votre budget et vos attentes, tout en
++              garantissant la qualité de nos prestations et votre satisfaction.
++            </p>
++            <GoldButton to="/about" small>Découvrir notre entreprise</GoldButton>
++          </motion.div>
++
++          <motion.div {...fadeUp} className="lg:col-span-3 rounded-3xl bg-mist p-7 shadow-sm">
++            <h3 className="font-bold text-navy-900 mb-5">
++              <span className="text-gold-500">N</span>os solutions
++            </h3>
++            <ul className="space-y-4">
++              {[
++                { icon: FileCheck, label: 'Terrain titré' },
++                { icon: LandPlot, label: 'Lotissement' },
++                { icon: HomeIcon, label: 'Maison clé en main' },
++                { icon: Search, label: 'Recherche personnalisée' },
++                { icon: HandCoins, label: 'Vente de terrain' },
++              ].map(({ icon: Icon, label }) => (
++                <li key={label} className="flex items-center gap-4 text-sm text-navy-900">
++                  <Icon className="w-5 h-5 text-gold-600" /> {label}
++                </li>
++              ))}
++            </ul>
++          </motion.div>
++        </div>
++      </section>
++
+       {/* ================= TERRAINS EN VEDETTE ================= */}
+       {featured.length > 0 && (
+-        <section className="relative bg-white py-16 md:py-24">
++        <section className="relative bg-white pb-16 md:pb-24">
+           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+             <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
+               <div>
+@@ -187,7 +240,7 @@ export default function Home() {
+       )}
+ 
+       {/* ================= OBJECTIF ================= */}
+-      <section className="relative bg-brand-50 py-16 md:py-24">
++      <section className="relative bg-mist py-16 md:py-20">
+         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid gap-10 lg:grid-cols-12 items-center">
+           <motion.div {...fadeUp} className="lg:col-span-4">
+             <Eyebrow>Notre objectif</Eyebrow>
+@@ -196,6 +249,7 @@ export default function Home() {
+               Que vous souhaitiez acheter, vendre ou trouver un terrain sur mesure, nous sommes là pour vous guider et vous
+               apporter des solutions adaptées à vos besoins.
+             </p>
++            <GoldButton to="/contact" small>En savoir plus</GoldButton>
+           </motion.div>
+ 
+           <div className="lg:col-span-8 grid gap-5 sm:grid-cols-3">
+@@ -317,12 +371,41 @@ export default function Home() {
+         </div>
+       </section>
+ 
++      {/* ================= ENGAGEMENTS ================= */}
++      <section className="bg-mist py-16 md:py-20">
++        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid gap-10 lg:grid-cols-12 items-center">
++          <motion.div {...fadeUp} className="lg:col-span-3">
++            <Eyebrow>Nos engagements</Eyebrow>
++            <h2 className="text-2xl md:text-3xl font-bold text-navy-900 leading-tight">
++              Nous nous engageons à vous accompagner avec transparence
++            </h2>
++          </motion.div>
++          <div className="lg:col-span-9 grid gap-4 grid-cols-2 md:grid-cols-5">
++            {[
++              { icon: ShieldCheck, title: 'Sécurisation', text: 'Une attention particulière à la situation foncière et administrative.' },
++              { icon: Eye, title: 'Transparence', text: 'Des informations claires sur les biens, les conditions et les engagements.' },
++              { icon: Star, title: 'Qualité', text: 'Des solutions correspondant à vos critères et à vos attentes.' },
++              { icon: HeartHandshake, title: 'Satisfaction', text: 'Un suivi sérieux et le respect des engagements convenus.' },
++              { icon: Tag, title: 'Prix & négociation', text: 'Des offres compétitives et négociables selon les projets.' },
++            ].map(({ icon: Icon, title, text }) => (
++              <motion.div key={title} {...fadeUp} className="rounded-2xl bg-white p-5 shadow-md shadow-navy-900/5 transition hover:-translate-y-1">
++                <span className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-navy-900 text-gold-500">
++                  <Icon className="w-5 h-5" />
++                </span>
++                <h3 className="text-sm font-bold text-navy-900 mb-2">{title}</h3>
++                <p className="text-[11px] text-slate-500 leading-relaxed">{text}</p>
++              </motion.div>
++            ))}
++          </div>
++        </div>
++      </section>
++
+       {/* ================= CTA ================= */}
+       <section className="relative text-white">
+         <img src={IMG_SUNSET} alt="Paysage de Madagascar" className="absolute inset-0 h-full w-full object-cover" referrerPolicy="no-referrer" />
+         <div className="absolute inset-0 bg-gradient-to-r from-navy-950 via-navy-900/85 to-navy-900/30" />
+         <svg className="absolute -top-px left-0 block w-full h-10 md:h-16" viewBox="0 0 1440 70" preserveAspectRatio="none" aria-hidden>
+-          <path fill="#ffffff" d="M0,-2 L1440,-2 L1440,10 C1000,50 500,60 0,40 Z" />
++          <path fill="#f3f6fb" d="M0,-2 L1440,-2 L1440,10 C1000,50 500,60 0,40 Z" />
+           <path className="text-gold-500" fill="currentColor" d="M0,40 C60,42 110,45 150,48 C110,58 50,66 0,70 Z" />
+         </svg>
+         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 md:py-24 flex flex-col lg:flex-row lg:items-center gap-10 justify-between">
+@@ -337,7 +420,7 @@ export default function Home() {
+             </p>
+           </motion.div>
+           <motion.div {...fadeUp} className="flex flex-wrap gap-3">
+-            <GoldButton to="/recherche" small>Confier ma recherche</GoldButton>
++            <GoldButton to="/recherche" small>J’ai un projet</GoldButton>
+             <Link to="/terrains" className="inline-flex items-center gap-2 rounded-full border border-white/60 px-5 py-2.5 text-xs font-medium transition hover:bg-white hover:text-navy-900">
+               Voir nos terrains <ArrowRight className="w-4 h-4" />
+             </Link>
+diff --git a/frontend/src/features/search/SearchRequest.tsx b/frontend/src/features/search/SearchRequest.tsx
+index dbfb9c0..18bb4d9 100644
+--- a/frontend/src/features/search/SearchRequest.tsx
++++ b/frontend/src/features/search/SearchRequest.tsx
+@@ -26,7 +26,7 @@ import { createSearchRequest } from '../../services/requestService';
+ import type { SearchSubmission } from '../../services/requestService';
+ 
+ import { PHONE_1, PHONE_1_TEL } from '../../lib/contact';
+-import { phoneError, emailError } from '../../lib/validate';
++import { phoneError, emailError, isPositiveNumber, sanitizePhone } from '../../lib/validate';
+ 
+ /* --- Constantes du cahier des charges --- */
+ 
+@@ -117,9 +117,25 @@ export default function SearchRequest() {
+         return;
+       }
+     }
+-    if (step === 1 && !form.zone && !form.otherZones.trim()) {
+-      setError('Indiquez au moins une zone recherchée.');
+-      return;
++    if (step === 1) {
++      if (!form.zone) {
++        setError('Veuillez sélectionner la zone principale recherchée.');
++        return;
++      }
++      if (form.zone === 'Autre zone' && !form.otherZones.trim()) {
++        setError('Précisez la ou les zones souhaitées dans « Autres zones acceptées ».');
++        return;
++      }
++    }
++    if (step === 2) {
++      if (form.budget === BUDGET_CUSTOM && !isPositiveNumber(form.customBudget)) {
++        setError('Indiquez votre budget maximum (nombre positif, en Ariary).');
++        return;
++      }
++      if (form.area === AREA_CUSTOM && !isPositiveNumber(form.customArea)) {
++        setError('Indiquez la superficie souhaitée (nombre positif, en m²).');
++        return;
++      }
+     }
+     setStep((s) => Math.min(s + 1, 3));
+     window.scrollTo({ top: 0, behavior: 'smooth' });
+@@ -211,19 +227,62 @@ export default function SearchRequest() {
+     <div className="font-display overflow-x-clip bg-brand-50">
+       {/* — Hero navy (style Accueil / À propos) — */}
+       <PageHero
+-        pill="Recherche sur mesure"
++        flat
++        pill="Recherche personnalisée"
+         image="/media/terrains/colline.jpg"
+         title={
+           <>
+-            Confiez-nous la recherche de votre <span className="text-gold-500">terrain idéal</span>
++            Confiez-nous la recherche de <span className="text-gold-500">votre terrain</span>
+           </>
+         }
+-        lead="Décrivez votre projet en quatre étapes. Notre équipe locale cherche, vérifie et négocie pour vous."
++        lead="Décrivez votre projet en quelques étapes. Notre équipe locale cherche et vérifie les terrains pour vous."
+       />
+ 
+-      <section className="pb-24">
++      <section className="bg-mist py-14 pb-24">
+         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+-          <div className="gap-12 lg:grid lg:grid-cols-[1fr_20rem] xl:gap-16">
++          <div className="gap-10 lg:grid lg:grid-cols-[19rem_1fr] xl:gap-12">
++            {/* Encart d'accompagnement — carte marine de la référence, à gauche */}
++            <aside className="mb-10 lg:mb-0">
++              <div className="lg:sticky lg:top-28">
++                <div className="relative overflow-hidden rounded-2xl bg-navy-900 p-8 text-white shadow-xl shadow-navy-900/20">
++                  <span className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/5" aria-hidden />
++                  <span className="grid h-12 w-12 place-items-center rounded-xl bg-gold-500 text-navy-900">
++                    <SearchCheck className="h-6 w-6" strokeWidth={2} />
++                  </span>
++                  <h2 className="mt-5 text-lg font-bold leading-snug">Une recherche vraiment sur mesure</h2>
++                  <p className="mt-3 text-xs font-normal leading-relaxed text-white/75">
++                    Votre demande n’est pas une simple alerte automatique : elle est étudiée par notre équipe qui connaît
++                    le marché local, terrain par terrain.
++                  </p>
++                  <div className="mt-6 space-y-3.5 border-t border-white/10 pt-6">
++                    {[
++                      { icon: CheckCircle2, text: 'Sélection selon vos critères' },
++                      { icon: ShieldCheck, text: 'Terrains contrôlés' },
++                      { icon: Clock3, text: 'Réponse sous 24 – 48 h ouvrées' },
++                    ].map(({ icon: Icon, text }) => (
++                      <p key={text} className="flex items-center gap-3 text-xs font-medium text-white/90">
++                        <Icon className="h-4 w-4 shrink-0 text-gold-500" />
++                        {text}
++                      </p>
++                    ))}
++                  </div>
++                </div>
++
++                <div className="card-soft mt-5 flex items-center gap-4 p-6">
++                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gold-500 text-sm font-extrabold text-navy-900">
++                    CA
++                  </span>
++                  <div className="min-w-0">
++                    <small className="block text-xs font-normal text-navy-900/65">Besoin d’aide ?</small>
++                    <strong className="block text-sm font-bold leading-snug text-navy-900">L’équipe CA IMMO vous accompagne</strong>
++                    <a href={PHONE_1_TEL} className="mt-0.5 block text-xs font-semibold text-navy-900/80 transition hover:text-gold-600">
++                      {PHONE_1}
++                    </a>
++                  </div>
++                </div>
++              </div>
++            </aside>
++
+             {/* Carte formulaire */}
+             <div className="card-soft p-8 sm:p-12">
+               <ProgressSteps steps={STEP_LABELS} current={step} />
+@@ -265,7 +324,7 @@ export default function SearchRequest() {
+                           <Input placeholder="Ex. Rakoto" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} />
+                         </FormField>
+                         <FormField label="Téléphone" required>
+-                          <Input type="tel" placeholder="+261 34 00 000 00" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
++                          <Input type="tel" placeholder="+261 34 00 000 00" inputMode="tel" value={form.phone} onChange={(e) => set('phone', sanitizePhone(e.target.value))} />
+                         </FormField>
+                         <FormField label="Adresse email" required>
+                           <Input type="email" placeholder="vous@exemple.com" value={form.email} onChange={(e) => set('email', e.target.value)} />
+@@ -347,7 +406,7 @@ export default function SearchRequest() {
+                           />
+                         </FormField>
+                         {form.budget === BUDGET_CUSTOM && (
+-                          <FormField label="Votre budget maximum">
++                          <FormField label="Votre budget maximum" required>
+                             <Input type="number" min={0} placeholder="Montant en Ariary" value={form.customBudget} onChange={(e) => set('customBudget', e.target.value)} />
+                           </FormField>
+                         )}
+@@ -360,7 +419,7 @@ export default function SearchRequest() {
+                           />
+                         </FormField>
+                         {form.area === AREA_CUSTOM && (
+-                          <FormField label="Votre superficie">
++                          <FormField label="Votre superficie" required>
+                             <Input type="number" min={0} placeholder="Surface en m²" value={form.customArea} onChange={(e) => set('customArea', e.target.value)} />
+                           </FormField>
+                         )}
+@@ -500,33 +559,6 @@ export default function SearchRequest() {
+               </div>
+             </div>
+ 
+-            {/* Aside */}
+-            <aside className="mt-12 lg:mt-0">
+-              <div className="lg:sticky lg:top-28">
+-                <div className="card-soft p-8">
+-                  <span className="grid h-11 w-11 place-items-center rounded-full bg-navy-900/5">
+-                    <SearchCheck className="h-5 w-5 text-navy-900/90" strokeWidth={2} />
+-                  </span>
+-                  <h2 className="mt-5 text-lg font-bold text-navy-900">Une recherche vraiment sur mesure</h2>
+-                  <p className="mt-3 text-xs font-normal leading-relaxed text-navy-900/85">
+-                    Votre demande n’est pas une simple alerte automatique : elle est étudiée par notre équipe qui connaît
+-                    le marché local, terrain par terrain.
+-                  </p>
+-                  <div className="mt-6 space-y-3.5">
+-                    {[
+-                      { icon: CheckCircle2, text: 'Sélection selon vos critères', tone: 'text-green-700' },
+-                      { icon: ShieldCheck, text: 'Terrains contrôlés', tone: 'text-green-700' },
+-                      { icon: Clock3, text: 'Réponse sous 24 – 48 h ouvrées', tone: 'text-gold-700' },
+-                    ].map(({ icon: Icon, text, tone }) => (
+-                      <p key={text} className="flex items-center gap-3 text-xs font-normal text-navy-900/90">
+-                        <Icon className={`h-4 w-4 shrink-0 ${tone}`} />
+-                        {text}
+-                      </p>
+-                    ))}
+-                  </div>
+-                </div>
+-              </div>
+-            </aside>
+           </div>
+         </div>
+       </section>
+diff --git a/frontend/src/features/sell/Sell.tsx b/frontend/src/features/sell/Sell.tsx
+index 93e20c2..8cdc24e 100644
+--- a/frontend/src/features/sell/Sell.tsx
++++ b/frontend/src/features/sell/Sell.tsx
+@@ -19,7 +19,7 @@ import {
+   WalletCards,
+ } from 'lucide-react';
+ import { ChoiceCards, ErrorBanner, Eyebrow, FormField, Input, Modal, PageHero, ProgressSteps, RequestSuccess, Select, Textarea, UploadZone } from '../../shared/ui';
+-import { phoneError, emailError, isPositiveNumber } from '../../lib/validate';
++import { phoneError, emailError, isPositiveNumber, sanitizePhone } from '../../lib/validate';
+ import { createLandFileRequest } from '../../services/requestService';
+ import type { LandFileSubmission } from '../../services/requestService';
+ import MapVisual, { MapPinPos } from '../../shared/MapVisual';
+@@ -86,13 +86,35 @@ export default function Sell() {
+ 
+   const next = () => {
+     setError(null);
+-    if (step === 0 && (!form.firstName.trim() || !form.lastName.trim() || !form.phone.trim() || !form.email.trim())) {
+-      setError('Veuillez compléter les informations du propriétaire avant de continuer.');
+-      return;
++    if (step === 0) {
++      if (!form.firstName.trim() || !form.lastName.trim() || !form.phone.trim() || !form.email.trim()) {
++        setError('Veuillez compléter les informations du propriétaire avant de continuer.');
++        return;
++      }
++      const phone = phoneError(form.phone);
++      const email = emailError(form.email);
++      if (phone || email) {
++        setError(phone ?? email);
++        return;
++      }
++      if (!form.idNumber.trim()) {
++        setError('Indiquez le numéro de votre pièce d’identité.');
++        return;
++      }
+     }
+-    if (step === 1 && (!form.title.trim() || !form.area || !form.price || !form.description.trim())) {
+-      setError('Renseignez au moins le titre, la superficie, le prix et la description du terrain.');
+-      return;
++    if (step === 1) {
++      if (!form.title.trim() || !form.area || !form.price || !form.description.trim()) {
++        setError('Renseignez au moins le titre, la superficie, le prix et la description du terrain.');
++        return;
++      }
++      if (!isPositiveNumber(form.area)) {
++        setError('La superficie doit être un nombre positif (en m²).');
++        return;
++      }
++      if (!isPositiveNumber(form.price)) {
++        setError('Le prix doit être un nombre positif (en Ariary).');
++        return;
++      }
+     }
+     if (step === 2 && (!form.commune.trim() || !form.district.trim() || !pin)) {
+       setError('Indiquez la commune et le district, et placez le marqueur sur la carte.');
+@@ -222,6 +244,7 @@ export default function Sell() {
+     <div className="font-display overflow-x-clip bg-brand-50">
+       {/* — Hero navy (style Accueil / À propos) — */}
+       <PageHero
++        flat
+         pill="Vendre avec CA IMMO"
+         image="/media/terrains/agricole.jpg"
+         title={
+@@ -229,19 +252,19 @@ export default function Sell() {
+             Proposez votre terrain en toute <span className="text-gold-500">confiance</span>
+           </>
+         }
+-        lead="Déposez votre dossier en ligne en quelques étapes. Notre équipe vérifie chaque terrain avant toute publication."
++        lead="Déposez votre dossier en ligne. Notre équipe le vérifie avant toute publication et vous accompagne jusqu’à la vente."
+       />
+ 
+-      {/* Bandeau bénéfices vendeur */}
+-      <section className="pb-10">
++      {/* Bandeau bénéfices vendeur — bande bleu brume de la référence */}
++      <section className="border-b border-navy-900/5 bg-mist">
+         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+-          <div className="grid gap-4 sm:grid-cols-3">
++          <div className="grid gap-y-4 py-5 sm:grid-cols-3 sm:divide-x sm:divide-navy-900/10">
+             {[
+               { icon: ShieldCheck, title: 'Vérification sérieuse', text: 'Un dossier fiable pour les acheteurs' },
+               { icon: Camera, title: 'Mise en valeur', text: 'Une annonce professionnelle' },
+-              { icon: UserRound, title: 'Suivi personnalisé', text: 'Un accompagnement à chaque étape' },
++              { icon: UserRound, title: 'Conseiller dédié', text: 'Un suivi à chaque étape' },
+             ].map(({ icon: Icon, title, text }) => (
+-              <div key={title} className="card-soft flex items-center gap-4 px-6 py-5">
++              <div key={title} className="flex items-center justify-start gap-4 px-6 py-1 sm:justify-center">
+                 <Icon className="h-5 w-5 shrink-0 text-gold-700" strokeWidth={2} />
+                 <div>
+                   <strong className="block text-sm font-medium text-navy-900">{title}</strong>
+@@ -253,9 +276,45 @@ export default function Sell() {
+         </div>
+       </section>
+ 
+-      <section className="pb-24">
++      <section className="py-14 pb-24">
+         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+-          <div className="gap-12 lg:grid lg:grid-cols-[1fr_18rem] xl:gap-16">
++          <div className="gap-10 lg:grid lg:grid-cols-[19rem_1fr] xl:gap-12">
++            {/* Encart « Avant de commencer » — carte marine de la référence, à gauche */}
++            <aside className="mb-10 lg:mb-0">
++              <div className="lg:sticky lg:top-28">
++                <div className="relative overflow-hidden rounded-2xl bg-navy-900 p-8 text-white shadow-xl shadow-navy-900/20">
++                  <span className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/5" aria-hidden />
++                  <span className="grid h-12 w-12 place-items-center rounded-xl bg-gold-500 text-navy-900">
++                    <LandPlot className="h-6 w-6" strokeWidth={2} />
++                  </span>
++                  <h2 className="mt-5 text-lg font-bold leading-snug">Avant de commencer</h2>
++                  <p className="mt-3 text-xs font-normal leading-relaxed text-white/75">
++                    Préparez les éléments suivants pour compléter votre dépôt sans interruption.
++                  </p>
++                  <div className="mt-6 space-y-3 border-t border-white/10 pt-6">
++                    {['Pièce d’identité valide', 'Photos récentes du terrain', 'Document foncier ou justificatif', 'Localisation précise'].map((t, i) => (
++                      <p key={t} className="flex items-center gap-3 text-xs font-medium text-white/90">
++                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/10 text-xs font-bold text-gold-500">
++                          {i + 1}
++                        </span>
++                        {t}
++                      </p>
++                    ))}
++                  </div>
++                </div>
++
++                <div className="mt-5 flex items-start gap-3.5 rounded-2xl border border-gold-500/30 bg-gold-500/10 px-6 py-5">
++                  <FileCheck2 className="mt-0.5 h-4.5 w-4.5 shrink-0 text-gold-700" />
++                  <div>
++                    <strong className="text-xs font-semibold text-navy-900">Aucune publication automatique</strong>
++                    <p className="mt-1 text-xs font-normal leading-relaxed text-navy-900/85">
++                      Chaque terrain passe par notre processus de contrôle avant d’être proposé aux acheteurs.
++                    </p>
++                  </div>
++                </div>
++              </div>
++            </aside>
++
+             {/* Carte formulaire */}
+             <div className="card-soft p-8 sm:p-12">
+               <ProgressSteps steps={STEP_LABELS} current={step} />
+@@ -305,7 +364,7 @@ export default function Sell() {
+                             <Input placeholder="Ex. Rakoto" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} />
+                           </FormField>
+                           <FormField label="Téléphone" required>
+-                            <Input type="tel" placeholder="+261 34 00 000 00" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
++                            <Input type="tel" placeholder="+261 34 00 000 00" inputMode="tel" value={form.phone} onChange={(e) => set('phone', sanitizePhone(e.target.value))} />
+                           </FormField>
+                           <FormField label="Adresse email" required>
+                             <Input type="email" placeholder="vous@exemple.com" value={form.email} onChange={(e) => set('email', e.target.value)} />
+@@ -673,40 +732,6 @@ export default function Sell() {
+               </div>
+             </div>
+ 
+-            {/* Aside */}
+-            <aside className="mt-12 lg:mt-0">
+-              <div className="lg:sticky lg:top-28">
+-                <div className="card-soft p-8">
+-                  <span className="grid h-11 w-11 place-items-center rounded-full bg-navy-900/5">
+-                    <LandPlot className="h-5 w-5 text-navy-900/90" strokeWidth={2} />
+-                  </span>
+-                  <h2 className="mt-5 text-lg font-bold text-navy-900">Avant de commencer</h2>
+-                  <p className="mt-3 text-xs font-normal leading-relaxed text-navy-900/85">
+-                    Préparez les éléments suivants pour compléter votre dépôt sans interruption.
+-                  </p>
+-                  <div className="mt-6 space-y-3">
+-                    {['Pièce d’identité valide', 'Photos récentes du terrain', 'Document foncier ou justificatif', 'Localisation précise'].map((t, i) => (
+-                      <p key={t} className="flex items-center gap-3 text-xs font-normal text-navy-900/90">
+-                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-navy-900/5 text-xs font-semibold text-navy-900">
+-                          {i + 1}
+-                        </span>
+-                        {t}
+-                      </p>
+-                    ))}
+-                  </div>
+-                </div>
+-
+-                <div className="card-soft mt-5 flex items-start gap-3.5 p-6">
+-                  <FileCheck2 className="mt-0.5 h-4.5 w-4.5 shrink-0 text-green-700" />
+-                  <div>
+-                    <strong className="text-xs font-semibold text-navy-900">Aucune publication automatique</strong>
+-                    <p className="mt-1 text-xs font-normal leading-relaxed text-navy-900/85">
+-                      Chaque terrain passe par notre processus de contrôle avant d’être proposé aux acheteurs.
+-                    </p>
+-                  </div>
+-                </div>
+-              </div>
+-            </aside>
+           </div>
+         </div>
+       </section>
+diff --git a/frontend/src/index.css b/frontend/src/index.css
+index 73d93e9..4d046b2 100644
+--- a/frontend/src/index.css
++++ b/frontend/src/index.css
+@@ -17,7 +17,8 @@
+   --color-gold-500: #f7c325;
+   --color-gold-600: #e5ad0b;
+   --color-gold-700: #8a6800;
+-  /* mist a été unifié avec brand-50 (#f4f6fa) */
++  /* Bleu brume des fonds de section — charte de référence CA IMMO */
++  --color-mist: #f3f6fb;
+   /* Touches « papier mat » — fonds texturés de la direction soft minimalism */
+   --color-paper: #f7f5ef;
+   --color-paper-deep: #efebe0;
+diff --git a/frontend/src/layout/Navbar.tsx b/frontend/src/layout/Navbar.tsx
+index 1841a1a..73f87a5 100644
+--- a/frontend/src/layout/Navbar.tsx
++++ b/frontend/src/layout/Navbar.tsx
+@@ -1,6 +1,6 @@
+ import { useState } from 'react';
+ import { Link, NavLink } from 'react-router-dom';
+-import { Home, Map, Phone, Tag, Menu, X, Facebook, Hammer } from 'lucide-react';
++import { Phone, Tag, Menu, X, Facebook, Hammer, Compass, Info, ShoppingBag } from 'lucide-react';
+ import { motion, AnimatePresence } from 'motion/react';
+ import { FB_URL, PHONE_1, PHONE_1_TEL } from '../lib/contact';
+ 
+@@ -9,9 +9,10 @@ export default function Navbar() {
+ 
+ 
+   const navLinks = [
+-    { name: 'Accueil', path: '/', icon: <Home className="w-4 h-4 mr-2" /> },
+-    { name: 'Acheter', path: '/terrains', icon: <Map className="w-4 h-4 mr-2" /> },
++    { name: 'Acheter', path: '/terrains', icon: <ShoppingBag className="w-4 h-4 mr-2" /> },
++    { name: 'Rechercher un terrain', path: '/recherche', icon: <Compass className="w-4 h-4 mr-2" /> },
+     { name: 'Vendre', path: '/vendre', icon: <Tag className="w-4 h-4 mr-2" /> },
++    { name: 'À Propos', path: '/about', icon: <Info className="w-4 h-4 mr-2" /> },
+     { name: 'Réalisations', path: '/realisations', icon: <Hammer className="w-4 h-4 mr-2" /> },
+   ];
+ 
+@@ -50,14 +51,14 @@ export default function Navbar() {
+             </div>
+ 
+             {/* Desktop Menu */}
+-            <div className="hidden md:flex items-center space-x-8">
++            <div className="hidden lg:flex items-center space-x-6">
+               {navLinks.map((link) => (
+                 <NavLink
+                   key={link.name}
+                   to={link.path}
+                   end
+                   className={({ isActive }) =>
+-                    `relative py-2 text-sm font-medium transition-colors hover:text-gold-500 ${
++                    `relative py-2 text-sm font-medium whitespace-nowrap transition-colors hover:text-gold-500 ${
+                       isActive ? 'text-white after:absolute after:left-0 after:-bottom-0.5 after:h-0.5 after:w-full after:rounded-full after:bg-gold-500' : 'text-white/75'
+                     }`
+                   }
+@@ -67,7 +68,7 @@ export default function Navbar() {
+               ))}
+             </div>
+ 
+-            <div className="hidden md:flex items-center gap-3">
++            <div className="hidden lg:flex items-center gap-3">
+               <Link
+                 to="/contact"
+                 className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-navy-900 bg-gold-500 rounded-full shadow-lg shadow-gold-500/30 hover:bg-gold-400 transition-colors"
+@@ -77,7 +78,7 @@ export default function Navbar() {
+             </div>
+ 
+             {/* Mobile menu button */}
+-            <div className="flex items-center md:hidden">
++            <div className="flex items-center lg:hidden">
+               <button
+                 onClick={() => setIsOpen(!isOpen)}
+                 aria-expanded={isOpen}
+@@ -99,7 +100,7 @@ export default function Navbar() {
+               animate={{ opacity: 1, height: 'auto' }}
+               exit={{ opacity: 0, height: 0 }}
+               id="menu-mobile"
+-              className="md:hidden border-t border-white/10 bg-navy-900 overflow-hidden"
++              className="lg:hidden border-t border-white/10 bg-navy-900 overflow-hidden"
+             >
+               <div className="px-4 pt-4 pb-6 space-y-2">
+                 {navLinks.map((link) => (
+diff --git a/frontend/src/lib/validate.ts b/frontend/src/lib/validate.ts
+index 8022dbf..4717de0 100644
+--- a/frontend/src/lib/validate.ts
++++ b/frontend/src/lib/validate.ts
+@@ -36,3 +36,12 @@ export function emailError(value: string): string | null {
+ export function isPositiveNumber(value: string): boolean {
+   return /^\d+([.,]\d+)?$/.test(value.trim()) && Number(value.replace(',', '.')) > 0;
+ }
++
++/**
++ * Filtre la saisie d'un champ téléphone en temps réel :
++ * seuls les chiffres, espaces, points, tirets, parenthèses et un « + »
++ * initial sont conservés — les lettres sont bloquées.
++ */
++export function sanitizePhone(value: string): string {
++  return value.replace(/[^\d+\s().\-]/g, '').replace(/(?!^)\+/g, '').slice(0, 20);
++}
+diff --git a/frontend/src/shared/ui.tsx b/frontend/src/shared/ui.tsx
+index 27db2cc..ae6bdbd 100644
+--- a/frontend/src/shared/ui.tsx
++++ b/frontend/src/shared/ui.tsx
+@@ -28,6 +28,7 @@ export function PageHero({
+   title,
+   lead,
+   image,
++  flat = false,
+   children,
+ }: {
+   pill: string;
+@@ -35,10 +36,12 @@ export function PageHero({
+   lead?: ReactNode;
+   /** Photo en fond à droite, dégradée vers le bleu marine (style maison). */
+   image?: string;
++  /** Bord inférieur droit (sans courbe), comme les en-têtes de la référence. */
++  flat?: boolean;
+   children?: ReactNode;
+ }) {
+   return (
+-    <section className="relative overflow-hidden bg-navy-900 pb-28 pt-10 text-white md:pb-32">
++    <section className={`relative overflow-hidden bg-navy-900 pt-8 text-white md:pt-10 ${flat ? 'pb-16 md:pb-20' : 'pb-28 md:pb-32'}`}>
+       {/* Photo à droite en fondu — comme l'en-tête de la page Contact de référence */}
+       {image && (
+         <div className="absolute inset-y-0 right-0 hidden w-[58%] md:block" aria-hidden>
+@@ -56,7 +59,7 @@ export function PageHero({
+         <path fill="currentColor" d="M40,0 C0,40 0,140 40,180 Z" />
+       </svg>
+ 
+-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
++      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-4 md:pt-6">
+         <span className="inline-block rounded-md bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em]">
+           {pill}
+         </span>
+@@ -65,10 +68,12 @@ export function PageHero({
+         {children && <div className="w-full pt-5">{children}</div>}
+       </div>
+ 
+-      {/* Courbe descendante vers le fond de page */}
+-      <svg className="absolute -bottom-px left-0 z-0 block h-14 w-full text-mist md:h-20" viewBox="0 0 1440 90" preserveAspectRatio="none" aria-hidden>
+-        <path fill="currentColor" d="M0,0 C330,72 830,95 1440,72 L1440,92 L0,92 Z" />
+-      </svg>
++      {/* Courbe descendante vers le fond de page (désactivée en mode « flat ») */}
++      {!flat && (
++        <svg className="absolute -bottom-px left-0 z-0 block h-14 w-full text-mist md:h-20" viewBox="0 0 1440 90" preserveAspectRatio="none" aria-hidden>
++          <path fill="currentColor" d="M0,0 C330,72 830,95 1440,72 L1440,92 L0,92 Z" />
++        </svg>
++      )}
+     </section>
+   );
+ }
+@@ -333,26 +338,26 @@ export function ProgressSteps({ steps, current }: { steps: string[]; current: nu
+             aria-current={i === current ? 'step' : undefined}
+           >
+             <span
+-              className={`grid h-10 w-10 place-items-center rounded-full text-sm font-bold transition-all duration-300 ${
++              className={`grid h-9 w-9 place-items-center rounded-full text-sm font-bold transition-all duration-300 ${
+                 i < current
+-                  ? 'bg-gold-500 text-navy-900'
++                  ? 'bg-navy-900 text-white'
+                   : i === current
+-                    ? 'bg-navy-900 text-white ring-4 ring-navy-900/15'
+-                    : 'border border-navy-900/25 bg-white text-navy-900/60'
++                    ? 'bg-gold-500 text-navy-900 shadow-md shadow-gold-500/40'
++                    : 'border border-navy-900/20 bg-white text-navy-900/55'
+               }`}
+             >
+               {i < current ? <CheckCircle2 className="h-5 w-5" aria-hidden /> : i + 1}
+             </span>
+             <small
+-              className={`text-center text-xs font-semibold uppercase tracking-[0.12em] ${
+-                i === current ? 'text-navy-900' : i < current ? 'text-navy-900/85' : 'text-navy-900/60'
++              className={`text-center text-xs ${
++                i === current ? 'font-bold text-navy-900' : i < current ? 'font-semibold text-navy-900/85' : 'font-medium text-navy-900/55'
+               }`}
+             >
+               {label}
+             </small>
+           </div>
+           {i < steps.length - 1 && (
+-            <div className={`mt-[1.2rem] h-[2px] flex-1 rounded-full transition-colors duration-500 ${i < current ? 'bg-gold-500' : 'bg-navy-900/15'}`} />
++            <div className={`mt-[1.05rem] h-[2px] flex-1 rounded-full transition-colors duration-500 ${i < current ? 'bg-gold-500' : 'bg-navy-900/15'}`} />
+           )}
+         </Fragment>
+       ))}

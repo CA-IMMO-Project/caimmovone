@@ -36,3 +36,12 @@ export function emailError(value: string): string | null {
 export function isPositiveNumber(value: string): boolean {
   return /^\d+([.,]\d+)?$/.test(value.trim()) && Number(value.replace(',', '.')) > 0;
 }
+
+/**
+ * Filtre la saisie d'un champ téléphone en temps réel :
+ * seuls les chiffres, espaces, points, tirets, parenthèses et un « + »
+ * initial sont conservés — les lettres sont bloquées.
+ */
+export function sanitizePhone(value: string): string {
+  return value.replace(/[^\d+\s().\-]/g, '').replace(/(?!^)\+/g, '').slice(0, 20);
+}

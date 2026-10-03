@@ -386,9 +386,10 @@ export default function Lands() {
   );
 
   return (
-    <div className="font-display overflow-x-clip bg-brand-50">
-      {/* — Hero navy (style Accueil / À propos) — */}
+    <div className="font-display overflow-x-clip bg-white">
+      {/* — Hero navy (style référence : fil d'Ariane + recherche rapide) — */}
       <PageHero
+        flat
         pill="Terrains à vendre"
         image="/media/terrains/plaine.jpg"
         title={
@@ -396,42 +397,57 @@ export default function Lands() {
             Trouvez l’emplacement de votre <span className="text-gold-500">prochain projet</span>
           </>
         }
-        lead="Une sélection resserrée de parcelles contrôlées à travers Madagascar — titres sécurisés, visites accompagnées et conseils de notre équipe locale, de la première recherche jusqu’au notaire."
-      />
+        lead="Explorez les terrains sélectionnés et contrôlés par CA IMMO à Madagascar : titres vérifiés, accompagnement de confiance."
+      >
+        <form
+          onSubmit={(e) => e.preventDefault()}
+          className="flex max-w-xl items-center gap-3 rounded-full bg-white py-1.5 pl-5 pr-1.5 text-navy-900 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.45)]"
+        >
+          <Search className="h-5 w-5 shrink-0 text-navy-900/60" aria-hidden />
+          <input
+            type="text"
+            value={filters.q}
+            onChange={(e) => update('q', e.target.value)}
+            aria-label="Rechercher une commune, un quartier ou un terrain"
+            placeholder="Rechercher une commune, un quartier ou un terrain…"
+            className="w-full bg-transparent py-2 text-sm font-medium text-navy-900 outline-none placeholder:text-navy-900/45"
+          />
+          <button type="submit" className="btn-gold shrink-0 !px-6 !py-2.5 !shadow-none">
+            Rechercher
+          </button>
+        </form>
+      </PageHero>
 
       {/* — Listing — */}
-      <section className="pb-24">
+      <section className="pb-24 pt-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className={showFilters ? "gap-10 lg:grid lg:grid-cols-[19.5rem_1fr] xl:gap-14" : ""}>
             {filterSidebar}
 
             <div>
-              {/* Barre outils */}
-              <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
-                <div className="flex flex-1 items-center gap-3">
+              {/* Barre outils — en-tête de résultats comme la référence */}
+              <div ref={resultsRef} className="scroll-mt-28" />
+              <div className="mb-7 flex flex-wrap items-center justify-between gap-4 border-b border-navy-900/8 pb-6">
+                <div>
+                  <h2 className="text-xl font-bold tracking-tight text-navy-900 md:text-2xl">
+                    {lands.length} terrain{lands.length > 1 ? 's' : ''} disponible{lands.length > 1 ? 's' : ''}
+                  </h2>
+                  <p className="mt-1 text-xs font-medium text-navy-900/60">Catalogue CA IMMO · Madagascar</p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
                   <button
                     onClick={() => setShowFilters((v) => !v)}
                     aria-pressed={showFilters}
-                    className="btn-outline hidden !px-4 !py-3 lg:inline-flex"
+                    className="btn-outline hidden !px-4 !py-2.5 !text-xs lg:inline-flex"
                     title={showFilters ? 'Masquer les filtres pour agrandir le catalogue' : 'Afficher les filtres'}
                   >
                     {showFilters ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
                     <span className="hidden xl:inline">{showFilters ? 'Masquer les filtres' : 'Filtres'}</span>
                   </button>
-                  <div className="relative max-w-md flex-1">
-                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-navy-900/60" />
-                    <input
-                      type="text"
-                      value={filters.q}
-                      onChange={(e) => update('q', e.target.value)}
-                      aria-label="Rechercher une ville ou une commune"
-                      placeholder="Rechercher une ville, une commune…"
-                      className="input !rounded-full !py-3 !pl-11"
-                    />
-                  </div>
                   <button
                     onClick={() => setMobileFilters(true)}
-                    className="btn-outline relative !px-4 !py-3 lg:hidden"
+                    className="btn-outline relative !px-4 !py-2.5 lg:hidden"
                     aria-label="Ouvrir les filtres"
                   >
                     <SlidersHorizontal className="h-4 w-4" />
@@ -441,10 +457,7 @@ export default function Lands() {
                       </span>
                     )}
                   </button>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="flex overflow-hidden rounded-full border border-navy-900/12">
+                  <div className="flex overflow-hidden rounded-xl border border-navy-900/12">
                     {(
                       [
                         { mode: 'grid' as const, icon: Grid2X2, label: 'Vue grille' },
@@ -456,35 +469,31 @@ export default function Lands() {
                         onClick={() => setView(mode)}
                         aria-label={label}
                         aria-pressed={view === mode}
-                        className={`px-3.5 py-2.5 transition ${view === mode ? 'bg-navy-900 text-white' : 'text-navy-900/80 hover:bg-white'}`}
+                        className={`px-3.5 py-2.5 transition ${view === mode ? 'bg-navy-900 text-white' : 'text-navy-900/80 hover:bg-mist'}`}
                       >
                         <Icon className="h-4 w-4" />
                       </button>
                     ))}
                   </div>
-                  <select
-                    value={sort}
-                    onChange={(e) => setSort(e.target.value as LandSort)}
-                    className="select !rounded-full !py-2.5 !pl-4 !pr-9 !text-xs"
-                    aria-label="Trier les résultats"
-                  >
-                    <option value="recent">Plus récents</option>
-                    <option value="priceAsc">Prix croissant</option>
-                    <option value="priceDesc">Prix décroissant</option>
-                    <option value="area">Plus grande surface</option>
-                  </select>
+                  <label className="flex items-center gap-2 text-xs font-semibold text-navy-900/70">
+                    <span className="hidden sm:inline">Trier :</span>
+                    <select
+                      value={sort}
+                      onChange={(e) => setSort(e.target.value as LandSort)}
+                      className="select !w-auto !rounded-xl !py-2.5 !pl-4 !pr-9 !text-xs"
+                      aria-label="Trier les résultats"
+                    >
+                      <option value="recent">Plus récents</option>
+                      <option value="priceAsc">Prix croissant</option>
+                      <option value="priceDesc">Prix décroissant</option>
+                      <option value="area">Plus grande surface</option>
+                    </select>
+                  </label>
                 </div>
               </div>
 
-              {/* Compteurs + chips actifs */}
-              <div ref={resultsRef} className="scroll-mt-28" />
-              <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-                <p className="text-sm font-normal text-navy-900/80">
-                  <strong className="font-medium text-navy-900">
-                    {lands.length} terrain{lands.length > 1 ? 's' : ''}
-                  </strong>{' '}
-                  à vendre — Madagascar
-                </p>
+              {/* Chips des filtres actifs */}
+              <div className="mb-8 flex flex-wrap items-center justify-end gap-4">
                 {activeChips.length > 0 && (
                   <div className="flex flex-wrap items-center gap-2">
                     {activeChips.map((chip) => (
@@ -560,7 +569,7 @@ export default function Lands() {
             <h2 className="mt-5 text-3xl font-bold leading-tight tracking-tight text-navy-900 md:text-4xl">
               Confiez-nous la recherche
               <br />
-              de votre <span className="font-serif italic">terrain idéal</span>
+              de votre <span className="text-gold-500">terrain idéal</span>
             </h2>
             <p className="mt-5 max-w-md text-sm font-normal leading-relaxed text-navy-900/85">
               Zone, surface, budget, environnement : décrivez-nous votre projet et notre équipe repère, vérifie et

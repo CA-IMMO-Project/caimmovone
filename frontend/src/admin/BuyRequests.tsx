@@ -14,6 +14,7 @@ import {
   Badge, Choice, Column, DataTable, DateFilter, Field, FileChip, FileDrop, Grid, Info, Modal, NotesPanel, NumberInput, Preview,
   Section, Select, Stat, Stepper, Tabs, Timeline, btnGold, btnIcon, btnOutline, btnPrimary, exportCsv,
   fmtAr, fmtDate, fmtDateTime, fmtM2, input, printTable,
+  ListToolbar, PageHeader, RelDate, TelLink,
 } from './crm/kit';
 import { removeFile } from './crm/files';
 import { emptyClientFields, findOrCreateClient, getClient, splitName } from './crm/people';
@@ -45,7 +46,7 @@ const columns: Column<BuyRequest>[] = [
     key: 'client', label: 'Client', sort: (r) => fullName(r).toLowerCase(), csv: (r) => fullName(r),
     render: (r) => (<div><p className="font-medium text-navy-900">{fullName(r)}</p><p className="text-xs text-gray-500">{r.propertyType} · {r.source}</p></div>),
   },
-  { key: 'phone', label: 'Téléphone', render: (r) => <span className="whitespace-nowrap">{phoneOf(r)}</span>, csv: (r) => phoneOf(r) },
+  { key: 'phone', label: 'Téléphone', render: (r) => <TelLink phone={phoneOf(r)} />, csv: (r) => phoneOf(r) },
   {
     key: 'land', label: 'Terrain souhaité', sort: (r) => landLabel(r), csv: (r) => landLabel(r),
     render: (r) => <span className="block max-w-[220px] truncate" title={landLabel(r)}>{landLabel(r) || <span className="text-red-600">Non rattaché</span>}</span>,
@@ -55,7 +56,7 @@ const columns: Column<BuyRequest>[] = [
   { key: 'pay', label: 'Paiement', render: (r) => <span className="whitespace-nowrap">{r.paymentMode ? (isInstalment(r) ? 'Facilité' : 'Comptant') : '—'}</span>, sort: (r) => r.paymentMode, csv: (r) => r.paymentMode },
   { key: 'agent', label: 'Agent', render: (r) => <span className="whitespace-nowrap">{r.agent}</span>, sort: (r) => r.agent, csv: (r) => r.agent },
   { key: 'next', label: 'Prochaine action', render: (r) => <ActionLabel a={nextAction(r.actions)} />, sort: (r) => nextAction(r.actions)?.at ?? '9', csv: (r) => { const a = nextAction(r.actions); return a ? `${a.type} ${fmtDateTime(a.at)}` : ''; } },
-  { key: 'date', label: 'Création', render: (r) => <span className="whitespace-nowrap text-gray-500">{fmtDate(r.createdAt)}</span>, sort: (r) => r.createdAt, csv: (r) => fmtDateTime(r.createdAt) },
+  { key: 'date', label: 'Création', render: (r) => <RelDate iso={r.createdAt} />, sort: (r) => r.createdAt, csv: (r) => fmtDateTime(r.createdAt) },
   { key: 'prio', label: 'Priorité', render: (r) => <Badge value={r.priority} />, sort: (r) => PRIORITIES.indexOf(r.priority), csv: (r) => r.priority },
   { key: 'status', label: 'Statut', render: (r) => <Badge value={r.status} dot />, sort: (r) => BUY_STATUSES.indexOf(r.status), csv: (r) => r.status },
 ];
@@ -68,7 +69,6 @@ export function BuyRequestList() {
   const navigate = useNavigate();
   const [rows, setRows] = useState(loadPurchaseRequests);
   const [q, setQ] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
   const [f, setF] = useState({ region: '', status: '', agent: '', pay: '', priority: '', from: '', to: '', budgetMax: 0 });
   const [selected, setSelected] = useState<string[]>([]);
   const [bulkStatus, setBulkStatus] = useState('');
@@ -81,7 +81,11 @@ export function BuyRequestList() {
       (!f.region || r.region === f.region) && (!f.status || r.status === f.status) && (!f.agent || r.agent === f.agent) &&
       (!f.priority || r.priority === f.priority) && (!f.pay || r.paymentMode === f.pay) &&
       (!f.from || r.createdAt.slice(0, 10) >= f.from) && (!f.to || r.createdAt.slice(0, 10) <= f.to) &&
-      (!f.budgetMax || (r.budgetMin || 0) <= f.budgetMax));
+      (!f.budgetMax || (r.budgetMin || 0) <= f.budgetMax))
+      .sort((a, b) => {
+        const fresh = (r: BuyRequest) => (r.status === 'Nouvelle' || r.status === 'À contacter' ? 0 : 1);
+        return fresh(a) - fresh(b) || b.createdAt.localeCompare(a.createdAt); // à traiter d'abord, puis plus récentes
+      });
   }, [rows, q, f]);
 
   const applyBulk = () => {
@@ -100,13 +104,11 @@ export function BuyRequestList() {
 
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-navy-900">Demandes d’achat</h1>
-          <p className="text-sm text-gray-500 mt-1">Personnes souhaitant acheter un terrain ou un bien immobilier</p>
-        </div>
-        <Link to={`${BASE}/nouveau`} className={btnGold}><Plus className="w-4 h-4" /> Nouvelle demande</Link>
-      </div>
+      <PageHeader
+        title="Demandes d’achat"
+        subtitle="Personnes souhaitant acheter un terrain ou un bien immobilier"
+        action={<Link to={`${BASE}/nouveau`} className={btnGold}><Plus className="w-4 h-4" /> Nouvelle demande</Link>}
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         <Stat label="Dossiers actifs" value={active.length} />
@@ -115,21 +117,13 @@ export function BuyRequestList() {
         <Stat label="Achats finalisés" value={rows.filter((r) => r.status === 'Achat finalisé').length} tone="text-blue-700" />
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4 space-y-3">
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher par référence, nom, téléphone, email, commune…" className={`${input} pl-9`} />
-          <button
-            type="button"
-            onClick={() => setShowFilters((v) => !v)}
-            className={`absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${showFilters ? 'bg-navy-900 text-white' : 'text-navy-900 hover:bg-gray-100'}`}
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" /> Filtres
-            {activeFilters > 0 && <span className="grid h-4 min-w-4 place-items-center rounded-full bg-gold-500 px-1 text-[10px] font-bold text-navy-900">{activeFilters}</span>}
-          </button>
-        </div>
-        {showFilters && (
-          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2">
+      <ListToolbar
+        q={q}
+        onQ={setQ}
+        placeholder="Rechercher par référence, nom, téléphone, email, commune…"
+        activeFilters={activeFilters}
+        filters={
+          <>
             <Select value={f.region} onChange={(v) => set('region', v)} options={REGIONS} placeholder="Toutes régions" />
             <Select value={f.status} onChange={(v) => set('status', v)} options={BUY_STATUSES} placeholder="Tous statuts" />
             <Select value={f.agent} onChange={(v) => set('agent', v)} options={AGENTS} placeholder="Tous agents" />
@@ -138,28 +132,26 @@ export function BuyRequestList() {
             <NumberInput value={f.budgetMax} onChange={(v) => set('budgetMax', v)} placeholder="Budget ≤" suffix="Ar" />
             <DateFilter label="Du" value={f.from} onChange={(v) => set('from', v)} />
             <DateFilter label="Au" value={f.to} onChange={(v) => set('to', v)} />
-          </div>
+          </>
+        }
+        bulk={selected.length > 0 && (
+          <>
+            <Select value={bulkStatus} onChange={setBulkStatus} options={BUY_STATUSES} placeholder={`Statut pour ${selected.length} dossier(s)…`} className="w-auto" />
+            <button className={btnPrimary} onClick={applyBulk} disabled={!bulkStatus}>Appliquer</button>
+          </>
         )}
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          {selected.length > 0 && (
-            <>
-              <Select value={bulkStatus} onChange={setBulkStatus} options={BUY_STATUSES} placeholder={`Statut pour ${selected.length} dossier(s)…`} className="w-auto" />
-              <button className={btnPrimary} onClick={applyBulk} disabled={!bulkStatus}>Appliquer</button>
-            </>
-          )}
-          <div className="flex gap-2 ml-auto">
-            <button className={btnOutline} onClick={() => exportCsv(chosen(), columns, 'demandes-achat')}><FileSpreadsheet className="w-4 h-4" /> Excel</button>
-            <button className={btnOutline} onClick={() => printTable(chosen(), columns, 'Demandes d’achat')}><FileDown className="w-4 h-4" /> PDF</button>
-            <button className={btnOutline} onClick={() => printTable(chosen(), columns, 'Demandes d’achat')}><Printer className="w-4 h-4" /> Imprimer</button>
-          </div>
-        </div>
-      </div>
+        exportRows={chosen}
+        exportColumns={columns}
+        exportName="demandes-achat"
+        exportTitle="Demandes d’achat"
+      />
 
       <DataTable
         rows={filtered}
         columns={columns}
         selected={selected}
         onSelect={setSelected}
+        rowClass={(r) => (r.status === 'Nouvelle' || r.status === 'À contacter' ? 'bg-blue-50/60' : '')}
         onOpen={(r) => navigate(`${BASE}/${r.id}`)}
         rowActions={(r) => (
           <>

@@ -5,6 +5,7 @@ import { Land, Lot, TitleStatus } from '../types';
 import { deleteLand, getLands, newId, resetLands, saveLand } from '../lib/store';
 import { formatAriary, formatArea } from '../lib/format';
 import { Badge, Card, PageHeader, btnGhost, btnPrimary, inputClass } from './ui';
+import { ListToolbar, Select } from './crm/kit';
 import SaleDialog from './SaleDialog';
 import { ClientRows, InterestDialog, LotDialog } from './LotDialog';
 import { getBuyRequests } from './crm/model';
@@ -73,16 +74,13 @@ export default function AdminLands() {
         }
       />
 
-      <Card className="p-4 mb-4 flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher par titre ou localisation…" className={`${inputClass} pl-9`} />
-        </div>
-        <select value={status} onChange={(e) => setStatus(e.target.value)} className={`${inputClass} w-auto`}>
-          <option value="">Tous les statuts</option>
-          {LAND_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
-      </Card>
+      <ListToolbar
+        q={q}
+        onQ={setQ}
+        placeholder="Rechercher par titre ou localisation…"
+        filters={<Select value={status} onChange={setStatus} options={LAND_STATUSES} placeholder="Tous les statuts" />}
+        activeFilters={status ? 1 : 0}
+      />
 
       <Card className="overflow-x-auto">
         <table className="w-full text-sm">

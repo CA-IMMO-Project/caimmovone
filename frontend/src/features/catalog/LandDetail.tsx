@@ -16,7 +16,9 @@ import {
   LandPlot,
   MapPin,
   Maximize2,
+  MessageCircle,
   Navigation,
+  Phone as PhoneIcon,
   Route as RoadIcon,
   Share2,
   ShieldCheck,
@@ -24,6 +26,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
+import { PHONE_1, PHONE_1_TEL, WHATSAPP_URL } from '../../lib/contact';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -163,12 +166,10 @@ export default function LandDetail() {
           <button onClick={() => navigate('/terrains')} className="btn-ghost !px-4 !py-2.5 !text-xs">
             <ArrowLeft className="h-4 w-4" /> Retour aux terrains
           </button>
-          <div className="flex items-center gap-2">
-            <button onClick={share} className="btn-outline !px-5 !py-2.5 !text-xs">
-              <Share2 className="h-4 w-4" />
-              {shared ? 'Lien copié !' : 'Partager'}
-            </button>
-          </div>
+          <button onClick={share} className="btn-outline !px-5 !py-2.5 !text-xs">
+            <Share2 className="h-4 w-4" />
+            {shared ? 'Lien copié !' : 'Partager'}
+          </button>
         </div>
       </div>
 
@@ -378,9 +379,9 @@ export default function LandDetail() {
                 que la page Vendre et le site de référence. Sur mobile, les deux
                 boutons vivent dans la barre fixe en bas d'écran. */}
             <div className="lg:sticky lg:top-28">
-              <div className="card-soft p-8">
+              <div className="card-soft overflow-hidden border-t-4 border-t-gold-500 p-8">
                 <span className="text-xs font-semibold uppercase tracking-[0.22em] text-navy-900/70">Prix du terrain</span>
-                <strong className="mt-2 block font-serif text-3xl font-bold text-navy-900">
+                <strong className="mt-2 block text-3xl font-extrabold tracking-tight text-navy-900">
                   {formatAriary(land.price)}
                 </strong>
                 <small className="mt-1 block text-xs font-normal text-navy-900/75">soit {formatAriary(perSqm)} / m²</small>
@@ -419,6 +420,28 @@ export default function LandDetail() {
                   <p className="mt-4 text-center text-xs font-normal text-navy-900/70">
                     Réponse d’un conseiller sous 24 h ouvrées.
                   </p>
+                </div>
+              </div>
+
+              {/* Votre conseiller — carte de la référence */}
+              <div className="card-soft mt-5 p-6">
+                <div className="flex items-center gap-3.5">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-navy-900 text-sm font-extrabold text-white">
+                    CA
+                  </span>
+                  <div className="min-w-0">
+                    <small className="block text-xs font-normal text-navy-900/65">Votre conseiller</small>
+                    <strong className="block truncate text-sm font-bold text-navy-900">CA IMMO</strong>
+                    <small className="block text-xs font-medium text-navy-900/80">{PHONE_1}</small>
+                  </div>
+                </div>
+                <div className="mt-5 grid grid-cols-2 gap-2.5">
+                  <a href={PHONE_1_TEL} className="btn-outline !px-3 !py-2.5 !text-xs">
+                    <PhoneIcon className="h-3.5 w-3.5" /> Appeler
+                  </a>
+                  <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="btn-outline !px-3 !py-2.5 !text-xs">
+                    <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                  </a>
                 </div>
               </div>
 

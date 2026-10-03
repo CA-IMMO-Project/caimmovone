@@ -12,6 +12,7 @@ import { historyEntry } from './crm/model';
 import {
   Badge, Choice, Column, DataTable, Field, Info, MapPicker, Modal, NumberInput, Section, Select, Stat, Timeline,
   btnDanger, btnGold, btnIcon, btnOutline, btnPrimary, fmtAr, fmtDate, fmtDateTime, fmtM2, input,
+  ListToolbar, PageHeader, RelDate, TelLink,
 } from './crm/kit';
 
 const BASE = '/admin/recherches';
@@ -83,14 +84,14 @@ function distanceKm(a: [number, number], b: [number, number]) {
 // ======================= LISTE =======================
 const columns: Column<SpecificSearch>[] = [
   { key: 'ref', label: 'Référence', render: (s) => <span className="font-mono text-xs font-semibold">{s.ref}</span>, sort: (s) => s.ref, csv: (s) => s.ref },
-  { key: 'client', label: 'Client', render: (s) => <div><p className="font-medium text-navy-900">{s.fullName}</p><p className="text-xs text-gray-500">{s.phone}</p></div>, sort: (s) => s.fullName.toLowerCase(), csv: (s) => s.fullName },
+  { key: 'client', label: 'Client', render: (s) => <div><p className="font-medium text-navy-900">{s.fullName}</p><TelLink phone={s.phone} /></div>, sort: (s) => s.fullName.toLowerCase(), csv: (s) => s.fullName },
   { key: 'zone', label: 'Zone principale', render: (s) => <span>{s.mainZone}</span>, sort: (s) => s.mainZone, csv: (s) => s.mainZone },
   { key: 'others', label: 'Autres zones', render: (s) => <span className="text-gray-600">{s.otherZones || '—'}</span>, csv: (s) => s.otherZones },
   { key: 'radius', label: 'Rayon', render: (s) => `${s.radiusKm} km`, sort: (s) => s.radiusKm, csv: (s) => s.radiusKm },
   { key: 'flex', label: 'Flexible', render: (s) => s.flexible, csv: (s) => s.flexible },
   { key: 'budget', label: 'Budget max', render: (s) => <span className="whitespace-nowrap">{fmtAr(s.budgetMax)}</span>, sort: (s) => s.budgetMax, csv: (s) => s.budgetMax },
   { key: 'prop', label: 'Terrains proposés', render: (s) => s.proposals.length, sort: (s) => s.proposals.length, csv: (s) => s.proposals.length },
-  { key: 'date', label: 'Reçue le', render: (s) => <span className="text-gray-500 whitespace-nowrap">{fmtDate(s.createdAt)}</span>, sort: (s) => s.createdAt, csv: (s) => fmtDate(s.createdAt) },
+  { key: 'date', label: 'Reçue le', render: (s) => <RelDate iso={s.createdAt} />, sort: (s) => s.createdAt, csv: (s) => fmtDate(s.createdAt) },
   { key: 'status', label: 'Statut', render: (s) => <Badge value={s.status} dot />, sort: (s) => SEARCH_STATUSES.indexOf(s.status), csv: (s) => s.status },
 ];
 
@@ -102,31 +103,36 @@ export function SearchList() {
   const [creating, setCreating] = useState(false);
   const filtered = useMemo(() => {
     const s = q.toLowerCase().trim();
-    return rows.filter((r) => !s || [r.ref, r.fullName, r.phone, r.mainZone, r.otherZones, r.targetZone, r.status].join(' ').toLowerCase().includes(s));
+    return rows.filter((r) => !s || [r.ref, r.fullName, r.phone, r.mainZone, r.otherZones, r.targetZone, r.status].join(' ').toLowerCase().includes(s))
+      .sort((a, b) => {
+        const fresh = (r: SpecificSearch) => (r.status === 'Nouvelle' ? 0 : 1);
+        return fresh(a) - fresh(b) || b.createdAt.localeCompare(a.createdAt); // nouvelles d'abord, puis plus récentes
+      });
   }, [rows, q]);
 
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-navy-900">Recherches de terrain spécifique</h1>
-          <p className="text-sm text-gray-500 mt-1">Clients qui cherchent un terrain précis, et les terrains qu’on leur a proposés</p>
-        </div>
-        <button className={btnGold} onClick={() => setCreating(true)}><Plus className="w-4 h-4" /> Nouvelle recherche</button>
-      </div>
+      <PageHeader
+        title="Recherches de terrain spécifique"
+        subtitle="Clients qui cherchent un terrain précis, et les terrains qu’on leur a proposés"
+        action={<button className={btnGold} onClick={() => setCreating(true)}><Plus className="w-4 h-4" /> Nouvelle recherche</button>}
+      />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         <Stat label="Recherches" value={rows.length} />
         <Stat label="Nouvelles" value={rows.filter((r) => r.status === 'Nouvelle').length} tone="text-blue-700" />
         <Stat label="Avec terrains proposés" value={rows.filter((r) => r.proposals.length).length} tone="text-amber-600" />
         <Stat label="Trouvées" value={rows.filter((r) => r.status === 'Trouvé').length} tone="text-blue-700" />
       </div>
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4">
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher : client, téléphone, zone, statut…" className={`${input} pl-9`} />
-        </div>
-      </div>
-      <DataTable rows={filtered} columns={columns} selected={selected} onSelect={setSelected} onOpen={(r) => navigate(`${BASE}/${r.id}`)} />
+      <ListToolbar
+        q={q}
+        onQ={setQ}
+        placeholder="Rechercher : client, téléphone, zone, statut…"
+        exportRows={() => (selected.length ? filtered.filter((r) => selected.includes(r.id)) : filtered)}
+        exportColumns={columns}
+        exportName="recherches"
+        exportTitle="Recherches de terrain"
+      />
+      <DataTable rows={filtered} columns={columns} selected={selected} onSelect={setSelected} rowClass={(r) => (r.status === 'Nouvelle' ? 'bg-blue-50/60' : '')} onOpen={(r) => navigate(`${BASE}/${r.id}`)} />
       {creating && <NewSearchDialog onClose={() => setCreating(false)} onCreated={(s) => { setRows(getSearches()); navigate(`${BASE}/${s.id}`); }} />}
     </>
   );

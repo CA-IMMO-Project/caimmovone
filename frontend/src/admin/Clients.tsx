@@ -4,7 +4,7 @@ import { ArrowLeft, FileSpreadsheet, Mail, Pencil, Phone, Plus, Search, Shopping
 import { getLands } from '../lib/store';
 import { fullName as requestName, getBuyRequests } from './crm/model';
 import { Client, ClientFields, createClient, deleteClient, emptyClientFields, getClient, getClients, getSearches, saveClient } from './crm/people';
-import { Badge, Column, DataTable, Field, Info, Modal, Section, Stat, btnDanger, btnGold, btnIcon, btnOutline, btnPrimary, exportCsv, fmtAr, fmtDate, input } from './crm/kit';
+import { Badge, Column, DataTable, Field, Info, ListToolbar, Modal, PageHeader, RelDate, Section, Select, Stat, TelLink, btnDanger, btnGold, btnIcon, btnOutline, btnPrimary, fmtAr, fmtDate, input } from './crm/kit';
 import { phoneError } from '../lib/validate';
 
 const BASE = '/admin/clients';
@@ -55,36 +55,38 @@ export function ClientForm({ initial, title, onClose, onSave }: {
 const columns: Column<Client>[] = [
   { key: 'ref', label: 'Référence', render: (c) => <span className="font-mono text-xs font-semibold">{c.ref}</span>, sort: (c) => c.ref, csv: (c) => c.ref },
   { key: 'name', label: 'Client', render: (c) => <span className="font-medium text-navy-900">{c.fullName}</span>, sort: (c) => c.fullName.toLowerCase(), csv: (c) => c.fullName },
-  { key: 'phone', label: 'Téléphone', render: (c) => <span className="whitespace-nowrap">{c.phone}</span>, csv: (c) => c.phone },
+  { key: 'phone', label: 'Téléphone', render: (c) => <TelLink phone={c.phone} />, csv: (c) => c.phone },
   { key: 'email', label: 'Email', render: (c) => c.email || '—', csv: (c) => c.email },
   { key: 'budget', label: 'Budget', render: (c) => <span className="whitespace-nowrap">{c.budget ? (Number(c.budget) ? fmtAr(Number(c.budget)) : c.budget) : '—'}</span>, csv: (c) => c.budget },
   { key: 'profession', label: 'Profession', render: (c) => c.profession || '—', sort: (c) => c.profession, csv: (c) => c.profession },
   { key: 'nat', label: 'Nationalité', render: (c) => c.nationality || '—', sort: (c) => c.nationality, csv: (c) => c.nationality },
   { key: 'source', label: 'Source', render: (c) => <span className={`text-xs px-2 py-0.5 rounded-full ${c.source === 'Site web' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700'}`}>{c.source}</span>, sort: (c) => c.source, csv: (c) => c.source },
-  { key: 'date', label: 'Inscrit le', render: (c) => <span className="text-gray-500 whitespace-nowrap">{fmtDate(c.createdAt)}</span>, sort: (c) => c.createdAt, csv: (c) => fmtDate(c.createdAt) },
+  { key: 'date', label: 'Inscrit le', render: (c) => <RelDate iso={c.createdAt} />, sort: (c) => c.createdAt, csv: (c) => fmtDate(c.createdAt) },
 ];
 
 export function ClientList() {
   const navigate = useNavigate();
   const [rows, setRows] = useState(getClients);
   const [q, setQ] = useState('');
+  const [source, setSource] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
 
   const filtered = useMemo(() => {
     const s = q.toLowerCase().trim();
-    return rows.filter((c) => !s || [c.ref, c.fullName, c.phone, c.email, c.profession, c.nationality].join(' ').toLowerCase().includes(s));
-  }, [rows, q]);
+    return rows.filter((c) =>
+      (!s || [c.ref, c.fullName, c.phone, c.email, c.profession, c.nationality].join(' ').toLowerCase().includes(s)) &&
+      (!source || c.source === source))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt)); // inscrits les plus récents d'abord
+  }, [rows, q, source]);
 
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-navy-900">Base clients</h1>
-          <p className="text-sm text-gray-500 mt-1">Clients inscrits depuis le site ou créés dans le backoffice</p>
-        </div>
-        <button onClick={() => setCreating(true)} className={btnGold}><Plus className="w-4 h-4" /> Nouveau client</button>
-      </div>
+      <PageHeader
+        title="Base clients"
+        subtitle="Clients inscrits depuis le site ou créés dans le backoffice"
+        action={<button onClick={() => setCreating(true)} className={btnGold}><Plus className="w-4 h-4" /> Nouveau client</button>}
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-5">
         <Stat label="Clients" value={rows.length} />
@@ -92,13 +94,17 @@ export function ClientList() {
         <Stat label="Créés au backoffice" value={rows.filter((c) => c.source === 'Backoffice').length} />
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4 flex flex-wrap gap-2">
-        <div className="relative flex-1 min-w-[220px]">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher : nom, téléphone, email, profession…" className={`${input} pl-9`} />
-        </div>
-        <button className={btnOutline} onClick={() => exportCsv(selected.length ? filtered.filter((c) => selected.includes(c.id)) : filtered, columns, 'clients')}><FileSpreadsheet className="w-4 h-4" /> Excel</button>
-      </div>
+      <ListToolbar
+        q={q}
+        onQ={setQ}
+        placeholder="Rechercher : nom, téléphone, email, profession…"
+        filters={<Select value={source} onChange={setSource} options={['Site web', 'Backoffice']} placeholder="Toutes sources" />}
+        activeFilters={source ? 1 : 0}
+        exportRows={() => (selected.length ? filtered.filter((c) => selected.includes(c.id)) : filtered)}
+        exportColumns={columns}
+        exportName="clients"
+        exportTitle="Base clients"
+      />
 
       <DataTable rows={filtered} columns={columns} selected={selected} onSelect={setSelected} onOpen={(c) => navigate(`${BASE}/${c.id}`)} />
 

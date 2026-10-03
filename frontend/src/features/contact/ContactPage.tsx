@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Phone, MapPin, Send, CheckCircle, X, Facebook, Clock } from 'lucide-react';
 import { FB_URL, PHONE_1, PHONE_1_TEL, PHONE_2, PHONE_2_TEL } from '../../lib/contact';
 import { createContactMessage } from '../../services/requestService';
-import { phoneError, emailError } from '../../lib/validate';
+import { phoneError, emailError, sanitizePhone } from '../../lib/validate';
 import { PageHero } from '../../shared/ui';
 
 const IMG_CONTACT = '/media/terrains/highlands.jpg';
@@ -95,6 +95,7 @@ export default function ContactPage() {
   return (
     <div className="font-display bg-white">
       <PageHero
+        flat
         pill="Parlons de votre projet"
         title={<>Nous <span className="text-gold-500">contacter</span></>}
         lead="Une question sur un terrain, un titre foncier, une vente ou une recherche ? Notre équipe vous répond rapidement."
@@ -116,7 +117,7 @@ export default function ContactPage() {
         </div>
       </PageHero>
 
-      <section className="bg-brand-50 py-16 md:py-20">
+      <section className="bg-mist py-16 md:py-20">
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 sm:px-6 lg:grid-cols-3 lg:px-8">
           {/* Coordonnées */}
           <motion.div
@@ -199,7 +200,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <label htmlFor="phone" className={label}>Téléphone</label>
-                  <input type="tel" id="phone" required autoComplete="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className={field} placeholder="034 12 345 67" />
+                  <input type="tel" id="phone" required autoComplete="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(sanitizePhone(e.target.value))} className={field} placeholder="034 12 345 67" />
                 </div>
                 <div>
                   <label htmlFor="email" className={label}>Email <span className="font-normal text-navy-900/50">(facultatif)</span></label>

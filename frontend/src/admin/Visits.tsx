@@ -15,6 +15,7 @@ import { getClient } from './crm/people';
 import {
   Badge, Column, DataTable, Section, Select, Stat, Timeline, btnIcon, btnOutline,
   exportCsv, fmtAr, fmtDate, input,
+  ListToolbar, PageHeader, RelDate, TelLink,
 } from './crm/kit';
 
 const BASE = '/admin/visites';
@@ -39,7 +40,7 @@ const columns: Column<BuyRequest>[] = [
   { key: 'client', label: 'Client', render: (r) => (
     <div>
       <p className="font-medium text-navy-900">{fullName(r)}</p>
-      <p className="text-xs text-gray-500">{r.phone}</p>
+      <TelLink phone={r.phone} />
     </div>
   ), sort: (r) => fullName(r).toLowerCase(), csv: (r) => fullName(r) },
   { key: 'land', label: 'Terrain', render: (r) => {
@@ -48,7 +49,7 @@ const columns: Column<BuyRequest>[] = [
     }, sort: (r) => r.landId, csv: (r) => getLands().find((l) => l.id === r.landId)?.title ?? '' },
   { key: 'date', label: 'Visite souhaitée', render: (r) => <span className="whitespace-nowrap">{fmtVisitDate(r)}</span>, sort: (r) => r.visitDate ?? '', csv: (r) => fmtVisitDate(r) },
   { key: 'status', label: 'Statut', render: (r) => <Badge value={visitStatusOf(r)} dot />, sort: (r) => VISIT_STATUSES.indexOf(visitStatusOf(r)), csv: (r) => visitStatusOf(r) },
-  { key: 'created', label: 'Reçue le', render: (r) => <span className="text-gray-500 whitespace-nowrap">{fmtDate(r.createdAt)}</span>, sort: (r) => r.createdAt, csv: (r) => fmtDate(r.createdAt) },
+  { key: 'created', label: 'Reçue le', render: (r) => <RelDate iso={r.createdAt} />, sort: (r) => r.createdAt, csv: (r) => fmtDate(r.createdAt) },
 ];
 
 export function VisitList() {
@@ -62,6 +63,9 @@ export function VisitList() {
     const land = getLands().find((l) => l.id === r.landId);
     return (!status || visitStatusOf(r) === status) &&
       (!s || [r.ref, fullName(r), r.phone, r.email, land?.title ?? ''].join(' ').toLowerCase().includes(s));
+  }).sort((a, b) => {
+    const fresh = (r: BuyRequest) => (visitStatusOf(r) === 'Demandée' ? 0 : 1);
+    return fresh(a) - fresh(b) || b.createdAt.localeCompare(a.createdAt); // à confirmer d'abord, puis plus récentes
   });
 
   const demandees = rows.filter((r) => visitStatusOf(r) === 'Demandée').length;
@@ -70,15 +74,10 @@ export function VisitList() {
 
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-navy-900">Demandes de visite</h1>
-          <p className="text-sm text-gray-500 mt-1">Visites demandées depuis le site — confirmation et suivi</p>
-        </div>
-        <div className="flex gap-2">
-          <button className={btnOutline} onClick={() => exportCsv(filtered, columns, 'visites')}><CalendarDays className="w-4 h-4" /> Excel</button>
-        </div>
-      </div>
+      <PageHeader
+        title="Demandes de visite"
+        subtitle="Visites demandées depuis le site — confirmation et suivi"
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         <Stat label="À confirmer" value={demandees} tone="text-blue-700" />
@@ -87,21 +86,24 @@ export function VisitList() {
         <Stat label="Total" value={rows.length} />
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4 space-y-3">
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher par référence, nom, téléphone, terrain…" className={`${input} pl-9`} />
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <Select value={status} onChange={setStatus} options={[...VISIT_STATUSES]} placeholder="Tous statuts" />
-        </div>
-      </div>
+      <ListToolbar
+        q={q}
+        onQ={setQ}
+        placeholder="Rechercher par référence, nom, téléphone, terrain…"
+        filters={<Select value={status} onChange={setStatus} options={[...VISIT_STATUSES]} placeholder="Tous statuts" />}
+        activeFilters={status ? 1 : 0}
+        exportRows={() => filtered}
+        exportColumns={columns}
+        exportName="visites"
+        exportTitle="Demandes de visite"
+      />
 
       <DataTable
         rows={filtered}
         columns={columns}
         selected={[]}
         onSelect={() => {}}
+        rowClass={(r) => (visitStatusOf(r) === 'Demandée' ? 'bg-blue-50/60' : '')}
         onOpen={(r) => navigate(`${BASE}/${r.id}`)}
       />
     </>

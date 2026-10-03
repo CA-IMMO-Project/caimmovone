@@ -17,7 +17,8 @@
   --color-gold-500: #f7c325;
   --color-gold-600: #e5ad0b;
   --color-gold-700: #8a6800;
-  /* mist a été unifié avec brand-50 (#f4f6fa) */
+  /* Bleu brume des fonds de section — charte de référence CA IMMO */
+  --color-mist: #f3f6fb;
   /* Touches « papier mat » — fonds texturés de la direction soft minimalism */
   --color-paper: #f7f5ef;
   --color-paper-deep: #efebe0;

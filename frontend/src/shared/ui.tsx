@@ -28,6 +28,7 @@ export function PageHero({
   title,
   lead,
   image,
+  flat = false,
   children,
 }: {
   pill: string;
@@ -35,10 +36,12 @@ export function PageHero({
   lead?: ReactNode;
   /** Photo en fond à droite, dégradée vers le bleu marine (style maison). */
   image?: string;
+  /** Bord inférieur droit (sans courbe), comme les en-têtes de la référence. */
+  flat?: boolean;
   children?: ReactNode;
 }) {
   return (
-    <section className="relative overflow-hidden bg-navy-900 pb-28 pt-10 text-white md:pb-32">
+    <section className={`relative overflow-hidden bg-navy-900 pt-8 text-white md:pt-10 ${flat ? 'pb-16 md:pb-20' : 'pb-28 md:pb-32'}`}>
       {/* Photo à droite en fondu — comme l'en-tête de la page Contact de référence */}
       {image && (
         <div className="absolute inset-y-0 right-0 hidden w-[58%] md:block" aria-hidden>
@@ -56,7 +59,7 @@ export function PageHero({
         <path fill="currentColor" d="M40,0 C0,40 0,140 40,180 Z" />
       </svg>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-4 md:pt-6">
         <span className="inline-block rounded-md bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em]">
           {pill}
         </span>
@@ -65,10 +68,12 @@ export function PageHero({
         {children && <div className="w-full pt-5">{children}</div>}
       </div>
 
-      {/* Courbe descendante vers le fond de page */}
-      <svg className="absolute -bottom-px left-0 z-0 block h-14 w-full text-mist md:h-20" viewBox="0 0 1440 90" preserveAspectRatio="none" aria-hidden>
-        <path fill="currentColor" d="M0,0 C330,72 830,95 1440,72 L1440,92 L0,92 Z" />
-      </svg>
+      {/* Courbe descendante vers le fond de page (désactivée en mode « flat ») */}
+      {!flat && (
+        <svg className="absolute -bottom-px left-0 z-0 block h-14 w-full text-mist md:h-20" viewBox="0 0 1440 90" preserveAspectRatio="none" aria-hidden>
+          <path fill="currentColor" d="M0,0 C330,72 830,95 1440,72 L1440,92 L0,92 Z" />
+        </svg>
+      )}
     </section>
   );
 }
@@ -333,26 +338,26 @@ export function ProgressSteps({ steps, current }: { steps: string[]; current: nu
             aria-current={i === current ? 'step' : undefined}
           >
             <span
-              className={`grid h-10 w-10 place-items-center rounded-full text-sm font-bold transition-all duration-300 ${
+              className={`grid h-9 w-9 place-items-center rounded-full text-sm font-bold transition-all duration-300 ${
                 i < current
-                  ? 'bg-gold-500 text-navy-900'
+                  ? 'bg-navy-900 text-white'
                   : i === current
-                    ? 'bg-navy-900 text-white ring-4 ring-navy-900/15'
-                    : 'border border-navy-900/25 bg-white text-navy-900/60'
+                    ? 'bg-gold-500 text-navy-900 shadow-md shadow-gold-500/40'
+                    : 'border border-navy-900/20 bg-white text-navy-900/55'
               }`}
             >
               {i < current ? <CheckCircle2 className="h-5 w-5" aria-hidden /> : i + 1}
             </span>
             <small
-              className={`text-center text-xs font-semibold uppercase tracking-[0.12em] ${
-                i === current ? 'text-navy-900' : i < current ? 'text-navy-900/85' : 'text-navy-900/60'
+              className={`text-center text-xs ${
+                i === current ? 'font-bold text-navy-900' : i < current ? 'font-semibold text-navy-900/85' : 'font-medium text-navy-900/55'
               }`}
             >
               {label}
             </small>
           </div>
           {i < steps.length - 1 && (
-            <div className={`mt-[1.2rem] h-[2px] flex-1 rounded-full transition-colors duration-500 ${i < current ? 'bg-gold-500' : 'bg-navy-900/15'}`} />
+            <div className={`mt-[1.05rem] h-[2px] flex-1 rounded-full transition-colors duration-500 ${i < current ? 'bg-gold-500' : 'bg-navy-900/15'}`} />
           )}
         </Fragment>
       ))}

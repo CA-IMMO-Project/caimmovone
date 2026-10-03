@@ -16,6 +16,7 @@ import {
   Badge, Choice, Column, DataTable, DateFilter, Field, FileChip, FileDrop, Grid, Info, MapPicker, Modal, MultiChoice, NotesPanel,
   NumberInput, Preview, Section, Select, Stat, Stepper, Tabs, Thumb, Timeline, btnDanger, btnGold, btnIcon, btnOutline,
   btnPrimary, exportCsv, fmtAr, fmtDate, fmtDateTime, fmtM2, fmtNum, input, printHtml, printTable,
+  ListToolbar, PageHeader, RelDate,
 } from './crm/kit';
 import { removeFile, useFileUrl } from './crm/files';
 import { NotFound } from './BuyRequests';
@@ -52,7 +53,7 @@ const columns: Column<LandFile>[] = [
   { key: 'ppm', label: 'Prix/m²', render: (f) => <span className="whitespace-nowrap text-gray-600">{f.pricePerM2 ? `${fmtNum(f.pricePerM2)} Ar` : '—'}</span>, sort: (f) => f.pricePerM2, csv: (f) => f.pricePerM2, className: 'text-right' },
   { key: 'pay', label: 'Paiement', render: (f) => <span className="whitespace-nowrap">{payShort(f)}</span>, sort: (f) => f.salePayment, csv: (f) => f.salePayment },
   { key: 'agent', label: 'Agent', render: (f) => <span className="whitespace-nowrap">{f.agent}</span>, sort: (f) => f.agent, csv: (f) => f.agent },
-  { key: 'date', label: 'Création', render: (f) => <span className="whitespace-nowrap text-gray-500">{fmtDate(f.createdAt)}</span>, sort: (f) => f.createdAt, csv: (f) => fmtDateTime(f.createdAt) },
+  { key: 'date', label: 'Création', render: (f) => <RelDate iso={f.createdAt} />, sort: (f) => f.createdAt, csv: (f) => fmtDateTime(f.createdAt) },
   { key: 'prio', label: 'Priorité', render: (f) => <Badge value={f.priority} />, sort: (f) => PRIORITIES.indexOf(f.priority), csv: (f) => f.priority },
   {
     key: 'decision', label: 'Décision', sort: (f) => f.decision ?? '', csv: (f) => f.decision ?? '',
@@ -75,7 +76,11 @@ export function LandFileList() {
     return rows.filter((r) =>
       (view === 'archive' ? r.status === 'Archivé' : r.status !== 'Archivé') &&
       (!s || [r.ref, r.title, fullName(r.owner), r.owner.phone, r.owner.email, r.region, r.district, r.commune, r.fokontany, r.status, r.agent]
-        .join(' ').toLowerCase().includes(s)));
+        .join(' ').toLowerCase().includes(s)))
+      .sort((a, b) => {
+        const fresh = (r: LandFile) => (r.status === 'Nouveau' || r.status === 'Dossier incomplet' ? 0 : 1);
+        return fresh(a) - fresh(b) || b.createdAt.localeCompare(a.createdAt); // à traiter d'abord, puis plus récents
+      });
   }, [rows, q, view]);
 
   const applyBulk = () => {
@@ -94,13 +99,11 @@ export function LandFileList() {
 
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-navy-900">À vendre</h1>
-          <p className="text-sm text-gray-500 mt-1">Terrains que des propriétaires proposent à CA IMMO de vendre</p>
-        </div>
-        <Link to={`${BASE}/nouveau`} className={btnGold}><Plus className="w-4 h-4" /> Nouveau terrain à vendre</Link>
-      </div>
+      <PageHeader
+        title="À vendre"
+        subtitle="Terrains que des propriétaires proposent à CA IMMO de vendre"
+        action={<Link to={`${BASE}/nouveau`} className={btnGold}><Plus className="w-4 h-4" /> Nouveau terrain à vendre</Link>}
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         <Stat label="Dossiers" value={rows.length} />
@@ -109,25 +112,21 @@ export function LandFileList() {
         <Stat label="Valeur publiée" value={<span className="text-base">{fmtAr(published.reduce((t, r) => t + r.price, 0))}</span>} />
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4 space-y-3">
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher : référence, titre, propriétaire, téléphone, région, commune, statut, agent…" className={`${input} pl-9`} />
-        </div>
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          {selected.length > 0 && (
-            <>
-              <Select value={bulkStatus} onChange={setBulkStatus} options={LAND_STATUSES} placeholder={`Statut pour ${selected.length} dossier(s)…`} className="w-auto" />
-              <button className={btnPrimary} onClick={applyBulk} disabled={!bulkStatus}>Appliquer</button>
-            </>
-          )}
-          <div className="flex gap-2 ml-auto">
-            <button className={btnOutline} onClick={() => exportCsv(chosen(), columns, 'dossiers-terrains')}><FileSpreadsheet className="w-4 h-4" /> Excel</button>
-            <button className={btnOutline} onClick={() => printTable(chosen(), columns, 'Dossiers terrains')}><FileDown className="w-4 h-4" /> PDF</button>
-            <button className={btnOutline} onClick={() => printTable(chosen(), columns, 'Dossiers terrains')}><Printer className="w-4 h-4" /> Imprimer</button>
-          </div>
-        </div>
-      </div>
+      <ListToolbar
+        q={q}
+        onQ={setQ}
+        placeholder="Rechercher : référence, titre, propriétaire, téléphone, région, commune, statut, agent…"
+        bulk={selected.length > 0 && (
+          <>
+            <Select value={bulkStatus} onChange={setBulkStatus} options={LAND_STATUSES} placeholder={`Statut pour ${selected.length} dossier(s)…`} className="w-auto" />
+            <button className={btnPrimary} onClick={applyBulk} disabled={!bulkStatus}>Appliquer</button>
+          </>
+        )}
+        exportRows={chosen}
+        exportColumns={columns}
+        exportName="dossiers-terrains"
+        exportTitle="Dossiers terrains"
+      />
 
       <Tabs
         value={view}
@@ -143,6 +142,7 @@ export function LandFileList() {
         columns={columns}
         selected={selected}
         onSelect={setSelected}
+        rowClass={(r) => (r.status === 'Nouveau' || r.status === 'Dossier incomplet' ? 'bg-blue-50/60' : '')}
         onOpen={(r) => navigate(`${BASE}/${r.id}`)}
         rowActions={(r) => (
           <>

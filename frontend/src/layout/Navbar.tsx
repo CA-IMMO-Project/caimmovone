@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { Home, Map, Phone, Tag, Menu, X, Facebook, Hammer } from 'lucide-react';
+import { Phone, Tag, Menu, X, Facebook, Hammer, Compass, Info, ShoppingBag } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FB_URL, PHONE_1, PHONE_1_TEL } from '../lib/contact';
 
@@ -9,9 +9,10 @@ export default function Navbar() {
 
 
   const navLinks = [
-    { name: 'Accueil', path: '/', icon: <Home className="w-4 h-4 mr-2" /> },
-    { name: 'Acheter', path: '/terrains', icon: <Map className="w-4 h-4 mr-2" /> },
+    { name: 'Acheter', path: '/terrains', icon: <ShoppingBag className="w-4 h-4 mr-2" /> },
+    { name: 'Rechercher un terrain', path: '/recherche', icon: <Compass className="w-4 h-4 mr-2" /> },
     { name: 'Vendre', path: '/vendre', icon: <Tag className="w-4 h-4 mr-2" /> },
+    { name: 'À Propos', path: '/about', icon: <Info className="w-4 h-4 mr-2" /> },
     { name: 'Réalisations', path: '/realisations', icon: <Hammer className="w-4 h-4 mr-2" /> },
   ];
 
@@ -50,14 +51,14 @@ export default function Navbar() {
             </div>
 
             {/* Desktop Menu */}
-            <div className="hidden md:flex items-center space-x-8">
+            <div className="hidden lg:flex items-center space-x-6">
               {navLinks.map((link) => (
                 <NavLink
                   key={link.name}
                   to={link.path}
                   end
                   className={({ isActive }) =>
-                    `relative py-2 text-sm font-medium transition-colors hover:text-gold-500 ${
+                    `relative py-2 text-sm font-medium whitespace-nowrap transition-colors hover:text-gold-500 ${
                       isActive ? 'text-white after:absolute after:left-0 after:-bottom-0.5 after:h-0.5 after:w-full after:rounded-full after:bg-gold-500' : 'text-white/75'
                     }`
                   }
@@ -67,7 +68,7 @@ export default function Navbar() {
               ))}
             </div>
 
-            <div className="hidden md:flex items-center gap-3">
+            <div className="hidden lg:flex items-center gap-3">
               <Link
                 to="/contact"
                 className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-navy-900 bg-gold-500 rounded-full shadow-lg shadow-gold-500/30 hover:bg-gold-400 transition-colors"
@@ -77,7 +78,7 @@ export default function Navbar() {
             </div>
 
             {/* Mobile menu button */}
-            <div className="flex items-center md:hidden">
+            <div className="flex items-center lg:hidden">
               <button
                 onClick={() => setIsOpen(!isOpen)}
                 aria-expanded={isOpen}
@@ -99,7 +100,7 @@ export default function Navbar() {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               id="menu-mobile"
-              className="md:hidden border-t border-white/10 bg-navy-900 overflow-hidden"
+              className="lg:hidden border-t border-white/10 bg-navy-900 overflow-hidden"
             >
               <div className="px-4 pt-4 pb-6 space-y-2">
                 {navLinks.map((link) => (

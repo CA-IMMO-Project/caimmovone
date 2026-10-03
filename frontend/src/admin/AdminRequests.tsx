@@ -5,15 +5,7 @@ import {
   deleteMessage, getMessages, updateMessage,
 } from '../lib/store';
 import { Card, PageHeader, REQUEST_STATUSES, btnGhost, formatDate, inputClass } from './ui';
-
-function StatusFilter({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  return (
-    <select value={value} onChange={(e) => onChange(e.target.value)} className={`${inputClass} w-auto`}>
-      <option value="">Tous</option>
-      {REQUEST_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-    </select>
-  );
-}
+import { ListToolbar, Select } from './crm/kit';
 
 function StatusSelect({ value, onChange }: { value: RequestStatus; onChange: (v: RequestStatus) => void }) {
   return (
@@ -35,22 +27,42 @@ function Contact({ phone, email }: { phone: string; email?: string }) {
 export function AdminMessages() {
   const [items, setItems] = useState(getMessages);
   const [filter, setFilter] = useState('');
+  const [q, setQ] = useState('');
 
   const update = (id: string, patch: Partial<ContactMessage>) => { updateMessage(id, patch); setItems(getMessages()); };
   const remove = (id: string) => { if (confirm('Supprimer ce message ?')) { deleteMessage(id); setItems(getMessages()); } };
 
-  const shown = items.filter((m) => !filter || m.status === filter);
+  const s = q.toLowerCase().trim();
+  const shown = items.filter((m) =>
+    (!filter || m.status === filter) &&
+    (!s || [m.firstName, m.lastName, m.phone, m.email ?? '', m.subject ?? '', m.message].join(' ').toLowerCase().includes(s)))
+    .sort((a, b) => {
+      const fresh = (m: ContactMessage) => (m.status === 'nouveau' ? 0 : 1);
+      return fresh(a) - fresh(b) || b.createdAt.localeCompare(a.createdAt); // non lus d'abord, puis plus récents
+    });
+  const unread = items.filter((m) => m.status === 'nouveau').length;
 
   return (
     <>
-      <PageHeader title="Messages" subtitle="Messages envoyés depuis la page Contact" action={<StatusFilter value={filter} onChange={setFilter} />} />
+      <PageHeader title="Messages" subtitle={`Messages envoyés depuis la page Contact${unread ? ` — ${unread} non lu(s)` : ''}`} />
+      <ListToolbar
+        q={q}
+        onQ={setQ}
+        placeholder="Rechercher : nom, téléphone, email, sujet…"
+        filters={<Select value={filter} onChange={setFilter} options={REQUEST_STATUSES} placeholder="Tous statuts" />}
+        activeFilters={filter ? 1 : 0}
+      />
       {shown.length === 0 && <Card className="p-8 text-center text-gray-500">Aucun message.</Card>}
       <div className="space-y-3">
         {shown.map((m) => (
-          <Card key={m.id} className="p-5">
+          <Card key={m.id} className={`p-5 ${m.status === 'nouveau' ? 'border-l-4 border-l-gold-500 bg-gold-400/5' : ''}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="font-semibold text-navy-900">{m.firstName} {m.lastName}</p>
+                <p className="font-semibold text-navy-900 flex items-center gap-2">
+                  {m.status === 'nouveau' && <span className="h-2 w-2 rounded-full bg-gold-500" aria-hidden />}
+                  {m.firstName} {m.lastName}
+                  {m.status === 'nouveau' && <span className="text-[10px] font-bold uppercase tracking-wide text-gold-700">Non lu</span>}
+                </p>
                 <Contact phone={m.phone} email={m.email} />
               </div>
               <div className="flex items-center gap-2">

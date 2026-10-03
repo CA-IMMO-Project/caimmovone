@@ -1,7 +1,7 @@
 // Composants partagés des modules « Demandes d'achat » et « Terrains ».
 import { ReactNode, useMemo, useRef, useState } from 'react';
 import {
-  ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Download, Eye, FileText, Film, Upload, X,
+  ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Download, Eye, FileDown, FileSpreadsheet, FileText, Film, Printer, Search, SlidersHorizontal, Upload, X,
 } from 'lucide-react';
 import { Circle, MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -25,6 +25,39 @@ export const fmtAr = (n: number) => (n ? `${new Intl.NumberFormat('fr-FR').forma
 export const fmtNum = (n: number) => new Intl.NumberFormat('fr-FR').format(n);
 export const fmtM2 = (n: number) => (n ? `${fmtNum(n)} m²` : '—');
 export const fmtDate = (iso?: string) => (iso ? new Date(iso).toLocaleDateString('fr-FR') : '—');
+/** Date relative, scannable : « il y a 2 h », « hier », puis date courte. */
+export function fmtRelative(iso?: string): string {
+  if (!iso) return '—';
+  const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (min < 1) return 'à l’instant';
+  if (min < 60) return `il y a ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `il y a ${h} h`;
+  const d = Math.floor(h / 24);
+  if (d === 1) return 'hier';
+  if (d < 7) return `il y a ${d} j`;
+  return fmtDate(iso);
+}
+
+/** Cellule date relative (date exacte au survol). */
+export function RelDate({ iso }: { iso?: string }) {
+  return <span className="whitespace-nowrap text-gray-500" title={fmtDateTime(iso)}>{fmtRelative(iso)}</span>;
+}
+
+/** Téléphone cliquable dans une ligne de tableau (n'ouvre pas la fiche). */
+export function TelLink({ phone }: { phone?: string }) {
+  if (!phone) return <span className="text-gray-400">—</span>;
+  return (
+    <a
+      href={`tel:${phone.replace(/\s/g, '')}`}
+      onClick={(e) => e.stopPropagation()}
+      className="whitespace-nowrap text-navy-900 underline-offset-2 hover:text-gold-700 hover:underline"
+    >
+      {phone}
+    </a>
+  );
+}
+
 export const fmtDateTime = (iso?: string) =>
   iso ? new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '—';
 
@@ -234,9 +267,11 @@ export interface Column<T> {
   className?: string;
 }
 
-export function DataTable<T extends { id: string }>({ rows, columns, onOpen, selected, onSelect, rowActions, pageSize = 10 }: {
+export function DataTable<T extends { id: string }>({ rows, columns, onOpen, selected, onSelect, rowActions, rowClass, pageSize = 10 }: {
   rows: T[]; columns: Column<T>[]; onOpen: (row: T) => void;
-  selected: string[]; onSelect: (ids: string[]) => void; rowActions?: (row: T) => ReactNode; pageSize?: number;
+  selected: string[]; onSelect: (ids: string[]) => void; rowActions?: (row: T) => ReactNode;
+  /** Classe additionnelle par ligne (ex. surligner les dossiers non traités). */
+  rowClass?: (row: T) => string; pageSize?: number;
 }) {
   const [sortKey, setSortKey] = useState<string>('');
   const [dir, setDir] = useState<1 | -1>(1);
@@ -285,7 +320,7 @@ export function DataTable<T extends { id: string }>({ rows, columns, onOpen, sel
           </thead>
           <tbody className="divide-y divide-gray-100">
             {shown.map((r) => (
-              <tr key={r.id} className={`hover:bg-gold-400/5 cursor-pointer ${selected.includes(r.id) ? 'bg-gold-400/10' : ''}`} onClick={() => onOpen(r)}>
+              <tr key={r.id} className={`hover:bg-gold-400/5 cursor-pointer ${selected.includes(r.id) ? 'bg-gold-400/10' : rowClass?.(r) ?? ''}`} onClick={() => onOpen(r)}>
                 <td className="p-3" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="checkbox"
@@ -622,6 +657,71 @@ export function DateFilter({ label, value, onChange }: { label: string; value: s
     <div className="relative min-w-0">
       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">{label}</span>
       <input type="date" value={value} onChange={(e) => onChange(e.target.value)} className={`${input} pl-9 min-w-0`} aria-label={label} />
+    </div>
+  );
+}
+
+// ---------- Coquille commune des listes ----------
+
+/** En-tête de page uniforme : titre + sous-titre à gauche, action à droite. */
+export { PageHeader } from '../ui';
+
+/**
+ * Barre d'outils uniforme de toutes les listes du back-office :
+ * recherche, panneau « Filtres » dépliable avec compteur, actions groupées
+ * et exports Excel / PDF / Imprimer — toujours au même endroit.
+ */
+export function ListToolbar<T>({
+  q, onQ, placeholder, filters, activeFilters = 0, bulk,
+  exportRows, exportColumns, exportName, exportTitle,
+}: {
+  q: string;
+  onQ: (v: string) => void;
+  placeholder?: string;
+  /** Contenu du panneau de filtres ; affiche le bouton « Filtres » s'il est fourni. */
+  filters?: ReactNode;
+  /** Nombre de filtres actifs (pastille sur le bouton « Filtres »). */
+  activeFilters?: number;
+  /** Zone d'actions groupées (affichée à gauche des exports). */
+  bulk?: ReactNode;
+  /** Lignes à exporter (sélection si présente, sinon lignes filtrées). */
+  exportRows?: () => T[];
+  exportColumns?: Column<T>[];
+  exportName?: string;
+  exportTitle?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const canExport = !!(exportRows && exportColumns);
+  const title = exportTitle ?? exportName ?? 'Liste';
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4 space-y-3">
+      <div className="relative">
+        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input value={q} onChange={(e) => onQ(e.target.value)} placeholder={placeholder ?? 'Rechercher…'} className={`${input} pl-9 ${filters ? 'pr-28' : ''}`} />
+        {filters && (
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className={`absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${open ? 'bg-navy-900 text-white' : 'text-navy-900 hover:bg-gray-100'}`}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" /> Filtres
+            {activeFilters > 0 && <span className="grid h-4 min-w-4 place-items-center rounded-full bg-gold-500 px-1 text-[10px] font-bold text-navy-900">{activeFilters}</span>}
+          </button>
+        )}
+      </div>
+      {filters && open && <div className="grid grid-cols-2 md:grid-cols-4 gap-2">{filters}</div>}
+      {(bulk || canExport) && (
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          {bulk}
+          {canExport && (
+            <div className="flex gap-2 ml-auto">
+              <button className={btnOutline} onClick={() => exportCsv(exportRows!(), exportColumns!, exportName ?? 'export')}><FileSpreadsheet className="w-4 h-4" /> Excel</button>
+              <button className={btnOutline} onClick={() => printTable(exportRows!(), exportColumns!, title)}><FileDown className="w-4 h-4" /> PDF</button>
+              <button className={btnOutline} onClick={() => printTable(exportRows!(), exportColumns!, title)}><Printer className="w-4 h-4" /> Imprimer</button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

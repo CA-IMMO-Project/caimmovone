@@ -26,7 +26,7 @@ import { createSearchRequest } from '../../services/requestService';
 import type { SearchSubmission } from '../../services/requestService';
 
 import { PHONE_1, PHONE_1_TEL } from '../../lib/contact';
-import { phoneError, emailError } from '../../lib/validate';
+import { phoneError, emailError, isPositiveNumber, sanitizePhone } from '../../lib/validate';
 
 /* --- Constantes du cahier des charges --- */
 
@@ -117,9 +117,25 @@ export default function SearchRequest() {
         return;
       }
     }
-    if (step === 1 && !form.zone && !form.otherZones.trim()) {
-      setError('Indiquez au moins une zone recherchée.');
-      return;
+    if (step === 1) {
+      if (!form.zone) {
+        setError('Veuillez sélectionner la zone principale recherchée.');
+        return;
+      }
+      if (form.zone === 'Autre zone' && !form.otherZones.trim()) {
+        setError('Précisez la ou les zones souhaitées dans « Autres zones acceptées ».');
+        return;
+      }
+    }
+    if (step === 2) {
+      if (form.budget === BUDGET_CUSTOM && !isPositiveNumber(form.customBudget)) {
+        setError('Indiquez votre budget maximum (nombre positif, en Ariary).');
+        return;
+      }
+      if (form.area === AREA_CUSTOM && !isPositiveNumber(form.customArea)) {
+        setError('Indiquez la superficie souhaitée (nombre positif, en m²).');
+        return;
+      }
     }
     setStep((s) => Math.min(s + 1, 3));
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -211,19 +227,62 @@ export default function SearchRequest() {
     <div className="font-display overflow-x-clip bg-brand-50">
       {/* — Hero navy (style Accueil / À propos) — */}
       <PageHero
-        pill="Recherche sur mesure"
+        flat
+        pill="Recherche personnalisée"
         image="/media/terrains/colline.jpg"
         title={
           <>
-            Confiez-nous la recherche de votre <span className="text-gold-500">terrain idéal</span>
+            Confiez-nous la recherche de <span className="text-gold-500">votre terrain</span>
           </>
         }
-        lead="Décrivez votre projet en quatre étapes. Notre équipe locale cherche, vérifie et négocie pour vous."
+        lead="Décrivez votre projet en quelques étapes. Notre équipe locale cherche et vérifie les terrains pour vous."
       />
 
-      <section className="pb-24">
+      <section className="bg-mist py-14 pb-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="gap-12 lg:grid lg:grid-cols-[1fr_20rem] xl:gap-16">
+          <div className="gap-10 lg:grid lg:grid-cols-[19rem_1fr] xl:gap-12">
+            {/* Encart d'accompagnement — carte marine de la référence, à gauche */}
+            <aside className="mb-10 lg:mb-0">
+              <div className="lg:sticky lg:top-28">
+                <div className="relative overflow-hidden rounded-2xl bg-navy-900 p-8 text-white shadow-xl shadow-navy-900/20">
+                  <span className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/5" aria-hidden />
+                  <span className="grid h-12 w-12 place-items-center rounded-xl bg-gold-500 text-navy-900">
+                    <SearchCheck className="h-6 w-6" strokeWidth={2} />
+                  </span>
+                  <h2 className="mt-5 text-lg font-bold leading-snug">Une recherche vraiment sur mesure</h2>
+                  <p className="mt-3 text-xs font-normal leading-relaxed text-white/75">
+                    Votre demande n’est pas une simple alerte automatique : elle est étudiée par notre équipe qui connaît
+                    le marché local, terrain par terrain.
+                  </p>
+                  <div className="mt-6 space-y-3.5 border-t border-white/10 pt-6">
+                    {[
+                      { icon: CheckCircle2, text: 'Sélection selon vos critères' },
+                      { icon: ShieldCheck, text: 'Terrains contrôlés' },
+                      { icon: Clock3, text: 'Réponse sous 24 – 48 h ouvrées' },
+                    ].map(({ icon: Icon, text }) => (
+                      <p key={text} className="flex items-center gap-3 text-xs font-medium text-white/90">
+                        <Icon className="h-4 w-4 shrink-0 text-gold-500" />
+                        {text}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="card-soft mt-5 flex items-center gap-4 p-6">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gold-500 text-sm font-extrabold text-navy-900">
+                    CA
+                  </span>
+                  <div className="min-w-0">
+                    <small className="block text-xs font-normal text-navy-900/65">Besoin d’aide ?</small>
+                    <strong className="block text-sm font-bold leading-snug text-navy-900">L’équipe CA IMMO vous accompagne</strong>
+                    <a href={PHONE_1_TEL} className="mt-0.5 block text-xs font-semibold text-navy-900/80 transition hover:text-gold-600">
+                      {PHONE_1}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </aside>
+
             {/* Carte formulaire */}
             <div className="card-soft p-8 sm:p-12">
               <ProgressSteps steps={STEP_LABELS} current={step} />
@@ -265,7 +324,7 @@ export default function SearchRequest() {
                           <Input placeholder="Ex. Rakoto" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} />
                         </FormField>
                         <FormField label="Téléphone" required>
-                          <Input type="tel" placeholder="+261 34 00 000 00" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
+                          <Input type="tel" placeholder="+261 34 00 000 00" inputMode="tel" value={form.phone} onChange={(e) => set('phone', sanitizePhone(e.target.value))} />
                         </FormField>
                         <FormField label="Adresse email" required>
                           <Input type="email" placeholder="vous@exemple.com" value={form.email} onChange={(e) => set('email', e.target.value)} />
@@ -347,7 +406,7 @@ export default function SearchRequest() {
                           />
                         </FormField>
                         {form.budget === BUDGET_CUSTOM && (
-                          <FormField label="Votre budget maximum">
+                          <FormField label="Votre budget maximum" required>
                             <Input type="number" min={0} placeholder="Montant en Ariary" value={form.customBudget} onChange={(e) => set('customBudget', e.target.value)} />
                           </FormField>
                         )}
@@ -360,7 +419,7 @@ export default function SearchRequest() {
                           />
                         </FormField>
                         {form.area === AREA_CUSTOM && (
-                          <FormField label="Votre superficie">
+                          <FormField label="Votre superficie" required>
                             <Input type="number" min={0} placeholder="Surface en m²" value={form.customArea} onChange={(e) => set('customArea', e.target.value)} />
                           </FormField>
                         )}
@@ -500,33 +559,6 @@ export default function SearchRequest() {
               </div>
             </div>
 
-            {/* Aside */}
-            <aside className="mt-12 lg:mt-0">
-              <div className="lg:sticky lg:top-28">
-                <div className="card-soft p-8">
-                  <span className="grid h-11 w-11 place-items-center rounded-full bg-navy-900/5">
-                    <SearchCheck className="h-5 w-5 text-navy-900/90" strokeWidth={2} />
-                  </span>
-                  <h2 className="mt-5 text-lg font-bold text-navy-900">Une recherche vraiment sur mesure</h2>
-                  <p className="mt-3 text-xs font-normal leading-relaxed text-navy-900/85">
-                    Votre demande n’est pas une simple alerte automatique : elle est étudiée par notre équipe qui connaît
-                    le marché local, terrain par terrain.
-                  </p>
-                  <div className="mt-6 space-y-3.5">
-                    {[
-                      { icon: CheckCircle2, text: 'Sélection selon vos critères', tone: 'text-green-700' },
-                      { icon: ShieldCheck, text: 'Terrains contrôlés', tone: 'text-green-700' },
-                      { icon: Clock3, text: 'Réponse sous 24 – 48 h ouvrées', tone: 'text-gold-700' },
-                    ].map(({ icon: Icon, text, tone }) => (
-                      <p key={text} className="flex items-center gap-3 text-xs font-normal text-navy-900/90">
-                        <Icon className={`h-4 w-4 shrink-0 ${tone}`} />
-                        {text}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </aside>
           </div>
         </div>
       </section>

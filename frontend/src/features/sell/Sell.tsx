@@ -19,7 +19,7 @@ import {
   WalletCards,
 } from 'lucide-react';
 import { ChoiceCards, ErrorBanner, Eyebrow, FormField, Input, Modal, PageHero, ProgressSteps, RequestSuccess, Select, Textarea, UploadZone } from '../../shared/ui';
-import { phoneError, emailError, isPositiveNumber } from '../../lib/validate';
+import { phoneError, emailError, isPositiveNumber, sanitizePhone } from '../../lib/validate';
 import { createLandFileRequest } from '../../services/requestService';
 import type { LandFileSubmission } from '../../services/requestService';
 import MapVisual, { MapPinPos } from '../../shared/MapVisual';
@@ -86,13 +86,35 @@ export default function Sell() {
 
   const next = () => {
     setError(null);
-    if (step === 0 && (!form.firstName.trim() || !form.lastName.trim() || !form.phone.trim() || !form.email.trim())) {
-      setError('Veuillez compléter les informations du propriétaire avant de continuer.');
-      return;
+    if (step === 0) {
+      if (!form.firstName.trim() || !form.lastName.trim() || !form.phone.trim() || !form.email.trim()) {
+        setError('Veuillez compléter les informations du propriétaire avant de continuer.');
+        return;
+      }
+      const phone = phoneError(form.phone);
+      const email = emailError(form.email);
+      if (phone || email) {
+        setError(phone ?? email);
+        return;
+      }
+      if (!form.idNumber.trim()) {
+        setError('Indiquez le numéro de votre pièce d’identité.');
+        return;
+      }
     }
-    if (step === 1 && (!form.title.trim() || !form.area || !form.price || !form.description.trim())) {
-      setError('Renseignez au moins le titre, la superficie, le prix et la description du terrain.');
-      return;
+    if (step === 1) {
+      if (!form.title.trim() || !form.area || !form.price || !form.description.trim()) {
+        setError('Renseignez au moins le titre, la superficie, le prix et la description du terrain.');
+        return;
+      }
+      if (!isPositiveNumber(form.area)) {
+        setError('La superficie doit être un nombre positif (en m²).');
+        return;
+      }
+      if (!isPositiveNumber(form.price)) {
+        setError('Le prix doit être un nombre positif (en Ariary).');
+        return;
+      }
     }
     if (step === 2 && (!form.commune.trim() || !form.district.trim() || !pin)) {
       setError('Indiquez la commune et le district, et placez le marqueur sur la carte.');
@@ -222,6 +244,7 @@ export default function Sell() {
     <div className="font-display overflow-x-clip bg-brand-50">
       {/* — Hero navy (style Accueil / À propos) — */}
       <PageHero
+        flat
         pill="Vendre avec CA IMMO"
         image="/media/terrains/agricole.jpg"
         title={
@@ -229,19 +252,19 @@ export default function Sell() {
             Proposez votre terrain en toute <span className="text-gold-500">confiance</span>
           </>
         }
-        lead="Déposez votre dossier en ligne en quelques étapes. Notre équipe vérifie chaque terrain avant toute publication."
+        lead="Déposez votre dossier en ligne. Notre équipe le vérifie avant toute publication et vous accompagne jusqu’à la vente."
       />
 
-      {/* Bandeau bénéfices vendeur */}
-      <section className="pb-10">
+      {/* Bandeau bénéfices vendeur — bande bleu brume de la référence */}
+      <section className="border-b border-navy-900/5 bg-mist">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-y-4 py-5 sm:grid-cols-3 sm:divide-x sm:divide-navy-900/10">
             {[
               { icon: ShieldCheck, title: 'Vérification sérieuse', text: 'Un dossier fiable pour les acheteurs' },
               { icon: Camera, title: 'Mise en valeur', text: 'Une annonce professionnelle' },
-              { icon: UserRound, title: 'Suivi personnalisé', text: 'Un accompagnement à chaque étape' },
+              { icon: UserRound, title: 'Conseiller dédié', text: 'Un suivi à chaque étape' },
             ].map(({ icon: Icon, title, text }) => (
-              <div key={title} className="card-soft flex items-center gap-4 px-6 py-5">
+              <div key={title} className="flex items-center justify-start gap-4 px-6 py-1 sm:justify-center">
                 <Icon className="h-5 w-5 shrink-0 text-gold-700" strokeWidth={2} />
                 <div>
                   <strong className="block text-sm font-medium text-navy-900">{title}</strong>
@@ -253,9 +276,45 @@ export default function Sell() {
         </div>
       </section>
 
-      <section className="pb-24">
+      <section className="py-14 pb-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="gap-12 lg:grid lg:grid-cols-[1fr_18rem] xl:gap-16">
+          <div className="gap-10 lg:grid lg:grid-cols-[19rem_1fr] xl:gap-12">
+            {/* Encart « Avant de commencer » — carte marine de la référence, à gauche */}
+            <aside className="mb-10 lg:mb-0">
+              <div className="lg:sticky lg:top-28">
+                <div className="relative overflow-hidden rounded-2xl bg-navy-900 p-8 text-white shadow-xl shadow-navy-900/20">
+                  <span className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/5" aria-hidden />
+                  <span className="grid h-12 w-12 place-items-center rounded-xl bg-gold-500 text-navy-900">
+                    <LandPlot className="h-6 w-6" strokeWidth={2} />
+                  </span>
+                  <h2 className="mt-5 text-lg font-bold leading-snug">Avant de commencer</h2>
+                  <p className="mt-3 text-xs font-normal leading-relaxed text-white/75">
+                    Préparez les éléments suivants pour compléter votre dépôt sans interruption.
+                  </p>
+                  <div className="mt-6 space-y-3 border-t border-white/10 pt-6">
+                    {['Pièce d’identité valide', 'Photos récentes du terrain', 'Document foncier ou justificatif', 'Localisation précise'].map((t, i) => (
+                      <p key={t} className="flex items-center gap-3 text-xs font-medium text-white/90">
+                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/10 text-xs font-bold text-gold-500">
+                          {i + 1}
+                        </span>
+                        {t}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-5 flex items-start gap-3.5 rounded-2xl border border-gold-500/30 bg-gold-500/10 px-6 py-5">
+                  <FileCheck2 className="mt-0.5 h-4.5 w-4.5 shrink-0 text-gold-700" />
+                  <div>
+                    <strong className="text-xs font-semibold text-navy-900">Aucune publication automatique</strong>
+                    <p className="mt-1 text-xs font-normal leading-relaxed text-navy-900/85">
+                      Chaque terrain passe par notre processus de contrôle avant d’être proposé aux acheteurs.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </aside>
+
             {/* Carte formulaire */}
             <div className="card-soft p-8 sm:p-12">
               <ProgressSteps steps={STEP_LABELS} current={step} />
@@ -305,7 +364,7 @@ export default function Sell() {
                             <Input placeholder="Ex. Rakoto" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} />
                           </FormField>
                           <FormField label="Téléphone" required>
-                            <Input type="tel" placeholder="+261 34 00 000 00" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
+                            <Input type="tel" placeholder="+261 34 00 000 00" inputMode="tel" value={form.phone} onChange={(e) => set('phone', sanitizePhone(e.target.value))} />
                           </FormField>
                           <FormField label="Adresse email" required>
                             <Input type="email" placeholder="vous@exemple.com" value={form.email} onChange={(e) => set('email', e.target.value)} />
@@ -673,40 +732,6 @@ export default function Sell() {
               </div>
             </div>
 
-            {/* Aside */}
-            <aside className="mt-12 lg:mt-0">
-              <div className="lg:sticky lg:top-28">
-                <div className="card-soft p-8">
-                  <span className="grid h-11 w-11 place-items-center rounded-full bg-navy-900/5">
-                    <LandPlot className="h-5 w-5 text-navy-900/90" strokeWidth={2} />
-                  </span>
-                  <h2 className="mt-5 text-lg font-bold text-navy-900">Avant de commencer</h2>
-                  <p className="mt-3 text-xs font-normal leading-relaxed text-navy-900/85">
-                    Préparez les éléments suivants pour compléter votre dépôt sans interruption.
-                  </p>
-                  <div className="mt-6 space-y-3">
-                    {['Pièce d’identité valide', 'Photos récentes du terrain', 'Document foncier ou justificatif', 'Localisation précise'].map((t, i) => (
-                      <p key={t} className="flex items-center gap-3 text-xs font-normal text-navy-900/90">
-                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-navy-900/5 text-xs font-semibold text-navy-900">
-                          {i + 1}
-                        </span>
-                        {t}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="card-soft mt-5 flex items-start gap-3.5 p-6">
-                  <FileCheck2 className="mt-0.5 h-4.5 w-4.5 shrink-0 text-green-700" />
-                  <div>
-                    <strong className="text-xs font-semibold text-navy-900">Aucune publication automatique</strong>
-                    <p className="mt-1 text-xs font-normal leading-relaxed text-navy-900/85">
-                      Chaque terrain passe par notre processus de contrôle avant d’être proposé aux acheteurs.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </aside>
           </div>
         </div>
       </section>
