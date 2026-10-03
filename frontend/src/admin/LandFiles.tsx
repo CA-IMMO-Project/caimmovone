@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Archive, ArrowLeft, BadgeCheck, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCheck, Eye,
@@ -17,7 +17,10 @@ import {
   NumberInput, Preview, Section, Select, Stat, Stepper, Tabs, Thumb, Timeline, btnDanger, btnGold, btnIcon, btnOutline,
   btnPrimary, exportCsv, fmtAr, fmtDate, fmtDateTime, fmtM2, fmtNum, input, printHtml, printTable,
   ListToolbar, PageHeader, RelDate,
+  TelLink,
 } from './crm/kit';
+import { refreshCache, subscribeCache } from './crm/sync';
+import { askConfirm } from './crm/dialog';
 import { removeFile, useFileUrl } from './crm/files';
 import { NotFound } from './BuyRequests';
 import { ActionPlanner, CompleteDialog, PlanDialog } from './crm/client';
@@ -26,6 +29,56 @@ const BASE = '/admin/dossiers-terrains';
 const FLOW: LandFileStatus[] = ['Nouveau', 'À vérifier', 'Vérification terrain programmée', 'Vérification juridique', 'Validé', 'Publié', 'En négociation', 'Réservé', 'Vendu'];
 const FLOW_LABELS = ['Nouveau', 'À vérifier', 'Visite terrain', 'Juridique', 'Validé', 'Publié', 'Négociation', 'Réservé', 'Vendu'];
 const MIN_PHOTOS = 3;
+
+/* ---------- Fichiers reçus du site public (formulaire « Vendre ») ----------
+   Vrais fichiers téléversés → URLs « /storage/… » cliquables (aperçu pour les
+   images) ; anciens dossiers → simples noms de fichiers, affichés tels quels. */
+const isFileUrl = (v: string) => v.startsWith('/storage/') || v.startsWith('http');
+const isImageUrl = (v: string) => /\.(jpe?g|png|webp|gif)$/i.test(v);
+
+function SiteFileItem({ value }: { value: string }) {
+  const name = decodeURIComponent(value.split('/').pop() ?? value);
+  if (!isFileUrl(value)) {
+    return <span className="inline-flex items-center gap-1.5 rounded-lg bg-gray-100 px-2.5 py-1.5 text-xs text-gray-600">{name}</span>;
+  }
+  return (
+    <a
+      href={value}
+      target="_blank"
+      rel="noreferrer"
+      className="group inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 transition hover:border-amber-400 hover:text-gray-900"
+    >
+      {isImageUrl(value) && <img src={value} alt={name} className="h-9 w-9 rounded object-cover" />}
+      <span className="underline-offset-2 group-hover:underline">{name}</span>
+    </a>
+  );
+}
+
+function SiteFilesBlock({ f }: { f: LandFile }) {
+  const sf = f.siteFiles;
+  if (!sf) return null;
+  const groups: Array<[string, string[]]> = [
+    ['Photos', sf.photos ?? []],
+    ['Vidéos', sf.videos ?? []],
+    [`Documents fonciers${sf.docTypes?.length ? ` — ${sf.docTypes.join(', ')}` : ''}`, sf.documents ?? []],
+    ['Pièce d’identité', sf.idCards ?? []],
+  ];
+  if (groups.every(([, items]) => items.length === 0)) return null;
+  return (
+    <Section title="Fichiers reçus du site web" icon={<FileDown className="w-4 h-4" />} confidential>
+      <div className="space-y-4">
+        {groups.filter(([, items]) => items.length > 0).map(([label, items]) => (
+          <div key={label}>
+            <p className="mb-2 text-xs font-semibold text-gray-500">{label}</p>
+            <div className="flex flex-wrap gap-2">
+              {items.map((v, i) => <SiteFileItem key={`${v}-${i}`} value={v} />)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+}
 const MAX_PHOTOS = 12;
 
 const payShort = (f: LandFile) => (f.salePayment ? f.salePayment.split(' –')[0] : '—');
@@ -39,18 +92,16 @@ const columns: Column<LandFile>[] = [
       <div className="flex items-center gap-3">
         {f.photos[0] ? <Thumb file={f.photos[0]} className="w-12 h-10 rounded-md shrink-0" /> : <div className="w-12 h-10 rounded-md bg-gray-100 shrink-0" />}
         <div className="min-w-0">
-          <p className="font-mono text-xs font-semibold text-navy-900">{f.ref}</p>
+          <p className="font-mono text-xs font-semibold text-navy-900 whitespace-nowrap">{f.ref}</p>
           <p className="text-xs text-gray-500 truncate max-w-[180px]">{f.title || 'Sans titre'}</p>
+          <p><span className=" text-xs italic">Superficie : {fmtM2(f.area)}</span></p>
+          <p><span className="text-xs italic">Localisation : {[f.commune, f.region].filter(Boolean).join(', ')}</span></p>
         </div>
       </div>
     ),
   },
-  { key: 'owner', label: 'Propriétaire', render: (f) => <span className="font-medium whitespace-nowrap">{fullName(f.owner) || '—'}</span>, sort: (f) => fullName(f.owner).toLowerCase(), csv: (f) => fullName(f.owner) },
-  { key: 'phone', label: 'Téléphone', render: (f) => <span className="whitespace-nowrap">{phoneOf(f.owner)}</span>, csv: (f) => phoneOf(f.owner) },
-  { key: 'loc', label: 'Localisation', render: (f) => <span className="text-sm">{[f.commune, f.region].filter(Boolean).join(', ')}</span>, sort: (f) => f.region, csv: place },
-  { key: 'area', label: 'Superficie', render: (f) => <span className="whitespace-nowrap">{fmtM2(f.area)}</span>, sort: (f) => f.area, csv: (f) => f.area, className: 'text-right' },
-  { key: 'price', label: 'Prix', render: (f) => <span className="whitespace-nowrap font-medium">{fmtAr(f.price)}</span>, sort: (f) => f.price, csv: (f) => f.price, className: 'text-right' },
-  { key: 'ppm', label: 'Prix/m²', render: (f) => <span className="whitespace-nowrap text-gray-600">{f.pricePerM2 ? `${fmtNum(f.pricePerM2)} Ar` : '—'}</span>, sort: (f) => f.pricePerM2, csv: (f) => f.pricePerM2, className: 'text-right' },
+  { key: 'owner', label: 'Propriétaire', render: (f) => <p> <span className="font-medium whitespace-nowrap">{fullName(f.owner) || '—'}</span> <br /> <TelLink phone={phoneOf(f.owner)} /></p> , sort: (f) => fullName(f.owner).toLowerCase(), csv: (f) => fullName(f.owner) },
+  { key: 'price', label: 'Prix', render: (f) => <p><span className="whitespace-nowrap font-medium">{fmtAr(f.price)}</span> <br /> <span className="whitespace-nowrap text-gray-600 text-xs italic">{f.pricePerM2 ? `${fmtNum(f.pricePerM2)} Ar / m²` : '—'}</span></p> , sort: (f) => f.price, csv: (f) => f.price, className: 'text-right' },
   { key: 'pay', label: 'Paiement', render: (f) => <span className="whitespace-nowrap">{payShort(f)}</span>, sort: (f) => f.salePayment, csv: (f) => f.salePayment },
   { key: 'agent', label: 'Agent', render: (f) => <span className="whitespace-nowrap">{f.agent}</span>, sort: (f) => f.agent, csv: (f) => f.agent },
   { key: 'date', label: 'Création', render: (f) => <RelDate iso={f.createdAt} />, sort: (f) => f.createdAt, csv: (f) => fmtDateTime(f.createdAt) },
@@ -66,6 +117,7 @@ const columns: Column<LandFile>[] = [
 export function LandFileList() {
   const navigate = useNavigate();
   const [rows, setRows] = useState(getLandFiles);
+  useEffect(() => { refreshCache().then(() => setRows(getLandFiles())); return subscribeCache(() => setRows(getLandFiles())); }, []); // resync à l'ouverture + mise à jour auto sans F5
   const [q, setQ] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
   const [bulkStatus, setBulkStatus] = useState('');
@@ -218,7 +270,7 @@ export function LandFileForm() {
     if (!asDraft && Object.keys(errs).length) {
       const first = Object.keys(errs)[0].split('.')[0] as TabId;
       setTab(first);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      document.getElementById('fiche-dossier-terrain')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); // on remonte jusqu'en haut du formulaire, pas de la page
       return;
     }
     let status = f.status;
@@ -256,8 +308,11 @@ export function LandFileForm() {
   ];
   const tabIndex = tabs.findIndex((t) => t.id === tab);
 
+  /* Bouton « Enregistrer le dossier » grisé tant que des champs obligatoires manquent (le brouillon reste toujours possible). */
+  const incomplete = Object.values(validate(f)).some((m) => m !== 'Adresse email invalide');
+
   return (
-    <form onSubmit={(e) => { e.preventDefault(); save(false); }} noValidate>
+    <form id="fiche-dossier-terrain" onSubmit={(e) => { e.preventDefault(); save(false); }} noValidate className="scroll-mt-24">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
           <button type="button" onClick={() => navigate(-1)} className={btnIcon} aria-label="Retour"><ArrowLeft className="w-5 h-5" /></button>
@@ -268,7 +323,7 @@ export function LandFileForm() {
         </div>
         <div className="flex gap-2">
           <button type="button" onClick={() => save(true)} className={btnOutline}>Enregistrer le brouillon</button>
-          <button type="submit" className={btnGold}><Save className="w-4 h-4" /> Enregistrer le dossier</button>
+          <button type="submit" className={btnGold} disabled={incomplete} title="Complétez les champs obligatoires (*)"><Save className="w-4 h-4" /> Enregistrer le dossier</button>
         </div>
       </div>
 
@@ -431,7 +486,7 @@ export function LandFileForm() {
                 ))}
               </div>
             </Section>
-            <Section title="Vidéo du terrain (facultatif)" icon={<Film className="w-4 h-4" />}>
+            <Section title="Vidéo du terrain" icon={<Film className="w-4 h-4" />}>
               {f.video ? <VideoPlayer file={f.video} onRemove={() => { removeFile(f.video!); set('video', undefined); }} />
                 : <FileDrop accept="video/mp4,video/quicktime,.mp4,.mov" maxMb={100} label="Ajouter une vidéo" hint="MP4 ou MOV · 100 Mo max" onFiles={([v]) => set('video', v)} />}
             </Section>
@@ -514,7 +569,7 @@ export function LandFileForm() {
         <button type="button" disabled={tabIndex === 0} onClick={() => setTab(tabs[tabIndex - 1].id)} className={btnOutline}><ChevronLeft className="w-4 h-4" /> Précédent</button>
         <div className="flex gap-2">
           {tabIndex < tabs.length - 1 && <button type="button" onClick={() => setTab(tabs[tabIndex + 1].id)} className={btnOutline}>Suivant <ChevronRight className="w-4 h-4" /></button>}
-          <button type="submit" className={btnGold}><Save className="w-4 h-4" /> Enregistrer le dossier</button>
+          <button type="submit" className={btnGold} disabled={incomplete} title="Complétez les champs obligatoires (*)"><Save className="w-4 h-4" /> Enregistrer le dossier</button>
         </div>
       </div>
       <Preview file={preview} onClose={() => setPreview(null)} />
@@ -611,8 +666,8 @@ export function LandFileDetail() {
     setCompleting(null);
     if (followUp) setDialog('plan');
   };
-  const cancelAction = (a: PlannedAction) => {
-    if (!confirm(`Annuler « ${a.type} » du ${fmtDateTime(a.at)} ?`)) return;
+  const cancelAction = async (a: PlannedAction) => {
+    if (!(await askConfirm(`Annuler « ${a.type} » du ${fmtDateTime(a.at)} ?`))) return;
     update({ actions: f.actions.filter((x) => x.id !== a.id) }, `${a.type} du ${fmtDateTime(a.at)} annulé(e)`);
   };
   const decide = (decision: 'Validé' | 'Refusé', reason: string) =>
@@ -620,8 +675,8 @@ export function LandFileDetail() {
       { decision, decisionReason: reason, decidedAt: new Date().toISOString(), status: 'Archivé' },
       `Dossier ${decision.toLowerCase()}${reason ? ` — ${reason}` : ''} · archivé (statut : ${f.status} → Archivé)`,
     );
-  const reopen = () => {
-    if (!confirm('Rouvrir ce dossier et le sortir des archives ?')) return;
+  const reopen = async () => {
+    if (!(await askConfirm('Rouvrir ce dossier et le sortir des archives ?'))) return;
     update({ decision: undefined, decisionReason: undefined, decidedAt: undefined, status: 'À vérifier' }, 'Dossier rouvert (sorti des archives)');
   };
 
@@ -705,9 +760,9 @@ export function LandFileDetail() {
               <Section title="Localisation" icon={<MapPin className="w-4 h-4" />}>
                 <dl className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                   <Info label="Indication" value={f.addressHint} /><Info label="Repère" value={f.landmark} />
-                  <Info label="Coordonnées GPS" value={f.lat !== undefined ? `${f.lat}, ${f.lng}` : 'Non renseignées'} />
+                  <Info label="Coordonnées GPS" value={f.lat != null ? `${f.lat}, ${f.lng}` : 'Non renseignées'} />
                 </dl>
-                {f.lat !== undefined && f.lng !== undefined && <MapPicker lat={f.lat} lng={f.lng} readOnly />}
+                {f.lat != null && f.lng != null && <MapPicker lat={f.lat} lng={f.lng} readOnly />}
               </Section>
               <Section title="Conditions financières" icon={<Wallet className="w-4 h-4" />}>
                 <dl className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -723,6 +778,7 @@ export function LandFileDetail() {
                 {f.specialConditions && <p className="mt-4 text-sm bg-gray-50 rounded-lg p-3"><strong>Conditions particulières : </strong>{f.specialConditions}</p>}
                 {f.ownerComments && <p className="mt-2 text-sm bg-gray-50 rounded-lg p-3"><strong>Commentaires du propriétaire : </strong>{f.ownerComments}</p>}
               </Section>
+              <SiteFilesBlock f={f} />
               {f.video && <Section title="Vidéo" icon={<Film className="w-4 h-4" />}><VideoPlayer file={f.video} /></Section>}
             </>
           )}
@@ -843,7 +899,7 @@ function DecisionDialog({ decision, onClose, onSave }: { decision: 'Validé' | '
       onClose={onClose}
       footer={<><button className={btnOutline} onClick={onClose}>Annuler</button><button className={refuse ? `${btnPrimary} bg-red-600 hover:bg-red-700` : btnPrimary} disabled={refuse && !reason.trim()} onClick={() => onSave(reason.trim())}>{refuse ? 'Refuser et archiver' : 'Valider et archiver'}</button></>}
     >
-      <Field label={refuse ? 'Motif du refus' : 'Commentaire (facultatif)'} required={refuse}>
+      <Field label={refuse ? 'Motif du refus' : 'Commentaire'} required={refuse}>
         <textarea rows={3} className={input} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={refuse ? 'Documents non conformes, litige foncier…' : 'Ex : terrain vérifié, prix validé'} />
       </Field>
       <p className="text-xs text-gray-500">Le dossier sera déplacé dans les archives. Il pourra être rouvert si besoin.</p>

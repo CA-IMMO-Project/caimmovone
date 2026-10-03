@@ -21,7 +21,8 @@ export function normalizeLand(land: Land): LandComplete {
   return {
     ...land,
     zone: land.zone ?? land.location.split(',')[0].trim(),
-    gallery: land.gallery?.length ? land.gallery : [land.imageUrl].filter(Boolean),
+    // Sans doublon : chaque photo de la publication n'apparaît qu'une fois.
+    gallery: [...new Set((land.gallery?.length ? land.gallery : [land.imageUrl]).filter(Boolean))],
     relief: land.relief ?? 'Plat',
     access: land.access ?? 'Accès par route',
     water: land.water ?? false,

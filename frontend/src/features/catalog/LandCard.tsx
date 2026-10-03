@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
-import { MapPin, Maximize2, ArrowRight, ShieldCheck, LandPlot, CircleDollarSign, Heart } from 'lucide-react';
+import { MapPin, Maximize2, ArrowRight, ShieldCheck, LandPlot, CircleDollarSign } from 'lucide-react';
 import { Land } from '../../types';
 import { landReference, normalizeLand, pricePerSqm } from '../../lib/land';
 import { formatArea, formatAriary } from '../../lib/format';
@@ -11,11 +10,10 @@ interface LandCardProps {
 }
 
 /* Carte terrain — style « PropertyCard » de la charte de référence CA IMMO :
-   badge « Vérifié » doré sur la photo, favoris, prix en bas de carte et
+   badge « Vérifié » doré sur la photo, prix en bas de carte et
    bouton « Voir le terrain » sur fond bleu brume. */
 export default function LandCard({ land, horizontal = false }: LandCardProps) {
   const full = normalizeLand(land);
-  const [fav, setFav] = useState(false);
 
   return (
     <article
@@ -46,21 +44,6 @@ export default function LandCard({ land, horizontal = false }: LandCardProps) {
           )}
         </div>
 
-        {/* Favori */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            setFav((v) => !v);
-          }}
-          aria-label={fav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-          aria-pressed={fav}
-          className={`absolute right-4 top-4 z-10 grid h-9 w-9 place-items-center rounded-full shadow-md backdrop-blur-md transition ${
-            fav ? 'bg-gold-500 text-navy-900' : 'bg-white/90 text-navy-900/70 hover:text-navy-900'
-          }`}
-        >
-          <Heart className="h-4 w-4" fill={fav ? 'currentColor' : 'none'} />
-        </button>
       </div>
 
       {/* — Contenu — */}

@@ -8,6 +8,8 @@
    PostgreSQL est la source de vérité, partagée avec le site public.
    ========================================================================== */
 
+import { bootstrap } from '../../services/adminService';
+import { notice } from './dialog';
 import type { ContactMessage, Land } from '../../types';
 import type { BuyRequest, LandFile } from './model';
 import type { Client, Realisation, SpecificSearch } from './people';
@@ -24,6 +26,16 @@ export const cache = {
 
 let hydrated = false;
 export const isHydrated = () => hydrated;
+
+/* --- Abonnés : les écrans s'enregistrent ici pour se re-rendre dès que le
+       cache change (sauvegarde locale, resynchronisation périodique…).
+       C'est ce qui permet la mise à jour SANS rafraîchissement de page. --- */
+const listeners = new Set<() => void>();
+export function subscribeCache(fn: () => void): () => void {
+  listeners.add(fn);
+  return () => { listeners.delete(fn); };
+}
+const notifyCache = () => listeners.forEach((fn) => fn());
 
 /** Remplit le cache depuis la réponse de /admin/bootstrap. */
 export function hydrate(data: {
@@ -43,6 +55,33 @@ export function hydrate(data: {
   cache.realisations = data.realisations ?? [];
   cache.messages = data.messages ?? [];
   hydrated = true;
+  lastHydrateAt = Date.now();
+  notifyCache();
+}
+
+/* --- Resynchronisation : les fiches créées ailleurs (site public, autre
+       onglet) doivent apparaître sans F5. Chaque écran de liste appelle
+       refreshCache() à l'ouverture ; throttle 10 s pour ne pas spammer. --- */
+let lastHydrateAt = 0;
+let refreshing: Promise<void> | null = null;
+
+export function refreshCache(force = false): Promise<void> {
+  if (!hydrated) return Promise.resolve(); // le premier chargement est fait par AdminLayout
+  if (!force && Date.now() - lastHydrateAt < 10_000) return Promise.resolve();
+  refreshing ??= bootstrap()
+    .then((data) => {
+      // Les saisies optimistes pas encore confirmées par l'API sont préservées.
+      const pending = Object.fromEntries(
+        (Object.keys(cache) as (keyof typeof cache)[]).map((k) => [k, (cache[k] as { id: string }[]).filter((x) => x.id.startsWith('tmp-'))]),
+      );
+      hydrate(data as never);
+      for (const k of Object.keys(pending) as (keyof typeof cache)[]) {
+        (cache[k] as { id: string }[]).unshift(...(pending[k] as { id: string }[]));
+      }
+    })
+    .catch(() => { /* API injoignable : on garde le cache actuel */ })
+    .finally(() => { refreshing = null; });
+  return refreshing;
 }
 
 export function resetCache() {
@@ -63,16 +102,36 @@ export function upsertSync<K extends keyof typeof cache>(
   const i = list.findIndex((x) => x.id === item.id || (serverItem && x.id === serverItem.id));
   if (i >= 0) list[i] = target as never;
   else list.unshift(target as never);
+  notifyCache();
 }
 
 export function replaceSync<K extends keyof typeof cache>(key: K, tempId: string, serverItem: (typeof cache)[K][number]): void {
   const list = cache[key] as { id: string }[];
   const i = list.findIndex((x) => x.id === tempId);
   if (i >= 0) list[i] = serverItem as never;
+  notifyCache();
 }
 
 export function removeSync<K extends keyof typeof cache>(key: K, id: string): void {
   const list = cache[key] as { id: string }[];
   const i = list.findIndex((x) => x.id === id);
   if (i >= 0) list.splice(i, 1);
+  notifyCache();
+}
+
+/* --- Alerte de synchronisation : ne JAMAIS échouer en silence. ---
+   La donnée optimiste reste affichée, mais l'utilisateur est prévenu
+   qu'elle sera perdue au rechargement si l'API n'a pas enregistré. */
+let lastWarn = 0;
+export function warnSyncFailed(what: string): void {
+  console.error(`Échec de l'enregistrement API : ${what}`);
+  const t = Date.now();
+  if (t - lastWarn > 4000) { // une seule alerte par rafale
+    lastWarn = t;
+    void notice(
+      `⚠️ « ${what} » n'a pas pu être enregistré sur le serveur.\n\n` +
+      `La donnée est affichée localement mais sera PERDUE au rechargement de la page.\n` +
+      `Vérifiez que l'API backend est démarrée et accessible, puis réessayez.`,
+    );
+  }
 }

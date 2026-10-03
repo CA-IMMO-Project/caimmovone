@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, FileDown, FileSpreadsheet, History, Mail, MessageSquarePlus, Paperclip, Pencil,
@@ -16,6 +16,8 @@ import {
   fmtAr, fmtDate, fmtDateTime, fmtM2, input, printTable,
   ListToolbar, PageHeader, RelDate, TelLink,
 } from './crm/kit';
+import { refreshCache, subscribeCache } from './crm/sync';
+import { askConfirm } from './crm/dialog';
 import { removeFile } from './crm/files';
 import { emptyClientFields, findOrCreateClient, getClient, splitName } from './crm/people';
 import {
@@ -41,19 +43,16 @@ function landLabel(r: BuyRequest) {
 }
 
 const columns: Column<BuyRequest>[] = [
-  { key: 'ref', label: 'Référence', render: (r) => <span className="font-mono text-xs font-semibold text-navy-900">{r.ref}</span>, sort: (r) => r.ref, csv: (r) => r.ref },
+  { key: 'ref', label: 'Référence', render: (r) => <span className="font-mono text-xs font-semibold text-navy-900 whitespace-nowrap">{r.ref}</span>, sort: (r) => r.ref, csv: (r) => r.ref },
   {
     key: 'client', label: 'Client', sort: (r) => fullName(r).toLowerCase(), csv: (r) => fullName(r),
-    render: (r) => (<div><p className="font-medium text-navy-900">{fullName(r)}</p><p className="text-xs text-gray-500">{r.propertyType} · {r.source}</p></div>),
+    render: (r) => (<div><p className="font-medium text-navy-900">{fullName(r)}</p><TelLink phone={phoneOf(r)} /><p className="text-xs text-gray-500">{r.propertyType} · {r.source}</p></div>),
   },
-  { key: 'phone', label: 'Téléphone', render: (r) => <TelLink phone={phoneOf(r)} />, csv: (r) => phoneOf(r) },
   {
     key: 'land', label: 'Terrain souhaité', sort: (r) => landLabel(r), csv: (r) => landLabel(r),
-    render: (r) => <span className="block max-w-[220px] truncate" title={landLabel(r)}>{landLabel(r) || <span className="text-red-600">Non rattaché</span>}</span>,
+    render: (r) => <p><span className="block max-w-[220px] truncate" title={landLabel(r)}>{landLabel(r) || <span className="text-red-600">Non rattaché</span> }</span> <span className="text-xs text-gray-500">{[r.commune, r.region].filter(Boolean).join(', ')}</span></p>,
   },
-  { key: 'loc', label: 'Localisation', render: (r) => <span>{[r.commune, r.region].filter(Boolean).join(', ')}</span>, sort: (r) => r.region, csv: (r) => [r.fokontany, r.commune, r.district, r.region].filter(Boolean).join(', ') },
-  { key: 'budget', label: 'Budget', render: (r) => <span className="whitespace-nowrap">{budget(r)}</span>, sort: (r) => r.budgetMax || r.budgetMin, csv: (r) => `${r.budgetMin}-${r.budgetMax}` },
-  { key: 'pay', label: 'Paiement', render: (r) => <span className="whitespace-nowrap">{r.paymentMode ? (isInstalment(r) ? 'Facilité' : 'Comptant') : '—'}</span>, sort: (r) => r.paymentMode, csv: (r) => r.paymentMode },
+  { key: 'budget', label: 'Budget', render: (r) => <p><span className="whitespace-nowrap">{budget(r)}</span> <br /> <span className="whitespace-nowrap text-xs text-gray-500 italic">Type de paiement : {r.paymentMode ? (isInstalment(r) ? 'Facilité' : 'Comptant') : '—'}</span></p>, sort: (r) => r.budgetMax || r.budgetMin, csv: (r) => `${r.budgetMin}-${r.budgetMax}` },
   { key: 'agent', label: 'Agent', render: (r) => <span className="whitespace-nowrap">{r.agent}</span>, sort: (r) => r.agent, csv: (r) => r.agent },
   { key: 'next', label: 'Prochaine action', render: (r) => <ActionLabel a={nextAction(r.actions)} />, sort: (r) => nextAction(r.actions)?.at ?? '9', csv: (r) => { const a = nextAction(r.actions); return a ? `${a.type} ${fmtDateTime(a.at)}` : ''; } },
   { key: 'date', label: 'Création', render: (r) => <RelDate iso={r.createdAt} />, sort: (r) => r.createdAt, csv: (r) => fmtDateTime(r.createdAt) },
@@ -68,6 +67,7 @@ const loadPurchaseRequests = () => getBuyRequests().filter((r) => (r.kind ?? 'in
 export function BuyRequestList() {
   const navigate = useNavigate();
   const [rows, setRows] = useState(loadPurchaseRequests);
+  useEffect(() => { refreshCache().then(() => setRows(loadPurchaseRequests())); return subscribeCache(() => setRows(loadPurchaseRequests())); }, []); // resync à l'ouverture + mise à jour auto sans F5
   const [q, setQ] = useState('');
   const [f, setF] = useState({ region: '', status: '', agent: '', pay: '', priority: '', from: '', to: '', budgetMax: 0 });
   const [selected, setSelected] = useState<string[]>([]);
@@ -213,7 +213,7 @@ export function BuyRequestForm() {
     const errs = validate(r);
     setErrors(errs);
     if (Object.keys(errs).length) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'start' }); // on remonte jusqu'en haut du formulaire, pas de la page
       return;
     }
     const history = [...r.history];
@@ -237,8 +237,11 @@ export function BuyRequestForm() {
   };
   const errCount = Object.keys(errors).length;
 
+  /* Bouton « Enregistrer » grisé tant que des champs obligatoires manquent (les erreurs de format restent signalées au clic). */
+  const incomplete = Object.values(validate(r)).some((m) => m === 'Champ obligatoire' || m.startsWith('Précisez') || m.startsWith('Le consentement') || m.startsWith('Choisissez'));
+
   return (
-    <form onSubmit={submit} noValidate>
+    <form onSubmit={submit} noValidate className="scroll-mt-24">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
           <button type="button" onClick={() => navigate(-1)} className={btnIcon} aria-label="Retour"><ArrowLeft className="w-5 h-5" /></button>
@@ -247,7 +250,7 @@ export function BuyRequestForm() {
             <p className="text-sm text-gray-500"><span className="font-mono">{r.ref}</span> · créée le {fmtDateTime(r.createdAt)}</p>
           </div>
         </div>
-        <button type="submit" className={btnGold}><Save className="w-4 h-4" /> Enregistrer</button>
+        <button type="submit" className={btnGold} disabled={incomplete} title="Complétez les champs obligatoires (*)"><Save className="w-4 h-4" /> Enregistrer</button>
       </div>
 
       {errCount > 0 && (
@@ -301,7 +304,7 @@ export function BuyRequestForm() {
           </Grid>
         </Section>
 
-        <Section title="Autres critères de recherche (facultatif)" icon={<MapPin className="w-4 h-4" />}>
+        <Section title="Autres critères de recherche" icon={<MapPin className="w-4 h-4" />}>
           <Grid>
             <Field label="Type de bien" span="full"><Choice value={r.propertyType} onChange={(v) => set('propertyType', v)} options={PROPERTY_TYPES} /></Field>
             <Field label="Région"><Select value={r.region} onChange={(v) => set('region', v)} options={REGIONS} placeholder="—" /></Field>
@@ -341,7 +344,7 @@ export function BuyRequestForm() {
 
       <div className="flex justify-end gap-2 mt-6">
         <button type="button" onClick={() => navigate(-1)} className={btnOutline}>Annuler</button>
-        <button type="submit" className={btnGold}><Save className="w-4 h-4" /> Enregistrer</button>
+        <button type="submit" className={btnGold} disabled={incomplete} title="Complétez les champs obligatoires (*)"><Save className="w-4 h-4" /> Enregistrer</button>
       </div>
     </form>
   );
@@ -388,8 +391,8 @@ export function BuyRequestDetail() {
     setCompleting(null);
     if (followUp) setDialog('plan');
   };
-  const cancel = (a: PlannedAction) => {
-    if (!confirm(`Annuler « ${a.type} » du ${fmtDateTime(a.at)} ?`)) return;
+  const cancel = async (a: PlannedAction) => {
+    if (!(await askConfirm(`Annuler « ${a.type} » du ${fmtDateTime(a.at)} ?`))) return;
     const actions = r.actions.filter((x) => x.id !== a.id);
     update({ actions, nextFollowUp: nextAction(actions)?.at.slice(0, 10) ?? '' }, `${a.type} du ${fmtDateTime(a.at)} annulé(e)`);
   };
@@ -473,6 +476,7 @@ export function BuyRequestDetail() {
               <Section title="Coordonnées" icon={<User className="w-4 h-4" />}>
                 <dl className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <Info label="Téléphone" value={phoneOf(r)} /><Info label="Email" value={r.email} />
+                  <Info label="Meilleur moment pour appeler" value={r.callTime} />
                   <Info label="Date de naissance" value={fmtDate(r.birthDate)} /><Info label="Profession" value={r.profession} />
                   <Info label="Pays de résidence" value={r.country === 'Autre' ? r.countryOther : r.country} /><Info label="Adresse" value={r.address} />
                   <Info label="Compte bancaire" value={r.hasBankAccount === 'Oui' ? `Oui${r.bank ? ` · ${r.bank}` : ''}` : r.hasBankAccount} />
@@ -514,7 +518,7 @@ export function BuyRequestDetail() {
                     key={f.id}
                     file={f}
                     onPreview={() => setPreview(f)}
-                    onRemove={() => { if (confirm(`Retirer ${f.name} ?`)) { removeFile(f); update({ attachments: r.attachments.filter((x) => x.id !== f.id) }, `Document retiré : ${f.name}`); } }}
+                    onRemove={async () => { if (await askConfirm(`Retirer ${f.name} ?`)) { removeFile(f); update({ attachments: r.attachments.filter((x) => x.id !== f.id) }, `Document retiré : ${f.name}`); } }}
                   />
                 ))}
               </div>

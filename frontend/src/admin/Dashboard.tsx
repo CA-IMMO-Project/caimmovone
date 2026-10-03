@@ -3,12 +3,14 @@
    Lecture seule sur le cache synchronisé : aucune donnée transformée ici.
    ========================================================================== */
 
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, CalendarCheck, CalendarDays, CheckCircle2, Mail, ShoppingBag, Wallet,
 } from 'lucide-react';
 import { getLands, getMessages } from '../lib/store';
 import { fullName, getBuyRequests, getLandFiles } from './crm/model';
+import { refreshCache, subscribeCache } from './crm/sync';
 import { ActionLabel } from './crm/client';
 import { formatAriary } from '../lib/format';
 import { Badge, Card } from './ui';
@@ -31,6 +33,10 @@ function Avatar({ name }: { name: string }) {
 }
 
 export default function Dashboard() {
+  /* Mise à jour auto sans F5 : le tableau de bord se re-rend à chaque resynchronisation du cache. */
+  const [, setTick] = useState(0);
+  useEffect(() => { refreshCache(); return subscribeCache(() => setTick((t) => t + 1)); }, []);
+
   const lands = getLands();
   // Les visites ont leur propre écran : ici, uniquement les demandes d'achat.
   const purchases = [...getBuyRequests()].filter((r) => (r.kind ?? 'interet') !== 'visite');

@@ -1,16 +1,17 @@
 /* Formulaire d'intérêt (achat) — extrait de LandDetail pour lisibilité. */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Banknote, ChevronLeft, ChevronRight, LandPlot, Navigation, ShieldCheck, WalletCards } from 'lucide-react';
 import { ChoiceCards, ErrorBanner, FormField, Input, ProgressSteps, Select, Textarea } from '../../../shared/ui';
 import { createReservation } from '../../../services/requestService';
+import type { SubmitResult } from '../../../services/requestService';
 import { AnimatePresence, motion } from 'motion/react';
 import { formatAriary } from '../../../lib/format';
 import { landReference } from '../../../lib/land';
 import { phoneError, emailError } from '../../../lib/validate';
 import type { Land, ReservationPayload } from '../../../types';
 
-export default function InterestForm({ land, onDone }: { land: Land; onDone: (ref: string) => void }) {
+export default function InterestForm({ land, onDone }: { land: Land; onDone: (result: SubmitResult) => void }) {
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -23,6 +24,8 @@ export default function InterestForm({ land, onDone }: { land: Land; onDone: (re
     country: 'Madagascar',
     bankAccount: 'Oui',
     deadline: 'Dès que possible',
+    budget: '',
+    callTime: 'Indifférent',
     payment: 'Comptant' as 'Comptant' | 'Facilité',
     duration: '0–4 mois',
     downPaymentAmount: '',
@@ -33,7 +36,7 @@ export default function InterestForm({ land, onDone }: { land: Land; onDone: (re
   const next = () => {
     setError(null);
     if (step === 0) {
-      if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim()) {
+      if (!form.firstName.trim() || !form.lastName.trim()) {
         setError('Veuillez compléter vos coordonnées avant de continuer.');
         return;
       }
@@ -51,14 +54,28 @@ export default function InterestForm({ land, onDone }: { land: Land; onDone: (re
     setStep((s) => Math.max(s - 1, 0));
   };
 
+  /* Changement d'étape : on remonte jusqu'en haut des champs dans la modale. */
+  const stepsTopRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    stepsTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [step]);
+
+  /* Champs obligatoires de l'étape courante : « Continuer » reste grisé tant qu'ils sont vides. */
+  const stepIncomplete = step === 0 && (!form.firstName.trim() || !form.lastName.trim() || !form.phone.trim());
+
+  const [sending, setSending] = useState(false);
   const finalize = async (payload: ReservationPayload) => {
+    if (sending) return; // anti double-clic : un seul envoi à la fois
+    setSending(true);
     setError(null);
     try {
-      const ref = await createReservation(payload); // référence générée par le backend
-      onDone(ref);
+      const result = await createReservation(payload); // référence générée par le backend
+      onDone(result);
     } catch (e) {
       // Message du serveur quand il en fournit un (ex. demande d\u00e9j\u00e0 en cours sur ce terrain).
       setError(e instanceof Error && e.message !== '' ? e.message : 'L\u2019enregistrement a \u00e9chou\u00e9. V\u00e9rifiez votre connexion puis r\u00e9essayez.');
+    } finally {
+      setSending(false);
     }
   };
 
@@ -68,7 +85,10 @@ export default function InterestForm({ land, onDone }: { land: Land; onDone: (re
       landId: land.id,
       fullName: `${form.firstName} ${form.lastName}`.trim(),
       phone: form.phone,
-      email: form.email,
+      email: form.email || undefined,
+      birthDate: form.birthDate || undefined,
+      budget: form.budget || undefined,
+      callTime: form.callTime,
       profession: form.profession,
       bankAccount: form.bankAccount,
       nationality: form.country,
@@ -84,7 +104,7 @@ export default function InterestForm({ land, onDone }: { land: Land; onDone: (re
     <div>
       <ProgressSteps steps={['Profil', 'Projet', 'Financement']} current={step} />
 
-      <div className="mt-9">
+      <div ref={stepsTopRef} className="mt-9 scroll-mt-4">
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
@@ -123,28 +143,8 @@ export default function InterestForm({ land, onDone }: { land: Land; onDone: (re
                   <FormField label="Téléphone" required>
                     <Input type="tel" placeholder="+261 34 00 000 00" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
                   </FormField>
-                  <FormField label="Adresse email" required>
+                  <FormField label="Adresse email" hint="Si vous préférez être contacté par écrit.">
                     <Input type="email" placeholder="vous@exemple.com" value={form.email} onChange={(e) => set('email', e.target.value)} />
-                  </FormField>
-                  <FormField label="Date de naissance">
-                    <Input type="date" value={form.birthDate} onChange={(e) => set('birthDate', e.target.value)} />
-                  </FormField>
-                  <FormField label="Profession">
-                    <Input placeholder="Ex. Entrepreneur" value={form.profession} onChange={(e) => set('profession', e.target.value)} />
-                  </FormField>
-                  <FormField label="Pays de résidence" required>
-                    <Select value={form.country} onChange={(e) => set('country', e.target.value)}>
-                      <option>Madagascar</option>
-                      <option>France</option>
-                      <option>La Réunion</option>
-                      <option>Autre</option>
-                    </Select>
-                  </FormField>
-                  <FormField label="Titulaire d’un compte bancaire ?" required>
-                    <Select value={form.bankAccount} onChange={(e) => set('bankAccount', e.target.value)}>
-                      <option>Oui</option>
-                      <option>Non</option>
-                    </Select>
                   </FormField>
                 </div>
                 <p className="mt-6 flex items-start gap-2.5 text-xs font-normal leading-relaxed text-navy-900/80">
@@ -169,6 +169,20 @@ export default function InterestForm({ land, onDone }: { land: Land; onDone: (re
                     ]}
                   />
                 </FormField>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <FormField label="Budget approximatif" hint="En Ariary — une simple estimation suffit.">
+                    <Input type="number" min={0} placeholder="Ex. 80 000 000" value={form.budget} onChange={(e) => set('budget', e.target.value)} />
+                  </FormField>
+                  <FormField label="Meilleur moment pour vous appeler">
+                    <Select value={form.callTime} onChange={(e) => set('callTime', e.target.value)}>
+                      <option>Indifférent</option>
+                      <option>Matin (8h – 12h)</option>
+                      <option>Midi (12h – 14h)</option>
+                      <option>Après-midi (14h – 17h)</option>
+                      <option>Fin de journée (17h – 19h)</option>
+                    </Select>
+                  </FormField>
+                </div>
                 <FormField label="Parlez-nous de votre projet">
                   <Textarea
                     rows={5}
@@ -210,6 +224,35 @@ export default function InterestForm({ land, onDone }: { land: Land; onDone: (re
                   </div>
                 )}
 
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-navy-900/65">Pour préparer votre dossier</p>
+                  <p className="mt-1.5 text-xs font-normal text-navy-900/75">
+                    Ces précisions aident notre équipe à avancer plus vite — vous pouvez aussi les compléter plus tard par téléphone.
+                  </p>
+                  <div className="mt-4 grid gap-5 sm:grid-cols-2">
+                    <FormField label="Pays de résidence">
+                      <Select value={form.country} onChange={(e) => set('country', e.target.value)}>
+                        <option>Madagascar</option>
+                        <option>France</option>
+                        <option>La Réunion</option>
+                        <option>Autre</option>
+                      </Select>
+                    </FormField>
+                    <FormField label="Titulaire d’un compte bancaire ?">
+                      <Select value={form.bankAccount} onChange={(e) => set('bankAccount', e.target.value)}>
+                        <option>Oui</option>
+                        <option>Non</option>
+                      </Select>
+                    </FormField>
+                    <FormField label="Profession">
+                      <Input placeholder="Ex. Entrepreneur" value={form.profession} onChange={(e) => set('profession', e.target.value)} />
+                    </FormField>
+                    <FormField label="Date de naissance">
+                      <Input type="date" value={form.birthDate} onChange={(e) => set('birthDate', e.target.value)} />
+                    </FormField>
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-4 rounded-2xl border border-navy-900/8 bg-white px-5 py-4">
                   <LandPlot className="h-5 w-5 shrink-0 text-gold-700" />
                   <div>
@@ -236,11 +279,11 @@ export default function InterestForm({ land, onDone }: { land: Land; onDone: (re
           <span />
         )}
         {step < 2 ? (
-          <button onClick={next} className="btn-gold">
+          <button onClick={next} disabled={stepIncomplete} className="btn-gold disabled:cursor-not-allowed disabled:opacity-40">
             Continuer <ChevronRight className="h-4 w-4" />
           </button>
         ) : (
-          <button onClick={submit} className="btn-gold">
+          <button onClick={submit} disabled={sending} className="btn-gold disabled:cursor-not-allowed disabled:opacity-40">
             Envoyer ma demande <ArrowRight className="h-4 w-4" />
           </button>
         )}

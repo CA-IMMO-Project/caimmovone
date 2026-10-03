@@ -91,17 +91,18 @@ export default function SaleDialog({ land, lotId: initialLot, onClose, onDone }:
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-2xl my-8 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b">
+    <div className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-navy-950/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="flex min-h-full w-full items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-2xl rounded-[2rem] bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-6 border-b border-navy-900/10 px-7 pt-6 pb-5">
           <div>
-            <h2 className="text-lg font-bold text-navy-900">Enregistrer une vente</h2>
+            <h2 className="text-xl font-bold tracking-tight text-navy-900">Enregistrer une vente</h2>
             <p className="text-sm text-gray-500">{land.title}</p>
           </div>
-          <button className={btnIcon} onClick={onClose} aria-label="Fermer"><X className="w-5 h-5" /></button>
+          <button type="button" onClick={onClose} aria-label="Fermer" className="rounded-full border border-navy-900/20 p-2.5 text-navy-900/75 transition hover:bg-brand-50 hover:text-navy-900"><X className="w-4 h-4" /></button>
         </div>
 
-        <div className="p-5 space-y-5">
+        <div className="px-7 py-6 space-y-5">
           {lots.length > 0 && (
             <Field label="Parcelle vendue" required>
               {sellable.length ? (
@@ -153,10 +154,11 @@ export default function SaleDialog({ land, lotId: initialLot, onClose, onDone }:
           {error && <p className="text-sm text-red-600">{error}</p>}
         </div>
 
-        <div className="flex justify-end gap-2 px-5 py-4 border-t bg-gray-50 rounded-b-2xl">
+        <div className="flex justify-end gap-2 border-t border-navy-900/10 bg-white px-7 py-4 rounded-b-[2rem]">
           <button className={btnOutline} onClick={onClose}>Annuler</button>
-          <button className={btnPrimary} onClick={save} disabled={lots.length > 0 && !sellable.length}><CheckCircle2 className="w-4 h-4" /> Enregistrer la vente</button>
+          <button className={btnPrimary} onClick={save} disabled={(lots.length > 0 && !sellable.length) || !price || !date || (!client && (!fields.fullName.trim() || !fields.phone.trim()))} title="Complétez les champs obligatoires (*)"><CheckCircle2 className="w-4 h-4" /> Enregistrer la vente</button>
         </div>
+      </div>
       </div>
     </div>
   );

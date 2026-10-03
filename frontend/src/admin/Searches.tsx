@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Mail, MapPin, Phone, Plus, Search, Send, Target, Trash2, User, History } from 'lucide-react';
+import { ArrowLeft, Mail, MapPin, Phone, Plus, Search, Send, Target, Trash2, User, History, X } from 'lucide-react';
 import { getLands } from '../lib/store';
 import { newId } from '../lib/store';
 import { Land } from '../types';
@@ -9,6 +9,8 @@ import {
   createSearch, deleteSearch, emptySearchFields, getSearch, getSearches, saveSearch,
 } from './crm/people';
 import { historyEntry } from './crm/model';
+import { refreshCache, subscribeCache } from './crm/sync';
+import { askConfirm } from './crm/dialog';
 import {
   Badge, Choice, Column, DataTable, Field, Info, MapPicker, Modal, NumberInput, Section, Select, Stat, Timeline,
   btnDanger, btnGold, btnIcon, btnOutline, btnPrimary, fmtAr, fmtDate, fmtDateTime, fmtM2, input,
@@ -65,7 +67,7 @@ function matchScore(s: SpecificSearch, land: Land) {
   const text = `${land.title} ${land.location} ${land.region}`.toLowerCase();
   const zones = [s.mainZone, s.otherZones, s.targetZone].join(',').toLowerCase().split(/[,;/]/).map((z) => z.trim()).filter((z) => z.length > 2);
   let score = zones.some((z) => text.includes(z.split(' ')[0])) ? 3 : 0;
-  if (s.lat !== undefined && s.lng !== undefined && land.coordinates) {
+  if (s.lat != null && s.lng != null && land.coordinates) {
     const km = distanceKm([s.lat, s.lng], land.coordinates);
     if (km <= s.radiusKm) score += 3;
     else if (s.suggestNearby && km <= s.radiusKm * 3) score += 1;
@@ -83,12 +85,9 @@ function distanceKm(a: [number, number], b: [number, number]) {
 
 // ======================= LISTE =======================
 const columns: Column<SpecificSearch>[] = [
-  { key: 'ref', label: 'Référence', render: (s) => <span className="font-mono text-xs font-semibold">{s.ref}</span>, sort: (s) => s.ref, csv: (s) => s.ref },
-  { key: 'client', label: 'Client', render: (s) => <div><p className="font-medium text-navy-900">{s.fullName}</p><TelLink phone={s.phone} /></div>, sort: (s) => s.fullName.toLowerCase(), csv: (s) => s.fullName },
+  { key: 'ref', label: 'Référence', render: (s) => <span className="font-mono text-xs font-semibold whitespace-nowrap">{s.ref}</span>, sort: (s) => s.ref, csv: (s) => s.ref },
+  { key: 'client', label: 'Client', render: (s) => <div><p className="font-medium text-navy-900">{s.fullName}</p><p className="text-xs leading-tight"><TelLink phone={s.phone} /></p></div>, sort: (s) => s.fullName.toLowerCase(), csv: (s) => s.fullName },
   { key: 'zone', label: 'Zone principale', render: (s) => <span>{s.mainZone}</span>, sort: (s) => s.mainZone, csv: (s) => s.mainZone },
-  { key: 'others', label: 'Autres zones', render: (s) => <span className="text-gray-600">{s.otherZones || '—'}</span>, csv: (s) => s.otherZones },
-  { key: 'radius', label: 'Rayon', render: (s) => `${s.radiusKm} km`, sort: (s) => s.radiusKm, csv: (s) => s.radiusKm },
-  { key: 'flex', label: 'Flexible', render: (s) => s.flexible, csv: (s) => s.flexible },
   { key: 'budget', label: 'Budget max', render: (s) => <span className="whitespace-nowrap">{fmtAr(s.budgetMax)}</span>, sort: (s) => s.budgetMax, csv: (s) => s.budgetMax },
   { key: 'prop', label: 'Terrains proposés', render: (s) => s.proposals.length, sort: (s) => s.proposals.length, csv: (s) => s.proposals.length },
   { key: 'date', label: 'Reçue le', render: (s) => <RelDate iso={s.createdAt} />, sort: (s) => s.createdAt, csv: (s) => fmtDate(s.createdAt) },
@@ -98,6 +97,7 @@ const columns: Column<SpecificSearch>[] = [
 export function SearchList() {
   const navigate = useNavigate();
   const [rows, setRows] = useState(getSearches);
+  useEffect(() => { refreshCache().then(() => setRows(getSearches())); return subscribeCache(() => setRows(getSearches())); }, []); // resync à l'ouverture + mise à jour auto sans F5
   const [q, setQ] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
@@ -149,14 +149,19 @@ function NewSearchDialog({ onClose, onCreated }: { onClose: () => void; onCreate
     onCreated(await createSearch(f, 'Backoffice'));
   };
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-3xl my-8 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="px-5 py-4 border-b"><h2 className="text-lg font-bold text-navy-900">Nouvelle recherche de terrain spécifique</h2></div>
-        <div className="p-5"><SearchFormFields f={f} set={set} errors={errors} /></div>
-        <div className="flex justify-end gap-2 px-5 py-4 border-t bg-gray-50 rounded-b-2xl">
-          <button className={btnOutline} onClick={onClose}>Annuler</button>
-          <button className={btnPrimary} onClick={save}>Enregistrer</button>
+    <div className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-navy-950/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="flex min-h-full w-full items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-3xl rounded-[2rem] bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-6 border-b border-navy-900/10 px-7 pt-6 pb-5">
+          <h2 className="text-xl font-bold tracking-tight text-navy-900">Nouvelle recherche de terrain spécifique</h2>
+          <button type="button" onClick={onClose} aria-label="Fermer" className="rounded-full border border-navy-900/20 p-2.5 text-navy-900/75 transition hover:bg-brand-50 hover:text-navy-900"><X className="w-4 h-4" /></button>
         </div>
+        <div className="px-7 pt-6 pb-7"><SearchFormFields f={f} set={set} errors={errors} /></div>
+        <div className="flex justify-end gap-2 border-t border-navy-900/10 bg-white px-7 py-4 rounded-b-[2rem]">
+          <button className={btnOutline} onClick={onClose}>Annuler</button>
+          <button className={btnPrimary} onClick={save} disabled={!f.fullName.trim() || !f.phone.trim() || !f.mainZone.trim()} title="Complétez les champs obligatoires (*)">Enregistrer</button>
+        </div>
+      </div>
       </div>
     </div>
   );
@@ -191,7 +196,7 @@ export function SearchDetail() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Select value={s.status} onChange={(v) => update({ status: v as SearchStatus }, `Statut changé : ${s.status} → ${v}`)} options={SEARCH_STATUSES} className="w-auto" />
-          <button className={btnDanger} onClick={() => { if (confirm('Supprimer cette recherche ?')) { deleteSearch(s.id); navigate(BASE); } }}><Trash2 className="w-4 h-4" /></button>
+          <button className={btnDanger} aria-label="Supprimer la recherche" title="Supprimer la recherche" onClick={async () => { if (await askConfirm('Supprimer cette recherche ?')) { deleteSearch(s.id); navigate(BASE); } }}><Trash2 className="w-4 h-4" /></button>
         </div>
       </div>
 
@@ -206,7 +211,7 @@ export function SearchDetail() {
               <Info label="Flexible sur la localisation ?" value={s.flexible} />
               <Info label="Proposer les zones proches" value={s.suggestNearby ? 'Oui' : 'Non'} />
             </dl>
-            {s.lat !== undefined && s.lng !== undefined
+            {s.lat != null && s.lng != null
               ? <MapPicker lat={s.lat} lng={s.lng} radiusKm={s.radiusKm} readOnly />
               : <p className="text-sm text-gray-400">Pas de point placé sur la carte.</p>}
           </Section>

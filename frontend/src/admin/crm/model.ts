@@ -102,6 +102,8 @@ export interface BuyRequest extends Person {
   /** Créneau souhaité par le visiteur (demandes de visite du site public). */
   visitDate?: string;
   visitTime?: string;
+  /** Meilleur moment pour rappeler le client (choisi sur le site public). */
+  callTime?: string;
   /** Commentaire laissé par le visiteur (formulaires du site public). */
   message?: string;
   paymentMode: string;
@@ -137,6 +139,10 @@ export interface BuyRequest extends Person {
 }
 
 // ---------- Dossier terrain ----------
+/** Fichiers transmis par le vendeur depuis le site public : URLs « /storage/… »
+    (vrais fichiers téléversés) ou simples noms (anciens dossiers). */
+export interface SiteFiles { photos: string[]; videos: string[]; documents: string[]; docTypes: string[]; idCards: string[] }
+
 export interface LandDoc extends StoredFile { category: string; number: string; issuedAt: string; ownerName: string; status: DocStatus }
 
 export interface LandFile {
@@ -184,6 +190,8 @@ export interface LandFile {
   lng?: number;
   // Médias
   photos: StoredFile[]; // la première est la photo principale
+  /** Fichiers reçus du formulaire public « Vendre » (voir SiteFiles). */
+  siteFiles?: SiteFiles;
   video?: StoredFile;
   documents: LandDoc[];
   // Conditions de vente
@@ -229,7 +237,7 @@ export function depositPercent(f: Pick<LandFile, 'depositRange' | 'depositCustom
 }
 
 export const fullName = (p: Pick<Person, 'firstName' | 'lastName'>) => `${p.firstName} ${p.lastName}`.trim();
-export const phoneOf = (p: Pick<Person, 'dialCode' | 'phone'>) => `${p.dialCode} ${p.phone}`.trim();
+export const phoneOf = (p: Pick<Person, 'dialCode' | 'phone'>) => [p.dialCode, p.phone].filter(Boolean).join(' ').trim(); // robuste si dialCode absent
 export const ACTOR = 'Administrateur';
 
 export function historyEntry(text: string): HistoryEntry {
@@ -245,7 +253,7 @@ function nextRef(prefix: string) {
 // (voir crm/sync.ts : lecture synchrone dans le cache, écritures vers l'API)
 
 import { saveRequestApi, saveLandFileApi, deleteApi } from '../../services/adminService';
-import { cache, upsertSync, replaceSync, removeSync } from './sync';
+import { cache, upsertSync, replaceSync, removeSync, warnSyncFailed } from './sync';
 
 export function getBuyRequests(): BuyRequest[] {
   return cache.requests.map((r, i) => ({
@@ -271,6 +279,7 @@ export async function saveBuyRequest(r: BuyRequest): Promise<BuyRequest> {
     replaceSync('requests', item.id, { ...item, ...server } as BuyRequest);
     return { ...item, ...server } as BuyRequest;
   } catch {
+    warnSyncFailed(`Demande ${item.ref || fullName(item)}`);
     return item; // erreur réseau : la version du cache reste affichée
   }
 }
@@ -280,10 +289,16 @@ export async function deleteBuyRequest(id: string): Promise<void> {
 }
 
 export function getLandFiles(): LandFile[] {
+  // Blindage : les dossiers incomplets (anciens enregistrements, dépôt public
+  // partiel) reçoivent des valeurs par défaut — plus de page blanche.
   return cache.landFiles.map((f) => ({
+    ...newLandFile(),
     ...f,
+    owner: { ...emptyPerson(), accountNumber: '', ...(f.owner ?? {}) },
+    idDoc: { type: 'CIN', number: '', issuedAt: '', expiresAt: '', authority: '', ...(f.idDoc ?? {}) },
     photos: f.photos ?? [], documents: f.documents ?? [], accesses: f.accesses ?? [],
     checklist: f.checklist ?? [], history: f.history ?? [], actions: f.actions ?? [],
+    notes: f.notes ?? [], tasks: f.tasks ?? [],
   }));
 }
 export function getLandFile(id: string) {
@@ -297,6 +312,7 @@ export async function saveLandFile(f: LandFile): Promise<LandFile> {
     replaceSync('landFiles', item.id, { ...item, ...server } as LandFile);
     return { ...item, ...server } as LandFile;
   } catch {
+    warnSyncFailed(`Dossier ${item.ref || item.title}`);
     return item;
   }
 }

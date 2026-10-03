@@ -98,6 +98,10 @@ export interface ReservationPayload {
   downPaymentAmount?: string;
   visitDate?: string;
   visitTime?: string;
+  /** Date de naissance saisie sur le site (facultative). */
+  birthDate?: string;
+  /** Meilleur moment pour rappeler le client (choisi sur le site). */
+  callTime?: string;
 }
 
 export interface Reservation extends ReservationPayload {

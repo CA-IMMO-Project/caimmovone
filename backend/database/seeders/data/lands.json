@@ -13,8 +13,8 @@
     "imageUrl": "/media/terrains/highlands.jpg",
     "gallery": [
       "/media/terrains/highlands.jpg",
-      "/media/terrains/plaine.jpg",
-      "/media/terrains/colline.jpg"
+      "/media/terrains/highlands-2.jpg",
+      "/media/terrains/highlands-3.jpg"
     ],
     "features": [
       "Terrain plat",
@@ -56,8 +56,8 @@
     "imageUrl": "/media/terrains/plaine.jpg",
     "gallery": [
       "/media/terrains/plaine.jpg",
-      "/media/terrains/highlands.jpg",
-      "/media/terrains/colline.jpg"
+      "/media/terrains/plaine-2.jpg",
+      "/media/terrains/plaine-3.jpg"
     ],
     "features": [
       "Proche aéroport",
@@ -99,8 +99,8 @@
     "imageUrl": "/media/terrains/colline.jpg",
     "gallery": [
       "/media/terrains/colline.jpg",
-      "/media/terrains/highlands.jpg",
-      "/media/terrains/plaine.jpg"
+      "/media/terrains/colline-2.jpg",
+      "/media/terrains/colline-3.jpg"
     ],
     "features": [
       "Vue panoramique",
@@ -139,8 +139,8 @@
     "imageUrl": "/media/terrains/littoral.jpg",
     "gallery": [
       "/media/terrains/littoral.jpg",
-      "/media/terrains/plaine.jpg",
-      "/media/terrains/colline.jpg"
+      "/media/terrains/littoral-2.jpg",
+      "/media/terrains/littoral-3.jpg"
     ],
     "features": [
       "Bord de mer",
@@ -180,8 +180,7 @@
     "imageUrl": "/media/terrains/agricole.jpg",
     "gallery": [
       "/media/terrains/agricole.jpg",
-      "/media/terrains/plaine.jpg",
-      "/media/terrains/colline.jpg"
+      "/media/terrains/agricole-2.jpg"
     ],
     "features": [
       "Sol fertile",
@@ -221,8 +220,7 @@
     "imageUrl": "/media/terrains/ouest.jpg",
     "gallery": [
       "/media/terrains/ouest.jpg",
-      "/media/terrains/agricole.jpg",
-      "/media/terrains/plaine.jpg"
+      "/media/terrains/ouest-2.jpg"
     ],
     "features": [
       "Proche centre-ville",
@@ -261,8 +259,8 @@
     "imageUrl": "/media/terrains/littoral.jpg",
     "gallery": [
       "/media/terrains/littoral.jpg",
-      "/media/terrains/colline.jpg",
-      "/media/terrains/plaine.jpg"
+      "/media/terrains/littoral-2.jpg",
+      "/media/terrains/littoral-3.jpg"
     ],
     "features": [
       "Vue mer imprenable",
@@ -304,8 +302,8 @@
     "imageUrl": "/media/terrains/highlands.jpg",
     "gallery": [
       "/media/terrains/highlands.jpg",
-      "/media/terrains/plaine.jpg",
-      "/media/terrains/colline.jpg"
+      "/media/terrains/highlands-2.jpg",
+      "/media/terrains/highlands-3.jpg"
     ],
     "features": [
       "Climat tempéré",
@@ -344,8 +342,8 @@
     "imageUrl": "/media/terrains/littoral.jpg",
     "gallery": [
       "/media/terrains/littoral.jpg",
-      "/media/terrains/ouest.jpg",
-      "/media/terrains/plaine.jpg"
+      "/media/terrains/littoral-2.jpg",
+      "/media/terrains/littoral-3.jpg"
     ],
     "features": [
       "Proche plage",
@@ -384,8 +382,8 @@
     "imageUrl": "/media/terrains/colline.jpg",
     "gallery": [
       "/media/terrains/colline.jpg",
-      "/media/terrains/highlands.jpg",
-      "/media/terrains/plaine.jpg"
+      "/media/terrains/colline-2.jpg",
+      "/media/terrains/colline-3.jpg"
     ],
     "features": [
       "Quartier de standing",
@@ -425,8 +423,8 @@
     "imageUrl": "/media/terrains/plaine.jpg",
     "gallery": [
       "/media/terrains/plaine.jpg",
-      "/media/terrains/highlands.jpg",
-      "/media/terrains/colline.jpg"
+      "/media/terrains/plaine-2.jpg",
+      "/media/terrains/plaine-3.jpg"
     ],
     "features": [
       "Zone en développement",
@@ -465,8 +463,8 @@
     "imageUrl": "/media/terrains/littoral.jpg",
     "gallery": [
       "/media/terrains/littoral.jpg",
-      "/media/terrains/ouest.jpg",
-      "/media/terrains/plaine.jpg"
+      "/media/terrains/littoral-2.jpg",
+      "/media/terrains/littoral-3.jpg"
     ],
     "features": [
       "Proche baie",

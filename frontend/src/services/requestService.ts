@@ -4,7 +4,15 @@
    (POST /api/v1/requests) et messages de contact (POST /api/v1/messages).
    ========================================================================== */
 
-import { apiPost } from './apiClient';
+import { apiPost, apiUpload } from './apiClient';
+
+/** Réponse des dépôts publics : référence + indication « fiche mise à jour »
+    quand la même personne renvoie la même demande (anti-doublon backend). */
+export interface SubmitResult {
+  ref: string;
+  updated?: boolean;
+  message?: string;
+}
 import type { ContactPayload, ReservationPayload } from '../types';
 
 /**
@@ -12,9 +20,8 @@ import type { ContactPayload, ReservationPayload } from '../types';
  * La référence (ACH/VIS/REC/VEN-YYMMDD) est générée par le backend et
  * renvoyée pour être affichée au visiteur.
  */
-export async function createReservation(payload: ReservationPayload): Promise<string> {
-  const res = await apiPost<{ ref: string }>('/requests', payload);
-  return res.ref;
+export async function createReservation(payload: ReservationPayload): Promise<SubmitResult> {
+  return apiPost<SubmitResult>('/requests', payload);
 }
 
 /* Recherche sur mesure — traitée dans l'écran « Recherches spécifiques »
@@ -30,13 +37,15 @@ export interface SearchSubmission {
   mainZone?: string;
   otherZones?: string;
   targetZone?: string;
+  lat?: number;
+  lng?: number;
+  radiusKm?: number;
   flexible?: 'Oui' | 'Non';
   criteria?: string;
 }
 
-export async function createSearchRequest(payload: SearchSubmission): Promise<string> {
-  const res = await apiPost<{ ref: string }>('/searches', payload);
-  return res.ref;
+export async function createSearchRequest(payload: SearchSubmission): Promise<SubmitResult> {
+  return apiPost<SubmitResult>('/searches', payload);
 }
 
 /* Dépôt de terrain — traité dans l'écran « Dossiers de vente » du back
@@ -63,6 +72,8 @@ export interface LandFileSubmission {
   district?: string;
   commune?: string;
   fokontany?: string;
+  lat?: number;
+  lng?: number;
   directions?: string;
   payment?: string;
   paymentDuration?: string;
@@ -75,9 +86,32 @@ export interface LandFileSubmission {
   summary?: string;
 }
 
-export async function createLandFileRequest(payload: LandFileSubmission): Promise<string> {
-  const res = await apiPost<{ ref: string }>('/land-files', payload);
-  return res.ref;
+/** Fichiers réels joints au dépôt (photos, vidéo, documents, pièce d'identité). */
+export interface LandFileUploads {
+  photos: File[];
+  videos: File[];
+  documents: File[];
+  idFiles: File[];
+}
+
+export async function createLandFileRequest(payload: LandFileSubmission, uploads?: LandFileUploads): Promise<SubmitResult> {
+  const total = uploads ? uploads.photos.length + uploads.videos.length + uploads.documents.length + uploads.idFiles.length : 0;
+  // Sans fichier : envoi JSON classique (inchangé).
+  if (!uploads || total === 0) return apiPost<SubmitResult>('/land-files', payload);
+
+  // Avec fichiers : multipart — le backend les range dans storage/ et les
+  // affiche dans le back office (« Fichiers reçus du site web »).
+  const fd = new FormData();
+  Object.entries(payload).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    if (Array.isArray(value)) value.forEach((item) => fd.append(`${key}[]`, String(item)));
+    else fd.append(key, String(value));
+  });
+  uploads.photos.forEach((f) => fd.append('photos[]', f, f.name));
+  uploads.videos.forEach((f) => fd.append('videos[]', f, f.name));
+  uploads.documents.forEach((f) => fd.append('documents[]', f, f.name));
+  uploads.idFiles.forEach((f) => fd.append('idFiles[]', f, f.name));
+  return apiUpload<SubmitResult>('/land-files', fd);
 }
 
 /** Message de contact (visible dans le back office). */

@@ -18,6 +18,12 @@ export default defineConfig({
         target: process.env.API_PROXY_TARGET ?? 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
+      // Fichiers déposés par les vendeurs (photos, documents) servis par
+      // Laravel via le lien public/storage (php artisan storage:link).
+      '/storage': {
+        target: process.env.API_PROXY_TARGET ?? 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
     },
   },
 });

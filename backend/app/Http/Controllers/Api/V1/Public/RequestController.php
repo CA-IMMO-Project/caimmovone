@@ -38,6 +38,8 @@ class RequestController extends Controller
             'downPaymentAmount' => 'nullable|string|max:80',
             'visitDate' => 'nullable|string|max:40',
             'visitTime' => 'nullable|string|max:40',
+            'birthDate' => 'nullable|string|max:40',
+            'callTime' => 'nullable|string|max:80',
         ]);
 
         if (! Phone::isValid($data['phone'])) {
@@ -63,29 +65,75 @@ class RequestController extends Controller
                 ->where('client_id', $client->id)
                 ->where('kind', $data['kind'])
                 ->where('land_id', $land->id)
+                // Une demande déjà traitée/annulée ne bloque pas un nouveau besoin.
+                ->whereNotIn('status', ['Annulée', 'Refusée', 'Effectuée', 'Terminée', 'Traitée', 'Clôturée', 'Vendu'])
                 ->where('created_at', '>=', now()->subDays(30))
+                ->latest()
                 ->first();
 
             if ($dupe !== null) {
+                // MISE À JOUR de la fiche existante : nouvelles infos fusionnées,
+                // trace du renvoi — pas de seconde fiche pour la même personne.
+                $meta = $dupe->meta ?? [];
+                foreach (['budget', 'profession', 'bankAccount', 'nationality', 'projectName',
+                    'paymentMode', 'duration', 'downPaymentAmount', 'visitDate', 'visitTime', 'birthDate', 'callTime'] as $key) {
+                    if (! empty($data[$key])) {
+                        $meta[$key] = (string) $data[$key];
+                    }
+                }
+                if (! empty($data['age'])) {
+                    $meta['age'] = $data['age'];
+                }
+                // Budget approximatif du site -> colonne Budget du back office.
+                if (! empty($data['budget'])) {
+                    $approx = (int) preg_replace('/\D+/', '', (string) $data['budget']);
+                    if ($approx > 0) {
+                        $meta['budgetMax'] = $approx;
+                    }
+                }
+                $meta['landTitle'] = $land->title;
+                $meta['resendCount'] = (int) ($meta['resendCount'] ?? 0) + 1;
+                $meta['lastResentAt'] = now()->toIso8601String();
+
+                $message = trim((string) $dupe->message);
+                $newText = trim((string) ($data['message'] ?? ''));
+                if ($newText !== '' && ! str_contains($message, $newText)) {
+                    $message .= ($message !== '' ? "\n\n" : '') . '— Nouvel envoi du ' . now()->format('d/m/Y H:i') . " —\n" . $newText;
+                }
+
+                $dupe->update([
+                    'message' => $message !== '' ? $message : $dupe->message,
+                    'meta' => $meta,
+                    'priority' => 'Haute',
+                ]);
+
                 $label = $data['kind'] === 'visite' ? 'de visite' : "d'achat";
 
                 return response()->json([
                     'ref' => $dupe->ref,
-                    'message' => "Vous avez déjà une demande {$label} en cours sur ce terrain ({$dupe->ref}). Notre équipe vous recontacte très vite.",
-                ], 409);
+                    'updated' => true,
+                    'message' => "Vous aviez déjà une demande {$label} sur ce terrain : nous l'avons mise à jour ({$dupe->ref}) avec vos nouvelles informations. Notre équipe vous recontacte très vite.",
+                ], 200);
             }
         }
 
         // Champs complémentaires rangés dans meta (tout ce qui n'a pas de colonne).
         $meta = [];
         foreach (['budget', 'profession', 'bankAccount', 'nationality', 'projectName',
-                     'paymentMode', 'duration', 'downPaymentAmount', 'visitDate', 'visitTime'] as $key) {
+                     'paymentMode', 'duration', 'downPaymentAmount', 'visitDate', 'visitTime', 'birthDate', 'callTime'] as $key) {
             if (! empty($data[$key])) {
                 $meta[$key] = (string) $data[$key];
             }
         }
         if (! empty($data['age'])) {
             $meta['age'] = $data['age'];
+        }
+        // Budget approximatif du site -> colonne Budget du back office.
+        if (! empty($data['budget'])) {
+            $approx = (int) preg_replace('/\D+/', '', (string) $data['budget']);
+            if ($approx > 0) {
+                $meta['budgetMax'] = $approx;
+            }
         }
         if ($land) {
             $meta['landTitle'] = $land->title;

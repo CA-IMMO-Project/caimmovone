@@ -101,19 +101,20 @@ export function LotDialog({ land: initial, lotId, onClose, onSell, onChanged }: 
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-3xl my-8 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start gap-4 p-5 border-b">
+    <div className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-navy-950/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="flex min-h-full w-full items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-3xl rounded-[2rem] bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start gap-4 border-b border-navy-900/10 px-7 pt-6 pb-5">
           {lot.imageUrl && <img src={lot.imageUrl} alt="" className="w-24 h-20 rounded-lg object-cover shrink-0" referrerPolicy="no-referrer" />}
           <div className="flex-1 min-w-0">
             <p className="text-xs text-gray-500 truncate">{land.title}</p>
             <h2 className="text-xl font-bold text-navy-900">{lot.number}</h2>
             <p className="text-sm text-gray-600">{fmtM2(lot.area)} · <strong>{fmtAr(lot.price)}</strong> · <Badge value={lot.status} /></p>
           </div>
-          <button className={btnIcon} onClick={onClose} aria-label="Fermer"><X className="w-5 h-5" /></button>
+          <button type="button" onClick={onClose} aria-label="Fermer" className="rounded-full border border-navy-900/20 p-2.5 text-navy-900/75 transition hover:bg-brand-50 hover:text-navy-900"><X className="w-4 h-4" /></button>
         </div>
 
-        <div className="p-5 space-y-6">
+        <div className="px-7 py-6 space-y-6">
           {lot.details && <p className="text-sm bg-gray-50 rounded-lg p-3">{lot.details}</p>}
 
           {/* Acheteur */}
@@ -170,6 +171,7 @@ export function LotDialog({ land: initial, lotId, onClose, onSell, onChanged }: 
           />
         </div>
       )}
+      </div>
     </div>
   );
 }

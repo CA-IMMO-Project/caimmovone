@@ -118,7 +118,7 @@ function ContactModal({ open, onClose }: { open: boolean; onClose: () => void })
             <Textarea rows={5} placeholder="Écrivez votre message ici…" value={form.message} onChange={(e) => set('message', e.target.value)} />
           </FormField>
 
-          <button type="submit" disabled={busy} className="btn-gold w-full justify-center">
+          <button type="submit" disabled={busy || !form.firstName.trim() || !form.lastName.trim() || !form.phone.trim() || !form.message.trim()} className="btn-gold w-full justify-center disabled:cursor-not-allowed disabled:opacity-40">
             <Send className="h-4 w-4" />
             {busy ? 'Envoi en cours…' : 'Envoyer le message'}
           </button>

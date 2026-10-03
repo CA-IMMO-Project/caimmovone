@@ -6,12 +6,13 @@
    cache synchronisé (crm/model) — aucune duplication côté API.
    ========================================================================== */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, CalendarDays, CalendarPlus, Mail, MapPin, Phone, Search, User } from 'lucide-react';
 import { getLands } from '../lib/store';
 import { BuyRequest, fullName, getBuyRequest, getBuyRequests, historyEntry, saveBuyRequest } from './crm/model';
 import { getClient } from './crm/people';
+import { refreshCache, subscribeCache } from './crm/sync';
 import {
   Badge, Column, DataTable, Section, Select, Stat, Timeline, btnIcon, btnOutline,
   exportCsv, fmtAr, fmtDate, input,
@@ -36,11 +37,11 @@ const fmtVisitDate = (r: BuyRequest) => (r.visitDate ? `${fmtDate(r.visitDate)}$
 
 // ======================= LISTE =======================
 const columns: Column<BuyRequest>[] = [
-  { key: 'ref', label: 'Réf', render: (r) => <span className="font-mono text-xs font-semibold">{r.ref}</span>, sort: (r) => r.ref, csv: (r) => r.ref },
+  { key: 'ref', label: 'Réf', render: (r) => <span className="font-mono text-xs font-semibold whitespace-nowrap">{r.ref}</span>, sort: (r) => r.ref, csv: (r) => r.ref },
   { key: 'client', label: 'Client', render: (r) => (
     <div>
       <p className="font-medium text-navy-900">{fullName(r)}</p>
-      <TelLink phone={r.phone} />
+      <p className="text-xs leading-tight"><TelLink phone={r.phone} /></p>
     </div>
   ), sort: (r) => fullName(r).toLowerCase(), csv: (r) => fullName(r) },
   { key: 'land', label: 'Terrain', render: (r) => {
@@ -55,6 +56,7 @@ const columns: Column<BuyRequest>[] = [
 export function VisitList() {
   const navigate = useNavigate();
   const [rows, setRows] = useState(getVisitRequests);
+  useEffect(() => { refreshCache().then(() => setRows(getVisitRequests())); return subscribeCache(() => setRows(getVisitRequests())); }, []); // resync à l'ouverture + mise à jour auto sans F5
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
 

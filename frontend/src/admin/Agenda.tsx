@@ -1,11 +1,12 @@
 // Agenda : toutes les actions planifiées (visites, appels, rendez-vous…) des demandes d'achat
 // et des terrains à vendre, regroupées par jour.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   CalendarDays, Check, ChevronLeft, ChevronRight, Clock, LayoutList, Move, Plus, Eye, Mail, MessageCircle, MoreHorizontal, PenLine, Phone, Repeat, Search, User,
 } from 'lucide-react';
 import { getLands } from '../lib/store';
+import { refreshCache, subscribeCache } from './crm/sync';
 import {
   ACTION_TYPES, ActionType, BuyRequest, LandFile, PlannedAction, fullName, getBuyRequests, getLandFiles, historyEntry,
   phoneOf, saveBuyRequest, saveLandFile,
@@ -69,6 +70,7 @@ type View = 'upcoming' | 'late' | 'done';
 export default function Agenda() {
   const [version, setVersion] = useState(0);
   const items = useMemo(collect, [version]);
+  useEffect(() => { refreshCache().then(() => setVersion((v) => v + 1)); return subscribeCache(() => setVersion((v) => v + 1)); }, []); // mise à jour auto sans F5
   const [view, setView] = useState<View>('upcoming');
   const [mode, setModeState] = useState<'calendar' | 'list'>(() => {
     try { return localStorage.getItem('caimmo.agenda.mode') === 'list' ? 'list' : 'calendar'; } catch { return 'calendar'; }

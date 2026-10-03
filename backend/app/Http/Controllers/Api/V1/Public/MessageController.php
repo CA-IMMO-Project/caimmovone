@@ -28,6 +28,29 @@ class MessageController extends Controller
             }
         }
 
+        // Anti-doublon : le même message renvoyé (double-clic, rechargement,
+        // impatience) dans les dernières 24 h n'est enregistré qu'une fois.
+        $dupe = ContactMessage::query()
+            ->where('body', $data['message'])
+            ->where('created_at', '>=', now()->subDay())
+            ->where(function ($q) use ($data) {
+                $q->where('full_name', $data['fullName']);
+                if (! empty($data['phone'])) {
+                    $q->orWhere('phone', $data['phone']);
+                }
+                if (! empty($data['email'])) {
+                    $q->orWhere('email', $data['email']);
+                }
+            })
+            ->exists();
+
+        if ($dupe) {
+            return response()->json([
+                'updated' => true,
+                'message' => 'Votre message nous est déjà bien parvenu — notre équipe vous répond rapidement.',
+            ], 200);
+        }
+
         ContactMessage::create([
             'full_name' => $data['fullName'],
             'phone' => $data['phone'] ?? null,

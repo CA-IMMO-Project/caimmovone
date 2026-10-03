@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Eye, EyeOff, Globe, Pencil, Plus, Star, Trash2, X, ExternalLink } from 'lucide-react';
 import {
   REALISATION_CATEGORIES, Realisation, deleteRealisation, getRealisations, newRealisation, saveRealisation,
 } from './crm/people';
 import { removeFile } from './crm/files';
 import { Field, FileDrop, NumberInput, Select, Stat, Thumb, btnGold, btnIcon, btnOutline, btnPrimary, fmtM2, input } from './crm/kit';
+import { refreshCache, subscribeCache } from './crm/sync';
+import { askConfirm } from './crm/dialog';
 
 const monthLabel = (ym: string) => (ym ? new Date(`${ym}-01`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : '');
 
@@ -13,6 +15,7 @@ export default function Realisations() {
   const [editing, setEditing] = useState<Realisation | null>(null);
   const [filter, setFilter] = useState<'all' | 'published' | 'draft'>('all');
   const refresh = () => setRows(getRealisations());
+  useEffect(() => { refreshCache().then(refresh); return subscribeCache(refresh); }, []); // mise à jour auto sans F5
 
   const toggle = (r: Realisation, patch: Partial<Realisation>) => { saveRealisation({ ...r, ...patch }); refresh(); };
   const shown = rows.filter((r) => filter === 'all' || (filter === 'published' ? r.published : !r.published));
@@ -60,7 +63,7 @@ export default function Realisations() {
                 <div className="flex">
                   <button className={`${btnIcon} ${r.featured ? 'text-gold-600' : ''}`} onClick={() => toggle(r, { featured: !r.featured })} title="Mettre à la une"><Star className="w-4 h-4" /></button>
                   <button className={btnIcon} onClick={() => setEditing({ ...r })} aria-label="Modifier"><Pencil className="w-4 h-4" /></button>
-                  <button className={`${btnIcon} hover:text-red-600`} onClick={() => { if (confirm(`Supprimer « ${r.title} » ?`)) { r.photos.forEach(removeFile); deleteRealisation(r.id); refresh(); } }} aria-label="Supprimer"><Trash2 className="w-4 h-4" /></button>
+                  <button className={`${btnIcon} hover:text-red-600`} onClick={async () => { if (await askConfirm(`Supprimer « ${r.title} » ?`)) { r.photos.forEach(removeFile); deleteRealisation(r.id); refresh(); } }} aria-label="Supprimer"><Trash2 className="w-4 h-4" /></button>
                 </div>
               </div>
             </div>
@@ -88,13 +91,14 @@ function RealisationForm({ initial, onClose, onSave }: { initial: Realisation; o
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-3xl my-8 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b">
-          <h2 className="text-lg font-bold text-navy-900">{initial.title ? 'Modifier la réalisation' : 'Nouvelle réalisation'}</h2>
-          <button className={btnIcon} onClick={onClose} aria-label="Fermer"><X className="w-5 h-5" /></button>
+    <div className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-navy-950/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="flex min-h-full w-full items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-3xl rounded-[2rem] bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-6 border-b border-navy-900/10 px-7 pt-6 pb-5">
+          <h2 className="text-xl font-bold tracking-tight text-navy-900">{initial.title ? 'Modifier la réalisation' : 'Nouvelle réalisation'}</h2>
+          <button type="button" onClick={onClose} aria-label="Fermer" className="rounded-full border border-navy-900/20 p-2.5 text-navy-900/75 transition hover:bg-brand-50 hover:text-navy-900"><X className="w-4 h-4" /></button>
         </div>
-        <div className="p-5 space-y-4">
+        <div className="px-7 py-6 space-y-4">
           <div className="grid sm:grid-cols-2 gap-4">
             <Field label="Titre" required error={tried && !r.title.trim() ? 'Champ obligatoire' : undefined} span={2}>
               <input className={input} value={r.title} onChange={(e) => set('title', e.target.value)} placeholder="Ex : Villa R+1 à Ivato" />
@@ -132,11 +136,12 @@ function RealisationForm({ initial, onClose, onSave }: { initial: Realisation; o
 
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={r.featured} onChange={(e) => set('featured', e.target.checked)} /> Mettre à la une (affichée en premier)</label>
         </div>
-        <div className="flex flex-wrap justify-end gap-2 px-5 py-4 border-t bg-gray-50 rounded-b-2xl">
+        <div className="flex flex-wrap justify-end gap-2 border-t border-navy-900/10 bg-white px-7 py-4 rounded-b-[2rem]">
           <button className={btnOutline} onClick={onClose}>Annuler</button>
           <button className={btnOutline} onClick={() => submit(false)}><Eye className="w-4 h-4" /> Enregistrer en brouillon</button>
-          <button className={btnPrimary} onClick={() => submit(true)}><Globe className="w-4 h-4" /> Publier</button>
+          <button className={btnPrimary} onClick={() => submit(true)} disabled={!r.title.trim() || !r.description.trim()} title="Complétez les champs obligatoires (*)"><Globe className="w-4 h-4" /> Publier</button>
         </div>
+      </div>
       </div>
     </div>
   );

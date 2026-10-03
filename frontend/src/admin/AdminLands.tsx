@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Pencil, Trash2, Search, RotateCcw, X, ChevronRight, HandCoins, Users, Receipt, History, UserPlus } from 'lucide-react';
 import { Land, Lot, TitleStatus } from '../types';
@@ -6,6 +6,8 @@ import { deleteLand, getLands, newId, resetLands, saveLand } from '../lib/store'
 import { formatAriary, formatArea } from '../lib/format';
 import { Badge, Card, PageHeader, btnGhost, btnPrimary, inputClass } from './ui';
 import { ListToolbar, Select } from './crm/kit';
+import { refreshCache, subscribeCache } from './crm/sync';
+import { askConfirm } from './crm/dialog';
 import SaleDialog from './SaleDialog';
 import { ClientRows, InterestDialog, LotDialog } from './LotDialog';
 import { getBuyRequests } from './crm/model';
@@ -29,6 +31,7 @@ const emptyLand = (): Land => ({
 
 export default function AdminLands() {
   const [lands, setLands] = useState(getLands);
+  useEffect(() => { refreshCache().then(() => setLands(getLands())); return subscribeCache(() => setLands(getLands())); }, []); // resync à l'ouverture + mise à jour auto sans F5
   const [editing, setEditing] = useState<Land | null>(null);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
@@ -49,14 +52,14 @@ export default function AdminLands() {
     );
   }, [lands, q, status]);
 
-  const remove = (land: Land) => {
-    if (!confirm(`Supprimer « ${land.title} » ?`)) return;
+  const remove = async (land: Land) => {
+    if (!(await askConfirm(`Supprimer « ${land.title} » ?`))) return;
     deleteLand(land.id);
     refresh();
   };
 
   const reset = async () => {
-    if (!confirm('Réinitialiser la liste des terrains avec les données d\'origine ? Vos modifications seront perdues.')) return;
+    if (!(await askConfirm('Réinitialiser la liste des terrains avec les données d\'origine ? Vos modifications seront perdues.'))) return;
     await resetLands(); // le serveur re-seed puis renvoie le catalogue : le cache est à jour
     refresh();
   };
@@ -102,13 +105,13 @@ export default function AdminLands() {
                 className="hover:bg-gray-50 cursor-pointer"
                 onClick={() => setExpanded(expanded === land.id ? null : land.id)}
               >
-                <td className="p-3">
+                <td className="p-3 h-16">
                   <div className="flex items-center gap-3">
                     <ChevronRight className={`w-4 h-4 shrink-0 transition-transform text-gray-400 ${expanded === land.id ? 'rotate-90' : ''}`} />
                     {land.imageUrl && <img src={land.imageUrl} alt="" className="w-14 h-10 rounded object-cover" referrerPolicy="no-referrer" />}
-                    <div>
-                      <p className="font-medium text-navy-900">{land.title}</p>
-                      <p className="text-xs text-gray-500">{land.titleStatus}</p>
+                    <div className="min-w-0">
+                      <p className="max-w-[260px] truncate font-medium text-navy-900" title={land.title}>{land.title}</p>
+                      <p className="max-w-[260px] truncate text-xs leading-tight text-gray-500">{land.titleStatus}</p>
                     </div>
                   </div>
                 </td>
@@ -290,13 +293,14 @@ function LandForm({ land, onClose, onSave }: { land: Land; onClose: () => void; 
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 overflow-y-auto">
-      <form onSubmit={submit} className="bg-white rounded-2xl w-full max-w-2xl my-8 shadow-xl">
-        <div className="flex items-center justify-between p-5 border-b">
-          <h2 className="text-lg font-bold font-display">{land.title ? 'Modifier le terrain' : 'Nouveau terrain'}</h2>
-          <button type="button" onClick={onClose} className={btnGhost}><X className="w-5 h-5" /></button>
+    <div className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-navy-950/40 backdrop-blur-sm">
+      <div className="flex min-h-full w-full items-center justify-center p-4 sm:p-6">
+      <form onSubmit={submit} className="w-full max-w-2xl rounded-[2rem] bg-white shadow-2xl">
+        <div className="flex items-start justify-between gap-6 border-b border-navy-900/10 px-7 pt-6 pb-5">
+          <h2 className="text-xl font-bold tracking-tight text-navy-900">{land.title ? 'Modifier le terrain' : 'Nouveau terrain'}</h2>
+          <button type="button" onClick={onClose} aria-label="Fermer" className="rounded-full border border-navy-900/20 p-2.5 text-navy-900/75 transition hover:bg-brand-50 hover:text-navy-900"><X className="w-4 h-4" /></button>
         </div>
-        <div className="p-5 grid sm:grid-cols-2 gap-4">
+        <div className="px-7 py-6 grid sm:grid-cols-2 gap-4">
           {field('Titre *', <input required value={form.title} onChange={(e) => set('title', e.target.value)} className={inputClass} />, true)}
           {field('Description', <textarea rows={3} value={form.description} onChange={(e) => set('description', e.target.value)} className={inputClass} />, true)}
           {field('Prix (Ar) *', <input required type="number" min={0} value={form.price || ''} onChange={(e) => set('price', Number(e.target.value))} className={inputClass} />)}
@@ -357,11 +361,12 @@ function LandForm({ land, onClose, onSave }: { land: Land; onClose: () => void; 
             )}
           </div>
         </div>
-        <div className="flex justify-end gap-2 p-5 border-t">
+        <div className="flex justify-end gap-2 border-t border-navy-900/10 bg-white px-7 py-4 rounded-b-[2rem]">
           <button type="button" onClick={onClose} className={btnGhost}>Annuler</button>
-          <button type="submit" className={btnPrimary}>Enregistrer</button>
+          <button type="submit" className={btnPrimary} disabled={!form.title.trim() || !form.price || !form.area || !form.region.trim() || !form.location.trim()} title="Complétez les champs obligatoires (*)">Enregistrer</button>
         </div>
       </form>
+      </div>
     </div>
   );
 }

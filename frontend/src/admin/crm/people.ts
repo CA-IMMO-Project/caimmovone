@@ -98,7 +98,7 @@ export interface Realisation {
 // (voir crm/sync.ts : lecture synchrone, écritures vers l'API)
 
 import { saveClientApi, saveSearchApi, saveRealisationApi, deleteApi } from '../../services/adminService';
-import { cache, upsertSync, replaceSync, removeSync } from './sync';
+import { cache, upsertSync, replaceSync, removeSync, warnSyncFailed } from './sync';
 
 export function getClients(): Client[] {
   return cache.clients;
@@ -113,6 +113,7 @@ export async function createClient(fields: ClientFields, source: Client['source'
     replaceSync('clients', temp.id, server as Client);
     return server as Client;
   } catch {
+    warnSyncFailed(`Client ${fields.fullName}`);
     return temp;
   }
 }
@@ -124,6 +125,7 @@ export async function saveClient(c: Client): Promise<Client> {
     replaceSync('clients', c.id, server as Client);
     return server as Client;
   } catch {
+    warnSyncFailed(`Client ${c.fullName}`);
     return c;
   }
 }
@@ -150,7 +152,7 @@ export function splitName(fullName: string) {
 }
 
 export function getSearches(): SpecificSearch[] {
-  return cache.searches.map((s) => ({ ...s, proposals: s.proposals ?? [], history: s.history ?? [] }));
+  return cache.searches.map((s) => ({ ...s, proposals: s.proposals ?? [], history: s.history ?? [], radiusKm: s.radiusKm ?? 5, flexible: s.flexible ?? 'Oui', suggestNearby: s.suggestNearby ?? true }));
 }
 export const getSearch = (id: string) => getSearches().find((s) => s.id === id);
 
@@ -161,6 +163,7 @@ export async function saveSearch(s: SpecificSearch): Promise<SpecificSearch> {
     replaceSync('searches', s.id, server as SpecificSearch);
     return server as SpecificSearch;
   } catch {
+    warnSyncFailed(`Recherche de ${s.fullName}`);
     return s;
   }
 }
@@ -197,6 +200,7 @@ export async function createSearch(
     replaceSync('searches', temp.id, server as SpecificSearch);
     return server as SpecificSearch;
   } catch {
+    warnSyncFailed(`Recherche de ${fields.fullName}`);
     return temp;
   }
 }

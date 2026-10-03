@@ -1,11 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, FileSpreadsheet, Mail, Pencil, Phone, Plus, Search, ShoppingBag, Trash2, User, Receipt, Compass } from 'lucide-react';
 import { getLands } from '../lib/store';
 import { fullName as requestName, getBuyRequests } from './crm/model';
 import { Client, ClientFields, createClient, deleteClient, emptyClientFields, getClient, getClients, getSearches, saveClient } from './crm/people';
+import { refreshCache, subscribeCache } from './crm/sync';
+import { askConfirm } from './crm/dialog';
 import { Badge, Column, DataTable, Field, Info, ListToolbar, Modal, PageHeader, RelDate, Section, Select, Stat, TelLink, btnDanger, btnGold, btnIcon, btnOutline, btnPrimary, fmtAr, fmtDate, input } from './crm/kit';
-import { phoneError } from '../lib/validate';
+import { phoneError, sanitizePhone } from '../lib/validate';
 
 const BASE = '/admin/clients';
 
@@ -17,11 +19,12 @@ export function ClientForm({ initial, title, onClose, onSave }: {
   const [tried, setTried] = useState(false);
   const set = (k: keyof ClientFields, v: string) => setF((x) => ({ ...x, [k]: v }));
   const missing = !f.fullName.trim() || !f.phone.trim();
+  const badPhone = !!phoneError(f.phone);
   const badEmail = !!f.email && !/^\S+@\S+\.\S+$/.test(f.email);
 
   const submit = () => {
     setTried(true);
-    if (missing || badEmail) return;
+    if (missing || badPhone || badEmail) return;
     onSave({ ...f, fullName: f.fullName.trim(), phone: f.phone.trim(), email: f.email.trim() });
   };
 
@@ -29,35 +32,57 @@ export function ClientForm({ initial, title, onClose, onSave }: {
     <Modal
       title={title}
       onClose={onClose}
-      footer={<><button className={btnOutline} onClick={onClose}>Annuler</button><button className={btnPrimary} onClick={submit}>Enregistrer</button></>}
+      footer={<><button className={btnOutline} onClick={onClose}>Annuler</button><button className={btnPrimary} onClick={submit} disabled={missing} title="Complétez les champs obligatoires (*)">Enregistrer</button></>}
     >
       <div className="grid sm:grid-cols-2 gap-4">
         <Field label="Nom complet" required error={tried && !f.fullName.trim() ? 'Champ obligatoire' : undefined} span={2}>
           <input className={input} value={f.fullName} onChange={(e) => set('fullName', e.target.value)} placeholder="Rakoto Andrianina" />
         </Field>
         <Field label="Téléphone" required error={tried ? (phoneError(f.phone) ?? undefined) : undefined}>
-          <input type="tel" className={input} value={f.phone} onChange={(e) => set('phone', e.target.value)} placeholder="034 XX XXX XX" />
+          <input type="tel" inputMode="tel" className={input} value={f.phone} onChange={(e) => set('phone', sanitizePhone(e.target.value))} placeholder="034 XX XXX XX" />
         </Field>
-        <Field label="Email (facultatif)" error={tried && badEmail ? 'Adresse email invalide' : undefined}>
+        <Field label="Email" error={tried && badEmail ? 'Adresse email invalide' : undefined}>
           <input type="email" className={input} value={f.email} onChange={(e) => set('email', e.target.value)} placeholder="vous@exemple.com" />
         </Field>
         <Field label="Budget approximatif (Ar)"><input className={input} value={f.budget} onChange={(e) => set('budget', e.target.value)} placeholder="Ex : 50 000 000" /></Field>
         <Field label="Profession"><input className={input} value={f.profession} onChange={(e) => set('profession', e.target.value)} /></Field>
         <Field label="Âge"><input type="number" min={18} className={input} value={f.age} onChange={(e) => set('age', e.target.value)} /></Field>
         <Field label="Nationalité"><input className={input} value={f.nationality} onChange={(e) => set('nationality', e.target.value)} placeholder="Malgache" /></Field>
-        <Field label="Compte bancaire (facultatif)" span={2}><input className={input} value={f.bankAccount} onChange={(e) => set('bankAccount', e.target.value)} placeholder="Banque" /></Field>
+        <Field label="Compte bancaire" span={2}><input className={input} value={f.bankAccount} onChange={(e) => set('bankAccount', e.target.value)} placeholder="Banque" /></Field>
         <Field label="Message / notes" span={2}><textarea rows={3} className={input} value={f.message} onChange={(e) => set('message', e.target.value)} /></Field>
       </div>
     </Modal>
   );
 }
 
+/** Ventes rattachées au client : via ses dossiers d'achat OU le téléphone de l'acheteur. */
+function salesOfClient(c: Client) {
+  const digits = (p: string) => String(p ?? '').replace(/\D/g, '');
+  const reqIds = getBuyRequests().filter((r) => r.clientId === c.id).map((r) => r.id);
+  return getLands().flatMap((land) =>
+    (land.sales ?? [])
+      .filter((s) => reqIds.includes(s.buyRequestId) || (digits(s.buyer.phone) !== '' && digits(s.buyer.phone) === digits(c.phone)))
+      .map((sale) => ({ land, sale })));
+}
+
 const columns: Column<Client>[] = [
-  { key: 'ref', label: 'Référence', render: (c) => <span className="font-mono text-xs font-semibold">{c.ref}</span>, sort: (c) => c.ref, csv: (c) => c.ref },
+  { key: 'ref', label: 'Référence', render: (c) => <span className="font-mono text-xs font-semibold whitespace-nowrap">{c.ref}</span>, sort: (c) => c.ref, csv: (c) => c.ref },
   { key: 'name', label: 'Client', render: (c) => <span className="font-medium text-navy-900">{c.fullName}</span>, sort: (c) => c.fullName.toLowerCase(), csv: (c) => c.fullName },
   { key: 'phone', label: 'Téléphone', render: (c) => <TelLink phone={c.phone} />, csv: (c) => c.phone },
   { key: 'email', label: 'Email', render: (c) => c.email || '—', csv: (c) => c.email },
   { key: 'budget', label: 'Budget', render: (c) => <span className="whitespace-nowrap">{c.budget ? (Number(c.budget) ? fmtAr(Number(c.budget)) : c.budget) : '—'}</span>, csv: (c) => c.budget },
+  {
+    key: 'sales', label: 'Achats', sort: (c) => salesOfClient(c).length, csv: (c) => salesOfClient(c).length,
+    render: (c) => {
+      const sales = salesOfClient(c);
+      if (!sales.length) return <span className="text-gray-400">—</span>;
+      return (
+        <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
+          <Receipt className="w-3.5 h-3.5" /> {sales.length} · {fmtAr(sales.reduce((t, x) => t + x.sale.price, 0))}
+        </span>
+      );
+    },
+  },
   { key: 'profession', label: 'Profession', render: (c) => c.profession || '—', sort: (c) => c.profession, csv: (c) => c.profession },
   { key: 'nat', label: 'Nationalité', render: (c) => c.nationality || '—', sort: (c) => c.nationality, csv: (c) => c.nationality },
   { key: 'source', label: 'Source', render: (c) => <span className={`text-xs px-2 py-0.5 rounded-full ${c.source === 'Site web' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700'}`}>{c.source}</span>, sort: (c) => c.source, csv: (c) => c.source },
@@ -67,6 +92,7 @@ const columns: Column<Client>[] = [
 export function ClientList() {
   const navigate = useNavigate();
   const [rows, setRows] = useState(getClients);
+  useEffect(() => { refreshCache().then(() => setRows(getClients())); return subscribeCache(() => setRows(getClients())); }, []); // resync à l'ouverture + mise à jour auto sans F5
   const [q, setQ] = useState('');
   const [source, setSource] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
@@ -130,7 +156,7 @@ export function ClientDetail() {
   const requests = getBuyRequests().filter((r) => r.clientId === c.id);
   const searches = getSearches().filter((s) => s.clientId === c.id);
   const lands = getLands();
-  const purchases = lands.flatMap((l) => (l.sales ?? []).filter((s) => requests.some((r) => r.id === s.buyRequestId)).map((s) => ({ land: l, sale: s })));
+  const purchases = salesOfClient(c);
 
   return (
     <>
@@ -151,7 +177,7 @@ export function ClientDetail() {
           <Link to={`/admin/achats/nouveau?client=${c.id}`} className={btnGold}><ShoppingBag className="w-4 h-4" /> Nouvelle demande d’achat</Link>
           <button
             className={btnDanger}
-            onClick={() => { if (confirm('Supprimer ce client de la base ? Ses dossiers d’achat sont conservés.')) { deleteClient(c.id); navigate(BASE); } }}
+            onClick={async () => { if (await askConfirm('Supprimer ce client de la base ? Ses dossiers d’achat sont conservés.')) { deleteClient(c.id); navigate(BASE); } }}
           >
             <Trash2 className="w-4 h-4" />
           </button>

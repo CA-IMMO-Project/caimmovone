@@ -17,10 +17,13 @@ export class ApiError extends Error {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
+    // FormData (envoi de fichiers) : le navigateur pose lui-même le
+    // Content-Type multipart avec sa « boundary » — ne pas le forcer.
+    const isForm = init?.body instanceof FormData;
     res = await fetch(`${BASE}${path}`, {
       ...init,
       headers: {
-        'Content-Type': 'application/json',
+        ...(isForm ? {} : { 'Content-Type': 'application/json' }),
         Accept: 'application/json',
         ...(init?.headers ?? {}),
       },
@@ -49,4 +52,9 @@ export function apiGet<T>(path: string): Promise<T> {
 
 export function apiPost<T>(path: string, body: unknown): Promise<T> {
   return request<T>(path, { method: 'POST', body: JSON.stringify(body) });
+}
+
+/** POST multipart (fichiers réels) — utilisé par le dépôt « Vendre ». */
+export function apiUpload<T>(path: string, form: FormData): Promise<T> {
+  return request<T>(path, { method: 'POST', body: form });
 }

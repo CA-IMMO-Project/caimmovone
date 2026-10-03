@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { motion } from "motion/react";
 import {
   ArrowRight,
   CalendarDays,
@@ -10,15 +10,21 @@ import {
   HardHat,
   MapPin,
   Ruler,
-} from 'lucide-react';
-import { getPublishedRealisations } from '../../services/realisationService';
-import type { Realisation } from '../../services/realisationService';
-import { RealisationThumb } from './RealisationThumb';
-import { WHATSAPP_URL } from '../../lib/contact';
-import { EmptyState, Eyebrow, Modal, PageHero } from '../../shared/ui';
+} from "lucide-react";
+import { getPublishedRealisations } from "../../services/realisationService";
+import type { Realisation } from "../../services/realisationService";
+import { RealisationThumb } from "./RealisationThumb";
+import { WHATSAPP_URL } from "../../lib/contact";
+import { EmptyState, Eyebrow, Modal, PageHero } from "../../shared/ui";
 
-const monthLabel = (ym: string) => (ym ? new Date(`${ym}-01`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : '');
-const fmtArea = (m2: number) => new Intl.NumberFormat('fr-FR').format(m2);
+const monthLabel = (ym: string) =>
+  ym
+    ? new Date(`${ym}-01`).toLocaleDateString("fr-FR", {
+        month: "long",
+        year: "numeric",
+      })
+    : "";
+const fmtArea = (m2: number) => new Intl.NumberFormat("fr-FR").format(m2);
 
 export default function Realisations() {
   const [items, setItems] = useState<Realisation[]>([]);
@@ -31,7 +37,7 @@ export default function Realisations() {
       .finally(() => setLoading(false));
   }, []);
   const categories = [...new Set(items.map((r) => r.category))]; // recalculées après chargement
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState("");
   const [open, setOpen] = useState<Realisation | null>(null);
   const shown = items.filter((r) => !category || r.category === category);
 
@@ -42,36 +48,37 @@ export default function Realisations() {
         image="/media/terrains/littoral.jpg"
         title={
           <>
-            Des projets concrets, <span className="text-gold-500">livrés et sécurisés</span>
+            Des projets concrets,{" "}
+            <span className="text-gold-500">livrés et sécurisés</span>
           </>
         }
         lead="Maisons, villas et lotissements : une sélection de projets menés avec nos clients à Madagascar, du premier coup d'œil jusqu'à la remise des clés."
       />
 
       <section className="pb-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-full px-4 sm:px-6 lg:px-8">
           {/* Barre : compteur + catégories */}
           <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
             <p className="text-sm text-navy-900/80">
               <strong className="font-medium text-navy-900">
-                {shown.length} projet{shown.length > 1 ? 's' : ''}
-              </strong>{' '}
-              {category ? `— ${category}` : 'réalisés avec nos clients'}
+                {shown.length} projet{shown.length > 1 ? "s" : ""}
+              </strong>{" "}
+              {category ? `— ${category}` : "réalisés avec nos clients"}
             </p>
             {categories.length > 1 && (
               <div className="flex flex-wrap gap-2">
-                {['', ...categories].map((c) => (
+                {["", ...categories].map((c) => (
                   <button
-                    key={c || 'all'}
+                    key={c || "all"}
                     onClick={() => setCategory(c)}
                     aria-pressed={category === c}
                     className={`rounded-full px-4 py-2.5 text-xs font-semibold transition ${
                       category === c
-                        ? 'bg-navy-900 text-white shadow-lg shadow-navy-900/20'
-                        : 'border border-navy-900/12 bg-white text-navy-900/80 hover:text-navy-900'
+                        ? "bg-navy-900 text-white shadow-lg shadow-navy-900/20"
+                        : "border border-navy-900/12 bg-white text-navy-900/80 hover:text-navy-900"
                     }`}
                   >
-                    {c || 'Tout'}
+                    {c || "Tout"}
                   </button>
                 ))}
               </div>
@@ -82,7 +89,10 @@ export default function Realisations() {
           {loading ? (
             <div className="grid gap-7 md:grid-cols-2 xl:grid-cols-3">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="card-soft animate-pulse overflow-hidden">
+                <div
+                  key={i}
+                  className="card-soft animate-pulse overflow-hidden"
+                >
                   <div className="aspect-[4/3] bg-navy-900/5" />
                   <div className="space-y-3 p-7">
                     <div className="h-2.5 w-24 rounded-full bg-navy-900/5" />
@@ -111,7 +121,11 @@ export default function Realisations() {
                   onClick={() => setOpen(r)}
                   initial={{ opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: Math.min(i * 0.07, 0.35), duration: 0.55, ease: 'easeOut' }}
+                  transition={{
+                    delay: Math.min(i * 0.07, 0.35),
+                    duration: 0.55,
+                    ease: "easeOut",
+                  }}
                   className="card-soft group flex h-full flex-col overflow-hidden text-left"
                 >
                   <div className="relative overflow-hidden">
@@ -151,7 +165,9 @@ export default function Realisations() {
                       {r.area > 0 && (
                         <span className="inline-flex items-center gap-2">
                           <Ruler className="h-4 w-4 text-gold-700" />
-                          <strong className="font-bold text-navy-900">{fmtArea(r.area)} m²</strong>
+                          <strong className="font-bold text-navy-900">
+                            {fmtArea(r.area)} m²
+                          </strong>
                         </span>
                       )}
                       {r.duration && (
@@ -168,7 +184,7 @@ export default function Realisations() {
 
                     <div className="mt-auto flex items-end justify-between gap-4 border-t border-navy-900/10 pt-5">
                       <span className="text-xs font-semibold text-navy-900/75">
-                        {r.client ? `Client : ${r.client}` : 'Projet livré'}
+                        {r.client ? `Client : ${r.client}` : "Projet livré"}
                       </span>
                       <span className="btn-outline !px-5 !py-2.5 !text-xs !font-semibold">
                         Voir le projet
@@ -187,11 +203,12 @@ export default function Realisations() {
               <div>
                 <Eyebrow light>Vous avez un projet ?</Eyebrow>
                 <h2 className="text-2xl font-bold leading-tight md:text-3xl">
-                  Le prochain projet présenté ici sera peut-être <span className="text-gold-500">le vôtre</span>.
+                  Le prochain projet présenté ici sera peut-être{" "}
+                  <span className="text-gold-500">le vôtre</span>.
                 </h2>
                 <p className="mt-3 max-w-md text-sm leading-relaxed text-white/75">
-                  Maison clé en main, lotissement ou terrain sur mesure : dites-nous ce que vous cherchez, nous nous
-                  occupons du reste.
+                  Maison clé en main, lotissement ou terrain sur mesure :
+                  dites-nous ce que vous cherchez, nous nous occupons du reste.
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
@@ -221,14 +238,28 @@ export default function Realisations() {
   );
 }
 
-function RealisationModal({ r, onClose }: { r: Realisation; onClose: () => void }) {
+function RealisationModal({
+  r,
+  onClose,
+}: {
+  r: Realisation;
+  onClose: () => void;
+}) {
   const [i, setI] = useState(0);
   const photo = r.photos[i];
   const meta = [
-    { icon: MapPin, label: 'Lieu', value: r.location },
-    { icon: CalendarDays, label: 'Livraison', value: r.completedAt ? monthLabel(r.completedAt) : '' },
-    { icon: Clock, label: 'Durée', value: r.duration },
-    { icon: Ruler, label: 'Surface', value: r.area > 0 ? `${fmtArea(r.area)} m²` : '' },
+    { icon: MapPin, label: "Lieu", value: r.location },
+    {
+      icon: CalendarDays,
+      label: "Livraison",
+      value: r.completedAt ? monthLabel(r.completedAt) : "",
+    },
+    { icon: Clock, label: "Durée", value: r.duration },
+    {
+      icon: Ruler,
+      label: "Surface",
+      value: r.area > 0 ? `${fmtArea(r.area)} m²` : "",
+    },
   ].filter((m) => m.value);
 
   return (
@@ -240,7 +271,9 @@ function RealisationModal({ r, onClose }: { r: Realisation; onClose: () => void 
       subtitle={r.location ? `${r.category} — ${r.location}` : r.category}
     >
       <div className="relative overflow-hidden rounded-2xl bg-navy-950">
-        {photo && <RealisationThumb url={photo} className="aspect-[16/10] w-full" />}
+        {photo && (
+          <RealisationThumb url={photo} className="aspect-[16/10] w-full" />
+        )}
         {r.photos.length > 1 && (
           <>
             <button
@@ -277,8 +310,14 @@ function RealisationModal({ r, onClose }: { r: Realisation; onClose: () => void 
         </div>
       )}
 
-      <p className="mt-6 whitespace-pre-line text-sm leading-relaxed text-navy-900/80">{r.description}</p>
-      {r.client && <p className="mt-4 text-xs font-semibold text-navy-900/60">Client : {r.client}</p>}
+      <p className="mt-6 whitespace-pre-line text-sm leading-relaxed text-navy-900/80">
+        {r.description}
+      </p>
+      {r.client && (
+        <p className="mt-4 text-xs font-semibold text-navy-900/60">
+          Client : {r.client}
+        </p>
+      )}
     </Modal>
   );
 }

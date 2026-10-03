@@ -10,11 +10,12 @@ import { newId } from '../../lib/store';
 import type { HistoryEntry, Note, StoredFile } from './model';
 import { ACTOR } from './model';
 import { downloadFile, formatSize, putFile, useFileUrl } from './files';
+import { notice } from './dialog';
 
 // ---------- Mise en forme ----------
 export const input =
   'w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm text-navy-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500 disabled:bg-gray-50';
-export const btn = 'inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50';
+export const btn = 'inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed';
 export const btnPrimary = `${btn} bg-navy-900 text-white hover:bg-navy-800`;
 export const btnGold = `${btn} bg-gold-500 text-navy-950 hover:bg-gold-400`;
 export const btnOutline = `${btn} border border-gray-300 bg-white text-navy-900 hover:bg-gray-50`;
@@ -321,7 +322,8 @@ export function DataTable<T extends { id: string }>({ rows, columns, onOpen, sel
           <tbody className="divide-y divide-gray-100">
             {shown.map((r) => (
               <tr key={r.id} className={`hover:bg-gold-400/5 cursor-pointer ${selected.includes(r.id) ? 'bg-gold-400/10' : rowClass?.(r) ?? ''}`} onClick={() => onOpen(r)}>
-                <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                {/* h-16 : hauteur de ligne identique sur toutes les listes du back office */}
+                <td className="p-3 h-16" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="checkbox"
                     checked={selected.includes(r.id)}
@@ -378,7 +380,7 @@ export function printTable<T>(rows: T[], columns: Column<T>[], title: string) {
 
 export function printHtml(title: string, body: string) {
   const w = window.open('', '_blank');
-  if (!w) return alert('Autorisez les fenêtres pop-up pour imprimer.');
+  if (!w) { void notice('Autorisez les fenêtres pop-up pour imprimer.'); return; }
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${title}</title><style>
     body{font-family:system-ui,sans-serif;color:#0b1e42;margin:24px;font-size:12px}
     h1{font-size:18px;margin:0 0 4px} .muted{color:#6b7280} h2{font-size:14px;margin:20px 0 8px;border-bottom:2px solid #f7c325;padding-bottom:4px}
@@ -492,11 +494,15 @@ export function Preview({ file, onClose }: { file: StoredFile | null; onClose: (
 }
 
 // ---------- Carte ----------
+// Repère unifié — identique au site public (shared/GeoMapPicker).
 const pin = L.divIcon({
   className: '',
-  html: '<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#f7c325;border:3px solid #0b1e42;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>',
-  iconSize: [28, 28],
-  iconAnchor: [14, 28],
+  html: `<svg width="30" height="38" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg">
+    <path d="M14 1C6.8 1 1 6.8 1 13.9 1 23.6 14 34.8 14 34.8S27 23.6 27 13.9C27 6.8 21.2 1 14 1Z" fill="#f7c325" stroke="#0b1e42" stroke-width="2"/>
+    <circle cx="14" cy="14" r="5.5" fill="#0b1e42"/>
+  </svg>`,
+  iconSize: [30, 38],
+  iconAnchor: [15, 37],
 });
 const TANA: [number, number] = [-18.8792, 47.5079];
 
@@ -508,10 +514,11 @@ function ClickToPlace({ onPick }: { onPick: (lat: number, lng: number) => void }
 export function MapPicker({ lat, lng, onChange, readOnly, height = 'h-80', radiusKm }: {
   lat?: number; lng?: number; onChange?: (lat: number, lng: number) => void; readOnly?: boolean; height?: string; radiusKm?: number;
 }) {
-  const [satellite, setSatellite] = useState(true);
+  const [satellite, setSatellite] = useState(false); // Plan par défaut — comme le site public
   const [map, setMap] = useState<L.Map | null>(null);
   const [geoError, setGeoError] = useState('');
-  const pos: [number, number] | undefined = lat !== undefined && lng !== undefined ? [lat, lng] : undefined;
+  // lat/lng peuvent valoir null (recherche publique sans point placé) : on ne garde que des nombres valides.
+  const pos: [number, number] | undefined = typeof lat === 'number' && Number.isFinite(lat) && typeof lng === 'number' && Number.isFinite(lng) ? [lat, lng] : undefined;
   const set = (a: number, b: number) => onChange?.(Number(a.toFixed(6)), Number(b.toFixed(6)));
 
   const locate = () => {
@@ -526,7 +533,8 @@ export function MapPicker({ lat, lng, onChange, readOnly, height = 'h-80', radiu
 
   return (
     <div>
-      <div className={`relative ${height} rounded-xl overflow-hidden border border-gray-200`}>
+      {/* isolate : les calques Leaflet restent sous les modales. */}
+      <div className={`relative isolate z-0 ${height} rounded-xl overflow-hidden border border-gray-200`}>
         <MapContainer center={pos ?? TANA} zoom={pos ? 16 : 11} className="w-full h-full z-0" ref={setMap} scrollWheelZoom>
           {satellite ? (
             <TileLayer attribution="Tiles &copy; Esri" url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" maxZoom={19} />
@@ -605,15 +613,19 @@ export function NotesPanel({ notes, onAdd }: { notes: Note[]; onAdd: (n: Note) =
 export function Modal({ title, children, onClose, footer, wide }: { title: string; children: ReactNode; onClose: () => void; footer?: ReactNode; wide?: boolean }) {
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-end justify-center bg-navy-950/40 p-0 backdrop-blur-sm sm:items-center sm:p-6"
-      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-navy-950/40 backdrop-blur-sm"
       onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
     >
+      {/* L'overlay défile (pas la carte) : barre de défilement au bord droit de l'écran. */}
+      <div
+        className="flex min-h-full w-full items-end justify-center p-0 sm:items-center sm:p-6"
+        onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      >
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`max-h-[92vh] w-full overflow-y-auto overscroll-contain rounded-t-[2rem] bg-white shadow-2xl outline-none sm:rounded-[2rem] ${wide ? 'max-w-3xl' : 'max-w-xl'}`}
+        className={`w-full rounded-t-[2rem] bg-white shadow-2xl outline-none sm:rounded-[2rem] ${wide ? 'max-w-3xl' : 'max-w-xl'}`}
       >
         <div className="sticky top-0 z-10 flex items-start justify-between gap-6 border-b border-navy-900/10 bg-white px-7 pt-6 pb-5">
           <h3 className="text-xl font-bold tracking-tight text-navy-900">{title}</h3>
@@ -628,6 +640,7 @@ export function Modal({ title, children, onClose, footer, wide }: { title: strin
         </div>
         <div className="px-7 pt-6 pb-7">{children}</div>
         {footer && <div className="sticky bottom-0 flex justify-end gap-2 border-t border-navy-900/10 bg-white px-7 py-4">{footer}</div>}
+      </div>
       </div>
     </div>
   );

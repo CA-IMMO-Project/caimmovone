@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Trash2, Phone, Mail as MailIcon } from 'lucide-react';
 import {
   ContactMessage, RequestStatus,
@@ -6,6 +6,8 @@ import {
 } from '../lib/store';
 import { Card, PageHeader, REQUEST_STATUSES, btnGhost, formatDate, inputClass } from './ui';
 import { ListToolbar, Select } from './crm/kit';
+import { refreshCache, subscribeCache } from './crm/sync';
+import { askConfirm } from './crm/dialog';
 
 function StatusSelect({ value, onChange }: { value: RequestStatus; onChange: (v: RequestStatus) => void }) {
   return (
@@ -26,11 +28,12 @@ function Contact({ phone, email }: { phone: string; email?: string }) {
 
 export function AdminMessages() {
   const [items, setItems] = useState(getMessages);
+  useEffect(() => { refreshCache().then(() => setItems(getMessages())); return subscribeCache(() => setItems(getMessages())); }, []); // resync à l'ouverture + mise à jour auto sans F5
   const [filter, setFilter] = useState('');
   const [q, setQ] = useState('');
 
   const update = (id: string, patch: Partial<ContactMessage>) => { updateMessage(id, patch); setItems(getMessages()); };
-  const remove = (id: string) => { if (confirm('Supprimer ce message ?')) { deleteMessage(id); setItems(getMessages()); } };
+  const remove = async (id: string) => { if (await askConfirm('Supprimer ce message ?')) { deleteMessage(id); setItems(getMessages()); } };
 
   const s = q.toLowerCase().trim();
   const shown = items.filter((m) =>

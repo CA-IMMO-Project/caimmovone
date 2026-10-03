@@ -41,11 +41,13 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('land-files', Admin\LandFileController::class);
 
             Route::get('/requests', [Admin\RequestController::class, 'index']);
+            Route::post('/requests', [Admin\RequestController::class, 'store']);
             Route::get('/requests/{id}', [Admin\RequestController::class, 'show']);
             Route::match(['put', 'patch'], '/requests/{id}', [Admin\RequestController::class, 'update']);
             Route::delete('/requests/{id}', [Admin\RequestController::class, 'destroy']);
 
             Route::get('/clients', [Admin\ClientController::class, 'index']);
+            Route::post('/clients', [Admin\ClientController::class, 'store']);
             Route::get('/clients/{id}', [Admin\ClientController::class, 'show']);
             Route::match(['put', 'patch'], '/clients/{id}', [Admin\ClientController::class, 'update']);
             Route::delete('/clients/{id}', [Admin\ClientController::class, 'destroy']);
