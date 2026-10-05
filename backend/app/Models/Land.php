@@ -15,7 +15,8 @@ class Land extends Model
         'title', 'description', 'price', 'region', 'zone', 'location', 'image_url',
         'gallery', 'features', 'documents', 'coordinates', 'area', 'title_status',
         'status', 'relief', 'access', 'water', 'electricity', 'payment',
-        'payment_mode', 'down_payment', 'installments', 'verified', 'featured', 'lots',
+        'payment_mode', 'down_payment', 'installments', 'verified', 'featured',
+        'publication_status', 'lots',
     ];
 
     protected function casts(): array
@@ -47,7 +48,8 @@ class Land extends Model
             'access' => 'access', 'water' => 'water', 'electricity' => 'electricity',
             'payment' => 'payment', 'paymentMode' => 'payment_mode',
             'downPayment' => 'down_payment', 'installments' => 'installments',
-            'verified' => 'verified', 'featured' => 'featured', 'lots' => 'lots',
+            'verified' => 'verified', 'featured' => 'featured',
+            'publicationStatus' => 'publication_status', 'lots' => 'lots',
         ];
         $attributes = [];
         foreach ($map as $public => $column) {
@@ -86,6 +88,7 @@ class Land extends Model
             'installments' => $this->installments,
             'verified' => (bool) $this->verified,
             'featured' => (bool) $this->featured,
+            'publicationStatus' => $this->publication_status ?? 'publie',
             'lots' => $this->lots ?? [],
         ];
     }

@@ -13,6 +13,7 @@ class LandController extends Controller
     {
         return response()->json([
             'data' => Land::query()
+                ->where('publication_status', 'publie')
                 ->orderByDesc('featured')
                 ->orderByDesc('id')
                 ->get()
@@ -23,7 +24,7 @@ class LandController extends Controller
     /** GET /api/v1/lands/{id} */
     public function show(string $id)
     {
-        $land = Land::find($id);
+        $land = Land::query()->where('publication_status', 'publie')->find($id);
         abort_if($land === null, 404, 'Terrain introuvable.');
         return response()->json($land->toPublicArray());
     }

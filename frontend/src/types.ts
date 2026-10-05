@@ -10,6 +10,7 @@ export type TitleStatus = 'Titre Foncier' | 'Titre en cours' | 'Cadastré';
 export type Relief = 'Plat' | 'Pente douce' | 'Pente forte';
 export type PaymentMode = 'comptant' | 'facilite' | 'comptant-ou-facilite';
 export type LandStatus = 'disponible' | 'réservé' | 'vendu';
+export type PublicationStatus = 'brouillon' | 'publie' | 'archive';
 
 export interface Land {
   id: string;
@@ -40,6 +41,8 @@ export interface Land {
   installments?: string;
   verified?: boolean;
   featured?: boolean;
+  /** Workflow éditorial : seuls les terrains « publie » remontent sur le site public. */
+  publicationStatus?: PublicationStatus;
 
   /* — Lotissement / ventes (suivis dans le backoffice) — */
   lots?: Lot[];
