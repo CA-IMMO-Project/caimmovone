@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\ReferenceGenerator;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 /** Dossier « À vendre » : terrain proposé à l'agence (dépôt site ou saisie interne). */
 class LandFile extends Model
@@ -17,17 +17,7 @@ class LandFile extends Model
 
     public static function nextRef(string $prefix = 'VEN'): string
     {
-        $base = $prefix . '-' . now()->format('ymd');
-        $exists = fn (string $ref) => DB::table('land_files')->where('ref', $ref)->exists();
-        if (! $exists($base)) {
-            return $base;
-        }
-        for ($i = 2; $i < 100; $i++) {
-            if (! $exists("{$base}-{$i}")) {
-                return "{$base}-{$i}";
-            }
-        }
-        return $base . '-' . substr(uniqid(), -4);
+        return ReferenceGenerator::next($prefix);
     }
 
     public function toAdminArray(): array

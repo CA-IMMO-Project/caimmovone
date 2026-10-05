@@ -3,36 +3,44 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UploadFileRequest;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-/**
- * POST /api/v1/admin/uploads — dépose un fichier (photo, vidéo, pièce) sur
- * le serveur et renvoie sa fiche + URL publique. Les fichiers vivent sur le
- * disque (storage/app/public), seules leurs métadonnées vont en base.
- */
+/** Store CRM attachments privately and publication media explicitly publicly. */
 class UploadController extends Controller
 {
-    public function store(Request $request): JsonResponse
+    public function store(UploadFileRequest $request): JsonResponse
     {
-        $request->validate([
-            'file' => 'required|file|max:51200', // 50 Mo max
-        ]);
-
         $file = $request->file('file');
-        $safe = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '-' . Str::random(6) . '.' . strtolower($file->getClientOriginalExtension() ?: 'bin');
-        $path = $file->storeAs('uploads', $safe, 'public');
+        $visibility = $request->validated('visibility');
+        $mime = (string) $file->getMimeType();
+
+        if ($visibility === 'public' && ! str_starts_with($mime, 'image/')) {
+            return response()->json([
+                'message' => 'Seules les images du catalogue peuvent être rendues publiques.',
+                'errors' => ['file' => ['Type de fichier public non autorisé.']],
+            ], 422);
+        }
+
+        $extension = strtolower($file->extension() ?: 'bin');
+        $name = Str::uuid().'.'.$extension;
+        $disk = $visibility === 'public' ? 'public' : 'local';
+        $directory = $visibility === 'public' ? 'catalogue' : 'admin-uploads';
+        $path = $file->storeAs($directory, $name, $disk);
+
+        abort_if($path === false, 500, 'Impossible de stocker le fichier.');
+
+        $url = $visibility === 'public'
+            ? '/storage/'.$path
+            : '/api/v1/admin/files/'.str_replace('%2F', '/', rawurlencode($path));
 
         return response()->json([
-            'id' => Str::random(10),
+            'id' => (string) Str::uuid(),
             'name' => $file->getClientOriginalName(),
-            'type' => $file->getMimeType(),
+            'type' => $mime,
             'size' => $file->getSize(),
-            // Chemin relatif : le frontend le fait passer par son proxy /api
-            // (utilisable en dev comme en production, quelle que soit l'origine).
-            'url' => '/storage/' . $path,
+            'url' => $url,
         ], 201);
     }
 }

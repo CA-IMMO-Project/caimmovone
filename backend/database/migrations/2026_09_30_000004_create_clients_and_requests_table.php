@@ -6,7 +6,8 @@ use Illuminate\Support\Facades\Schema;
 
 /* Clients (fiches créées automatiquement par les demandes du site public)
    et demandes reçues (achat / visite / recherche / vente). */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('clients', function (Blueprint $table) {

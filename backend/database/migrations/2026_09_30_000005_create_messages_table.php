@@ -5,7 +5,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /* Messages de contact reçus (visibles dans le back office). */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('messages', function (Blueprint $table) {

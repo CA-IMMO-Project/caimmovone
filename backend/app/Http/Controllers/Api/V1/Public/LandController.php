@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\V1\Public;
 
 use App\Http\Controllers\Controller;
 use App\Models\Land;
-use Illuminate\Http\Request;
 
 class LandController extends Controller
 {
@@ -26,6 +25,7 @@ class LandController extends Controller
     {
         $land = Land::query()->where('publication_status', 'publie')->find($id);
         abort_if($land === null, 404, 'Terrain introuvable.');
+
         return response()->json($land->toPublicArray());
     }
 }

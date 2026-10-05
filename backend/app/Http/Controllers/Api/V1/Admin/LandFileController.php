@@ -32,6 +32,7 @@ class LandFileController extends Controller
             'phone' => $data['phone'] ?? null,
             'detail' => $data,
         ]);
+
         return response()->json($file->toAdminArray(), 201);
     }
 
@@ -46,12 +47,14 @@ class LandFileController extends Controller
             'phone' => array_key_exists('phone', $data) ? ($data['phone'] ?: null) : $file->phone,
             'detail' => $data,
         ])->save();
+
         return response()->json($file->toAdminArray());
     }
 
     public function destroy(string $id)
     {
         LandFile::findOrFail($id)->delete();
+
         return response()->json(['message' => 'Dossier supprimé.']);
     }
 }

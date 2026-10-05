@@ -13,13 +13,14 @@ php artisan migrate --seed       # crée les tables + le catalogue initial
 php artisan serve --host 0.0.0.0 --port 8000
 ```
 
-Compte administrateur créé par le seeder (à changer en production) :
+Avant d'exécuter les seeders, définissez un compte administrateur unique dans `.env` :
 
-| Email | Mot de passe |
-|---|---|
-| `admin@caimmo.mg` | `caimmo2026` |
+```env
+ADMIN_EMAIL=admin@votre-domaine.mg
+ADMIN_PASSWORD=un-secret-long-et-unique
+```
 
-> Pilotable par variables d'environnement : `ADMIN_EMAIL`, `ADMIN_PASSWORD`.
+Aucun identifiant par défaut n'est fourni. Le seeder refuse un mot de passe de moins de 12 caractères. Ne commitez jamais le fichier `.env`.
 
 ## Base de données (PostgreSQL)
 
@@ -31,6 +32,9 @@ Compte administrateur créé par le seeder (à changer en production) :
 | `clients` | fiches créées/rapprochées automatiquement (email ou téléphone) |
 | `requests` | demandes du site : `interet`, `visite`, `recherche`, `vente` |
 | `messages` | messages de contact |
+| `searches` | recherches immobilières personnalisées |
+| `land_files` | dossiers de terrains proposés à la vente |
+| `reference_counters` | génération atomique des références métier |
 | `personal_access_tokens` | jetons Sanctum |
 
 ## Endpoints — site public (sans authentification)
@@ -78,14 +82,41 @@ plusieurs demandes le même jour).
 | CRUD | `/api/v1/admin/lands` | Catalogue |
 | CRUD | `/api/v1/admin/realisations` | Réalisations |
 
-Tous les appels protégés exigent `Authorization: Bearer <token>` et
-`Accept: application/json`.
+Tous les appels protégés exigent `Authorization: Bearer <token>`, l'ability
+Sanctum `admin` et `Accept: application/json`. Les jetons expirent après
+`SANCTUM_TOKEN_EXPIRATION` minutes (480 par défaut) et les anciennes sessions
+sont révoquées lors d'une nouvelle connexion.
+
+## Fichiers
+
+- Les médias explicitement destinés au catalogue et aux réalisations sont
+  enregistrés sur le disque `public`.
+- Les pièces CRM, documents fonciers et pièces d'identité sont enregistrés sur
+  le disque privé et servis uniquement par `/api/v1/admin/files/{path}` après
+  authentification Sanctum.
+- Les extensions, types MIME, tailles et nombres de fichiers sont contrôlés côté serveur.
+- Après une mise à niveau d'une ancienne installation, exécutez
+  `php artisan files:secure-legacy` pour déplacer les anciens dépôts vendeurs
+  de `storage/app/public` vers le disque privé.
 
 ## CORS
 
 En développement, le frontend Vite **proxifie** `/api` vers
 `http://127.0.0.1:8000` (aucun CORS nécessaire). En production,
-renseignez `FRONTEND_URL=https://votre-site.mg` dans `.env`.
+renseignez `FRONTEND_URL=https://votre-site.mg` dans `.env`. L'application
+refuse de démarrer en production si cette origine vaut `*` ou si `APP_DEBUG`
+est activé.
+
+## Contrôles qualité
+
+```bash
+php artisan test
+vendor/bin/pint --test
+cd ../frontend && npm ci && npm run lint && npm run build
+```
+
+Le workflow `.github/workflows/ci.yml` exécute automatiquement ces contrôles
+avec PostgreSQL 18 à chaque push et pull request.
 
 ## Arborescence
 

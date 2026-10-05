@@ -17,8 +17,9 @@ class RealisationController extends Controller
 
     public function store(Request $request)
     {
-        $r = new Realisation();
+        $r = new Realisation;
         $r->fillFromPublic($request->all())->save();
+
         return response()->json($r->toAdminArray(), 201);
     }
 
@@ -31,12 +32,14 @@ class RealisationController extends Controller
     {
         $r = Realisation::findOrFail($id);
         $r->fillFromPublic($request->all())->save();
+
         return response()->json($r->toAdminArray());
     }
 
     public function destroy(string $id)
     {
         Realisation::findOrFail($id)->delete();
+
         return response()->json(['message' => 'Réalisation supprimée.']);
     }
 }

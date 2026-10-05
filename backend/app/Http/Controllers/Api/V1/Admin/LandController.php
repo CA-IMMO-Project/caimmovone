@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Land;
+use Database\Seeders\LandSeeder;
 use Illuminate\Http\Request;
 
 class LandController extends Controller
@@ -26,8 +27,9 @@ class LandController extends Controller
             'price' => 'required|numeric',
         ]) + $request->all();
         // Upsert : si un id numérique valide est fourni, on met à jour.
-        $land = isset($data['id']) && is_numeric($data['id']) ? (Land::find((int) $data['id']) ?? new Land()) : new Land();
+        $land = isset($data['id']) && is_numeric($data['id']) ? (Land::find((int) $data['id']) ?? new Land) : new Land;
         $land->fillFromPublic($data)->save();
+
         return response()->json($land->toPublicArray(), $land->wasRecentlyCreated ? 201 : 200);
     }
 
@@ -40,12 +42,14 @@ class LandController extends Controller
     {
         $land = Land::findOrFail($id);
         $land->fillFromPublic($request->all())->save();
+
         return response()->json($land->toPublicArray());
     }
 
     public function destroy(string $id)
     {
         Land::findOrFail($id)->delete();
+
         return response()->json(['message' => 'Terrain supprimé.']);
     }
 
@@ -53,8 +57,9 @@ class LandController extends Controller
     public function reset()
     {
         Land::query()->delete();
-        $seeder = new \Database\Seeders\LandSeeder();
+        $seeder = new LandSeeder;
         $seeder->setContainer(app())->run();
+
         return response()->json([
             'message' => 'Catalogue réinitialisé.',
             'lands' => Land::query()->orderByDesc('id')->get()->map(fn (Land $l) => $l->toPublicArray()),

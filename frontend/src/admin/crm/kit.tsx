@@ -393,8 +393,9 @@ export function printHtml(title: string, body: string) {
 }
 
 // ---------- Fichiers ----------
-export function FileDrop({ accept, maxMb, multiple, onFiles, label, hint }: {
+export function FileDrop({ accept, maxMb, multiple, onFiles, label, hint, visibility = 'private' }: {
   accept: string; maxMb: number; multiple?: boolean; onFiles: (files: StoredFile[]) => void; label: string; hint?: string;
+  visibility?: 'public' | 'private';
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
@@ -415,7 +416,7 @@ export function FileDrop({ accept, maxMb, multiple, onFiles, label, hint }: {
     if (!ok.length) return;
     setBusy(true);
     try {
-      onFiles(await Promise.all(ok.map(putFile)));
+      onFiles(await Promise.all(ok.map((file) => putFile(file, visibility))));
     } catch {
       setError('Impossible d’enregistrer le fichier (espace de stockage du navigateur insuffisant ?).');
     } finally {

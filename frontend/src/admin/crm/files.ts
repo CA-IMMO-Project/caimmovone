@@ -1,7 +1,7 @@
 // Stockage des fichiers (photos, vidéos, pièces) dans IndexedDB :
 // localStorage est limité à ~5 Mo, insuffisant pour des photos de 15 Mo ou des vidéos de 100 Mo.
 import { useEffect, useState } from 'react';
-import { uploadFile } from '../../services/adminService';
+import { fetchProtectedFile, uploadFile } from '../../services/adminService';
 import type { StoredFile } from './model';
 
 const DB = 'caimmo-files';
@@ -25,14 +25,15 @@ async function tx<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBReq
   });
 }
 
-export async function putFile(file: File): Promise<StoredFile> {
-  // Dépôt sur le serveur (storage public) : la base ne stocke que la fiche.
-  const uploaded = await uploadFile(file);
+export async function putFile(file: File, visibility: 'public' | 'private' = 'private'): Promise<StoredFile> {
+  // Les pièces CRM sont privées par défaut ; seuls les médias explicitement
+  // destinés au catalogue ou aux réalisations sont publiés.
+  const uploaded = await uploadFile(file, visibility);
   return { id: uploaded.id, name: uploaded.name, type: uploaded.type, size: uploaded.size, url: uploaded.url };
 }
 
 export async function getBlob(f: StoredFile): Promise<Blob | undefined> {
-  if (f.url) return (await fetch(f.url)).blob();
+  if (f.url) return fetchProtectedFile(f.url);
   return tx<Blob | undefined>('readonly', (s) => s.get(f.id));
 }
 
@@ -42,17 +43,17 @@ export function removeFile(f: StoredFile) {
 
 /** URL affichable d'un fichier stocké (libérée automatiquement). */
 export function useFileUrl(f?: StoredFile) {
-  const [url, setUrl] = useState<string | undefined>(f?.url);
+  const [url, setUrl] = useState<string | undefined>();
   useEffect(() => {
     if (!f) return setUrl(undefined);
-    if (f.url) return setUrl(f.url);
     let objectUrl: string | undefined;
     let alive = true;
-    tx<Blob | undefined>('readonly', (s) => s.get(f.id)).then((blob) => {
+    const source = f.url ? fetchProtectedFile(f.url) : tx<Blob | undefined>('readonly', (s) => s.get(f.id));
+    source.then((blob) => {
       if (!alive || !blob) return;
       objectUrl = URL.createObjectURL(blob);
       setUrl(objectUrl);
-    });
+    }).catch(() => alive && setUrl(undefined));
     return () => {
       alive = false;
       if (objectUrl) URL.revokeObjectURL(objectUrl);

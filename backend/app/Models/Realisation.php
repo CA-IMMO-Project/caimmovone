@@ -35,6 +35,7 @@ class Realisation extends Model
                 $attributes[$column] = $data[$public];
             }
         }
+
         return $this->fill($attributes);
     }
 
@@ -62,9 +63,9 @@ class Realisation extends Model
                 $url = (string) $p;
 
                 return [
-                    'id' => 'seed-' . substr(md5($url), 0, 10),
+                    'id' => 'seed-'.substr(md5($url), 0, 10),
                     'name' => basename($url) ?: $url,
-                    'type' => 'image/' . (pathinfo($url, PATHINFO_EXTENSION) ?: 'jpeg'),
+                    'type' => 'image/'.(pathinfo($url, PATHINFO_EXTENSION) ?: 'jpeg'),
                     'size' => 0,
                     'url' => $url,
                 ];

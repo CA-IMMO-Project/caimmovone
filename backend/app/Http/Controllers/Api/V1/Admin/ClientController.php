@@ -20,6 +20,7 @@ class ClientController extends Controller
                 ->orWhereRaw('lower(phone) like ?', ["%{$q}%"])
                 ->orWhereRaw('lower(email) like ?', ["%{$q}%"]));
         }
+
         return response()->json([
             'data' => $query->get()->map(fn (Client $c) => $c->toAdminArray()),
         ]);
@@ -29,6 +30,7 @@ class ClientController extends Controller
     public function show(string $id)
     {
         $c = Client::findOrFail($id);
+
         return response()->json([
             ...$c->toAdminArray(),
             'requests' => SiteRequest::where('client_id', $c->id)->orderByDesc('id')->get()->map(fn ($r) => $r->toAdminArray()),
@@ -40,12 +42,13 @@ class ClientController extends Controller
     {
         $data = $request->all();
         $client = Client::create([
-            'full_name' => $data['fullName'] ?? trim(($data['firstName'] ?? '') . ' ' . ($data['lastName'] ?? '')) ?: 'Sans nom',
+            'full_name' => $data['fullName'] ?? trim(($data['firstName'] ?? '').' '.($data['lastName'] ?? '')) ?: 'Sans nom',
             'phone' => $data['phone'] ?? '',
             'email' => $data['email'] ?? null,
             'source' => $data['source'] ?? 'Backoffice',
             'detail' => $data,
         ]);
+
         return response()->json($client->toAdminArray(), 201);
     }
 
@@ -54,18 +57,20 @@ class ClientController extends Controller
         $client = Client::findOrFail($id);
         $data = $request->all();
         $client->fill([
-            'full_name' => $data['fullName'] ?? trim(($data['firstName'] ?? '') . ' ' . ($data['lastName'] ?? '')) ?: $client->full_name,
+            'full_name' => $data['fullName'] ?? trim(($data['firstName'] ?? '').' '.($data['lastName'] ?? '')) ?: $client->full_name,
             'phone' => $data['phone'] ?? $client->phone,
             'email' => array_key_exists('email', $data) ? ($data['email'] ?: null) : $client->email,
             'source' => $data['source'] ?? $client->source,
             'detail' => $data,
         ])->save();
+
         return response()->json($client->toAdminArray());
     }
 
     public function destroy(string $id)
     {
         Client::findOrFail($id)->delete();
+
         return response()->json(['message' => 'Client supprimé.']);
     }
 }

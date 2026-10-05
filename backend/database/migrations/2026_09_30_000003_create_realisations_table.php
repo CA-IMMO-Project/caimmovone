@@ -5,7 +5,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /* Réalisations publiées depuis le back office (page « Nos réalisations »). */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('realisations', function (Blueprint $table) {

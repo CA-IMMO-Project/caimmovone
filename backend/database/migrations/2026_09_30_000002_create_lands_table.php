@@ -5,7 +5,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /* Catalogue public — reprend à l'identique les champs du type `Land` du frontend. */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('lands', function (Blueprint $table) {

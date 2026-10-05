@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\ReferenceGenerator;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Demande reçue du site public : achat (interet), visite, recherche, vente.
@@ -31,22 +31,12 @@ class SiteRequest extends Model
         return ['meta' => 'array', 'detail' => 'array'];
     }
 
-    /** Référence unique du jour : ACH-260930, puis ACH-260930-2, -3… */
+    /** Référence métier atomique, sûre même sous requêtes concurrentes. */
     public static function nextRef(string $kind): string
     {
         $prefix = self::PREFIXES[$kind] ?? 'ACH';
-        $base = $prefix . '-' . now()->format('ymd');
-        $exists = fn (string $ref) => DB::table('requests')->where('ref', $ref)->exists();
 
-        if (! $exists($base)) {
-            return $base;
-        }
-        for ($i = 2; $i < 100; $i++) {
-            if (! $exists("{$base}-{$i}")) {
-                return "{$base}-{$i}";
-            }
-        }
-        return $base . '-' . substr(uniqid(), -4);
+        return ReferenceGenerator::next($prefix);
     }
 
     public function toPublicArray(): array
@@ -120,6 +110,7 @@ class SiteRequest extends Model
             return [$first ?? '', $last ?? ''];
         }
         $parts = preg_split('/\s+/', trim($this->full_name ?? '') ?: '', 2);
+
         return [$parts[0] ?? '', $parts[1] ?? ''];
     }
 }

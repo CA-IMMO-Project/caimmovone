@@ -18,6 +18,7 @@ class RequestController extends Controller
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
+
         return response()->json([
             'data' => $query->get()->map(fn (SiteRequest $r) => $r->toAdminArray()),
         ]);
@@ -40,7 +41,7 @@ class RequestController extends Controller
             'kind' => $kind,
             'land_id' => isset($data['landId']) && is_numeric($data['landId']) ? (int) $data['landId'] : null,
             'client_id' => isset($data['clientId']) && is_numeric($data['clientId']) ? (int) $data['clientId'] : null,
-            'full_name' => trim(($data['firstName'] ?? '') . ' ' . ($data['lastName'] ?? '')) ?: ($data['fullName'] ?? 'Sans nom'),
+            'full_name' => trim(($data['firstName'] ?? '').' '.($data['lastName'] ?? '')) ?: ($data['fullName'] ?? 'Sans nom'),
             'phone' => $data['phone'] ?? '',
             'email' => $data['email'] ?? null,
             'message' => $data['extraInfo'] ?? $data['message'] ?? null,
@@ -64,7 +65,7 @@ class RequestController extends Controller
             'kind' => $data['kind'] ?? $siteRequest->kind,
             'land_id' => array_key_exists('landId', $data) ? (is_numeric($data['landId']) ? (int) $data['landId'] : null) : $siteRequest->land_id,
             'client_id' => array_key_exists('clientId', $data) ? (is_numeric($data['clientId']) ? (int) $data['clientId'] : null) : $siteRequest->client_id,
-            'full_name' => trim(($data['firstName'] ?? '') . ' ' . ($data['lastName'] ?? '')) ?: ($data['fullName'] ?? $siteRequest->full_name),
+            'full_name' => trim(($data['firstName'] ?? '').' '.($data['lastName'] ?? '')) ?: ($data['fullName'] ?? $siteRequest->full_name),
             'phone' => $data['phone'] ?? $siteRequest->phone,
             'email' => array_key_exists('email', $data) ? ($data['email'] ?: null) : $siteRequest->email,
             'message' => array_key_exists('message', $data) ? $data['message'] : $siteRequest->message,
@@ -80,6 +81,7 @@ class RequestController extends Controller
     public function destroy(string $id)
     {
         SiteRequest::findOrFail($id)->delete();
+
         return response()->json(['message' => 'Demande supprimée.']);
     }
 }

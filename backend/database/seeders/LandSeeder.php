@@ -55,6 +55,6 @@ class LandSeeder extends Seeder
             );
         }
 
-        $this->command?->info(count($lands) . ' terrains insérés.');
+        $this->command?->info(count($lands).' terrains insérés.');
     }
 }

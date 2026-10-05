@@ -9,7 +9,7 @@
 |   FRONTEND_URL=https://votre-site.mg
 */
 
-$frontend = env('FRONTEND_URL', '*');
+$frontend = env('FRONTEND_URL', 'http://localhost:3000');
 
 return [
     'paths' => ['api/*', 'sanctum/csrf-cookie'],

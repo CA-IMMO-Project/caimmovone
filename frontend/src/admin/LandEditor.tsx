@@ -298,7 +298,7 @@ export default function LandEditor() {
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Photo de couverture" full hint="Image principale utilisée sur les cartes du catalogue.">
                 <div className="space-y-3">
-                  <FileDrop accept="image/jpeg,image/png,image/webp" maxMb={15} label="Téléverser la couverture" hint="JPG, PNG, WEBP · 15 Mo max" onFiles={(files) => {
+                  <FileDrop visibility="public" accept="image/jpeg,image/png,image/webp" maxMb={15} label="Téléverser la couverture" hint="JPG, PNG, WEBP · 15 Mo max" onFiles={(files) => {
                     const first = uploadedUrls(files)[0];
                     if (first) setCoverImage(first);
                   }} />
@@ -314,7 +314,7 @@ export default function LandEditor() {
 
               <Field label="Galerie complémentaire" full hint="Les images de galerie sont uploadées puis stockées côté serveur.">
                 <div className="space-y-3">
-                  <FileDrop accept="image/jpeg,image/png,image/webp" maxMb={15} multiple label="Téléverser des images de galerie" hint="Plusieurs fichiers possibles" onFiles={(files) => appendGalleryUrls(uploadedUrls(files))} />
+                  <FileDrop visibility="public" accept="image/jpeg,image/png,image/webp" maxMb={15} multiple label="Téléverser des images de galerie" hint="Plusieurs fichiers possibles" onFiles={(files) => appendGalleryUrls(uploadedUrls(files))} />
                   {galleryExtras.length > 0 ? (
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                       {galleryExtras.map((src) => (
@@ -431,7 +431,7 @@ export default function LandEditor() {
                   </div>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     <div className="space-y-3">
-                      <FileDrop accept="image/jpeg,image/png,image/webp" maxMb={15} label={`Téléverser la photo de ${lot.number || 'ce lot'}`} hint="JPG, PNG, WEBP · 15 Mo max" onFiles={(files) => {
+                      <FileDrop visibility="public" accept="image/jpeg,image/png,image/webp" maxMb={15} label={`Téléverser la photo de ${lot.number || 'ce lot'}`} hint="JPG, PNG, WEBP · 15 Mo max" onFiles={(files) => {
                         const first = uploadedUrls(files)[0];
                         if (first) setLot(lot.id, 'imageUrl', first);
                       }} />

@@ -20,7 +20,7 @@ class Phone
     {
         $digits = preg_replace('/[\s.\-()]/', '', trim((string) $phone));
         if (preg_match('/^\+?261(3\d{8})$/', (string) $digits)) {
-            $digits = '0' . substr((string) $digits, -9);
+            $digits = '0'.substr((string) $digits, -9);
         }
 
         return $digits;

@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\Phone;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Client extends Model
 {
@@ -26,10 +28,15 @@ class Client extends Model
     /** Rapprochement par téléphone ou email (insensible à la casse). */
     public static function findOrCreateFromRequest(array $data): self
     {
-        $email = trim((string) ($data['email'] ?? ''));
+        $email = mb_strtolower(trim((string) ($data['email'] ?? '')));
         // Normalisation des séparateurs : deux écritures du même numéro
         // doivent désigner la même fiche client.
-        $phone = \App\Support\Phone::normalize($data['phone'] ?? '');
+        $phone = Phone::normalize($data['phone'] ?? '');
+
+        // Les routes publiques sont transactionnelles : ce verrou PostgreSQL
+        // empêche deux soumissions simultanées de créer deux fiches identiques.
+        $identity = $email !== '' ? 'email:'.$email : 'phone:'.$phone;
+        DB::statement('SELECT pg_advisory_xact_lock(hashtext(?))', [$identity]);
 
         $client = null;
         if ($email !== '') {
@@ -59,7 +66,7 @@ class Client extends Model
 
         return array_merge($detail, [
             'id' => (string) $this->id,
-            'ref' => $detail['ref'] ?? ('C-' . str_pad((string) $this->id, 4, '0', STR_PAD_LEFT)),
+            'ref' => $detail['ref'] ?? ('C-'.str_pad((string) $this->id, 4, '0', STR_PAD_LEFT)),
             'createdAt' => $this->created_at?->toIso8601String(),
             'source' => $detail['source'] ?? $this->source,
             'fullName' => $detail['fullName'] ?? $this->full_name,

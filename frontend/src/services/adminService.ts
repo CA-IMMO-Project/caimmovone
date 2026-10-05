@@ -161,10 +161,28 @@ export interface UploadedFile {
   url: string;
 }
 
-export async function uploadFile(file: File): Promise<UploadedFile> {
+export async function fetchProtectedFile(url: string): Promise<Blob> {
+  const isProtected = url.startsWith('/api/v1/admin/files/');
+  const token = isProtected ? getToken() : null;
+  const res = await fetch(url, {
+    headers: {
+      Accept: '*/*',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (isProtected && (res.status === 401 || res.status === 403)) {
+    setToken(null);
+    throw new ApiError('Session expirée — reconnectez-vous.', res.status);
+  }
+  if (!res.ok) throw new ApiError(`Fichier indisponible (${res.status}).`, res.status);
+  return res.blob();
+}
+
+export async function uploadFile(file: File, visibility: 'public' | 'private' = 'private'): Promise<UploadedFile> {
   const token = getToken();
   const form = new FormData();
   form.append('file', file);
+  form.append('visibility', visibility);
 
   const res = await fetch(`${BASE}/admin/uploads`, {
     method: 'POST',

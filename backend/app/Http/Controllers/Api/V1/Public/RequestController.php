@@ -3,12 +3,11 @@
 namespace App\Http\Controllers\Api\V1\Public;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Public\StoreSiteRequest;
 use App\Models\Client;
 use App\Models\Land;
-use App\Support\Phone;
 use App\Models\SiteRequest;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * POST /api/v1/requests — point d'entrée unique des demandes du site public :
@@ -16,35 +15,10 @@ use Illuminate\Http\Request;
  */
 class RequestController extends Controller
 {
-    public function store(Request $request): JsonResponse
+    public function store(StoreSiteRequest $request): JsonResponse
     {
         // Téléphone : format contrôlé + normalisé (rapprochement client fiable).
-        $request->merge(['phone' => Phone::normalize($request->input('phone'))]);
-        $data = $request->validate([
-            'kind' => 'required|in:interet,visite,recherche,vente',
-            'fullName' => 'required|string|max:150',
-            'phone' => 'required|string|max:40',
-            'email' => 'nullable|email|max:160',
-            'message' => 'nullable|string|max:5000',
-            'landId' => 'nullable|string|max:64',
-            'budget' => 'nullable|string|max:120',
-            'profession' => 'nullable|string|max:120',
-            'bankAccount' => 'nullable|string|max:160',
-            'age' => 'nullable|integer|min:1|max:120',
-            'nationality' => 'nullable|string|max:80',
-            'projectName' => 'nullable|string|max:200',
-            'paymentMode' => 'nullable|string|max:80',
-            'duration' => 'nullable|string|max:80',
-            'downPaymentAmount' => 'nullable|string|max:80',
-            'visitDate' => 'nullable|string|max:40',
-            'visitTime' => 'nullable|string|max:40',
-            'birthDate' => 'nullable|string|max:40',
-            'callTime' => 'nullable|string|max:80',
-        ]);
-
-        if (! Phone::isValid($data['phone'])) {
-            return response()->json(['message' => Phone::message(), 'errors' => ['phone' => [Phone::message()]]], 422);
-        }
+        $data = $request->validated();
 
         // Le terrain concerné (si la demande porte sur une fiche) doit exister.
         $land = null;
@@ -98,7 +72,7 @@ class RequestController extends Controller
                 $message = trim((string) $dupe->message);
                 $newText = trim((string) ($data['message'] ?? ''));
                 if ($newText !== '' && ! str_contains($message, $newText)) {
-                    $message .= ($message !== '' ? "\n\n" : '') . '— Nouvel envoi du ' . now()->format('d/m/Y H:i') . " —\n" . $newText;
+                    $message .= ($message !== '' ? "\n\n" : '').'— Nouvel envoi du '.now()->format('d/m/Y H:i')." —\n".$newText;
                 }
 
                 $dupe->update([
@@ -120,7 +94,7 @@ class RequestController extends Controller
         // Champs complémentaires rangés dans meta (tout ce qui n'a pas de colonne).
         $meta = [];
         foreach (['budget', 'profession', 'bankAccount', 'nationality', 'projectName',
-                     'paymentMode', 'duration', 'downPaymentAmount', 'visitDate', 'visitTime', 'birthDate', 'callTime'] as $key) {
+            'paymentMode', 'duration', 'downPaymentAmount', 'visitDate', 'visitTime', 'birthDate', 'callTime'] as $key) {
             if (! empty($data[$key])) {
                 $meta[$key] = (string) $data[$key];
             }

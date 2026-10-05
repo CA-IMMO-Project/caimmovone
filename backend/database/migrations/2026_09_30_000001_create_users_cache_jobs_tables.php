@@ -6,7 +6,8 @@ use Illuminate\Support\Facades\Schema;
 
 /* Users (administrateurs uniquement — le site public n'a pas de comptes clients),
    cache et files d'attente : tables standard Laravel. */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {

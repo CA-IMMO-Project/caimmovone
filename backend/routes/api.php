@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\V1\Admin as Admin;
+use App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Api\V1\Public as PublicApi;
 use Illuminate\Support\Facades\Route;
 
@@ -19,17 +19,18 @@ Route::prefix('v1')->group(function () {
     Route::get('/lands', [PublicApi\LandController::class, 'index']);
     Route::get('/lands/{id}', [PublicApi\LandController::class, 'show']);
     Route::get('/realisations', [PublicApi\RealisationController::class, 'index']);
-    Route::post('/requests', [PublicApi\RequestController::class, 'store'])->middleware('throttle:12,1');
-    Route::post('/searches', [PublicApi\SearchController::class, 'store'])->middleware('throttle:12,1');
-    Route::post('/land-files', [PublicApi\LandFileController::class, 'store'])->middleware('throttle:12,1');
-    Route::post('/messages', [PublicApi\MessageController::class, 'store'])->middleware('throttle:12,1');
+    Route::post('/requests', [PublicApi\RequestController::class, 'store'])->middleware(['throttle:12,1', 'atomic']);
+    Route::post('/searches', [PublicApi\SearchController::class, 'store'])->middleware(['throttle:12,1', 'atomic']);
+    Route::post('/land-files', [PublicApi\LandFileController::class, 'store'])->middleware(['throttle:12,1', 'atomic']);
+    Route::post('/messages', [PublicApi\MessageController::class, 'store'])->middleware(['throttle:12,1', 'atomic']);
 
     /* ---------- Back office ---------- */
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/login', [Admin\AuthController::class, 'login'])->middleware('throttle:6,1');
 
-        Route::middleware(['auth:sanctum'])->group(function () {
+        Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
             Route::get('/me', [Admin\AuthController::class, 'me']);
+            Route::get('/files/{path}', [Admin\PrivateFileController::class, 'show'])->where('path', '.*');
             Route::post('/logout', [Admin\AuthController::class, 'logout']);
             Route::get('/stats', [Admin\StatsController::class, 'index']);
             Route::get('/bootstrap', [Admin\BootstrapController::class, 'index']);

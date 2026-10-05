@@ -17,5 +17,6 @@ Route::get('/', function () {
 */
 Route::get('/storage/{path}', function (string $path) {
     abort_unless(Storage::disk('public')->exists($path), 404);
+
     return Storage::disk('public')->response($path);
 })->where('path', '.*');

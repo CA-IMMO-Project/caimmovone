@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class DatabaseSeeder extends Seeder
 {
@@ -19,7 +20,7 @@ class DatabaseSeeder extends Seeder
         // séquences PostgreSQL pour que les prochaines insertions (API) partent
         // du bon numéro au lieu de collisionner.
         foreach (['lands', 'clients', 'requests', 'searches', 'land_files', 'realisations', 'messages', 'users'] as $table) {
-            \Illuminate\Support\Facades\DB::statement(
+            DB::statement(
                 "SELECT setval(pg_get_serial_sequence('{$table}', 'id'), COALESCE((SELECT MAX(id) FROM {$table}), 0) + 1, false)"
             );
         }

@@ -11,7 +11,8 @@ use Illuminate\Support\Facades\Schema;
    - `lots` sur les terrains (parcelles du catalogue) ;
    - tables `searches` (recherches sur mesure) et `land_files` (dossiers
      « à vendre » déposés ou créés par l'équipe). */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('lands', function (Blueprint $table) {

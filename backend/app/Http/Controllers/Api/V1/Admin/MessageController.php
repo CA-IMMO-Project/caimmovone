@@ -21,12 +21,14 @@ class MessageController extends Controller
         // Le front envoie { status: 'nouveau' | 'traité' } → colonne booléenne `read`.
         $read = $request->has('read') ? $request->boolean('read') : ($request->input('status') === 'traité');
         $m->update(['read' => $read]);
+
         return response()->json($m->toAdminArray());
     }
 
     public function destroy(string $id)
     {
         ContactMessage::findOrFail($id)->delete();
+
         return response()->json(['message' => 'Message supprimé.']);
     }
 }

@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\ReferenceGenerator;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 /** Recherche sur mesure confiée à l'équipe (fiche « Recherches spécifiques »). */
 class Search extends Model
@@ -20,17 +20,7 @@ class Search extends Model
 
     public static function nextRef(): string
     {
-        $base = 'REC-' . now()->format('ymd');
-        $exists = fn (string $ref) => DB::table('searches')->where('ref', $ref)->exists();
-        if (! $exists($base)) {
-            return $base;
-        }
-        for ($i = 2; $i < 100; $i++) {
-            if (! $exists("{$base}-{$i}")) {
-                return "{$base}-{$i}";
-            }
-        }
-        return $base . '-' . substr(uniqid(), -4);
+        return ReferenceGenerator::next('REC');
     }
 
     /** Fusion : détail (objet admin) puis champs structurés font autorité. */

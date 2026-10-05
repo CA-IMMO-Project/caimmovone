@@ -3,30 +3,16 @@
 namespace App\Http\Controllers\Api\V1\Public;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Public\StoreMessageRequest;
 use App\Models\ContactMessage;
-use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /** POST /api/v1/messages — message de contact (visible dans le back office). */
 class MessageController extends Controller
 {
-    public function store(Request $request): JsonResponse
+    public function store(StoreMessageRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'fullName' => 'required|string|max:150',
-            'phone' => 'nullable|string|max:40',
-            'email' => 'nullable|email|max:160',
-            'subject' => 'nullable|string|max:200',
-            'message' => 'required|string|max:5000',
-        ]);
-
-        if (! empty($data['phone'])) {
-            $data['phone'] = Phone::normalize($data['phone']);
-            if (! Phone::isValid($data['phone'])) {
-                return response()->json(['message' => Phone::message(), 'errors' => ['phone' => [Phone::message()]]], 422);
-            }
-        }
+        $data = $request->validated();
 
         // Anti-doublon : le même message renvoyé (double-clic, rechargement,
         // impatience) dans les dernières 24 h n'est enregistré qu'une fois.

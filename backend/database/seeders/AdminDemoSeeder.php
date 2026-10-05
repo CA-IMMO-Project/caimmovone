@@ -30,7 +30,7 @@ class AdminDemoSeeder extends Seeder
 
         // --- Demande d'achat riche (CRM) ---
         SiteRequest::create([
-            'ref' => 'ACH-' . now()->subDays(2)->format('ymd'),
+            'ref' => 'ACH-'.now()->subDays(2)->format('ymd'),
             'kind' => 'interet', 'land_id' => 1, 'client_id' => $rakoto->id,
             'full_name' => 'Rakotoarisoa Jean', 'phone' => '034 12 345 67', 'email' => 'jean.rakoto@exemple.mg',
             'message' => 'Délai souhaité : Dès que possible', 'status' => 'En négociation', 'priority' => 'Haute', 'source' => 'Site web',
@@ -51,7 +51,7 @@ class AdminDemoSeeder extends Seeder
 
         // --- Demande de visite (site) ---
         SiteRequest::create([
-            'ref' => 'VIS-' . now()->subDays(1)->format('ymd'),
+            'ref' => 'VIS-'.now()->subDays(1)->format('ymd'),
             'kind' => 'visite', 'land_id' => 3, 'client_id' => $rava->id,
             'full_name' => 'Ravonalala Marie', 'phone' => '032 88 777 66', 'email' => 'marie.ravonalala@exemple.fr',
             'message' => 'Visite en visio souhaitée (depuis la France).', 'status' => 'Nouvelle', 'priority' => 'Haute', 'source' => 'Site web',
@@ -60,7 +60,7 @@ class AdminDemoSeeder extends Seeder
 
         // --- Recherche spécifique ---
         Search::create([
-            'ref' => 'REC-' . now()->subDays(3)->format('ymd'),
+            'ref' => 'REC-'.now()->subDays(3)->format('ymd'),
             'client_id' => $rava->id, 'status' => 'Terrains proposés',
             'main_zone' => 'Ivato, Antananarivo', 'full_name' => 'Ravonalala Marie',
             'phone' => '032 88 777 66', 'email' => 'marie.ravonalala@exemple.fr', 'source' => 'Site web',
@@ -79,7 +79,7 @@ class AdminDemoSeeder extends Seeder
 
         // --- Dossier « À vendre » ---
         LandFile::create([
-            'ref' => 'VEN-' . now()->subDays(5)->format('ymd'),
+            'ref' => 'VEN-'.now()->subDays(5)->format('ymd'),
             'client_id' => $rakoto->id, 'status' => 'En cours de vérification',
             'full_name' => 'Rakotoarisoa Jean', 'phone' => '034 12 345 67',
             'detail' => [

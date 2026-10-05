@@ -57,6 +57,7 @@ class Land extends Model
                 $attributes[$column] = $data[$public];
             }
         }
+
         return $this->fill($attributes);
     }
 

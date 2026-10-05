@@ -3,11 +3,10 @@
 namespace App\Http\Controllers\Api\V1\Public;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Public\StoreSearchRequest;
 use App\Models\Client;
-use App\Support\Phone;
 use App\Models\Search;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * POST /api/v1/searches — recherche sur mesure confiée par le site public.
@@ -16,31 +15,9 @@ use Illuminate\Http\Request;
  */
 class SearchController extends Controller
 {
-    public function store(Request $request): JsonResponse
+    public function store(StoreSearchRequest $request): JsonResponse
     {
-        $request->merge(['phone' => Phone::normalize($request->input('phone'))]);
-        $data = $request->validate([
-            'fullName' => 'required|string|max:150',
-            'phone' => 'required|string|max:40',
-            'email' => 'nullable|email|max:160',
-            'usage' => 'nullable|string|max:80',
-            'budgetMax' => 'nullable|numeric|min:0',
-            'areaMin' => 'nullable|numeric|min:0',
-            'areaMax' => 'nullable|numeric|min:0',
-            'mainZone' => 'nullable|string|max:160',
-            'otherZones' => 'nullable|string|max:400',
-            'targetZone' => 'nullable|string|max:200',
-            'lat' => 'nullable|numeric',
-            'lng' => 'nullable|numeric',
-            'radiusKm' => 'nullable|numeric|min:0',
-            'flexible' => 'nullable|string|in:Oui,Non',
-            'suggestNearby' => 'nullable|boolean',
-            'criteria' => 'nullable|string|max:5000',
-        ]);
-
-        if (! Phone::isValid($data['phone'])) {
-            return response()->json(['message' => Phone::message(), 'errors' => ['phone' => [Phone::message()]]], 422);
-        }
+        $data = $request->validated();
 
         $client = Client::findOrCreateFromRequest($data);
 

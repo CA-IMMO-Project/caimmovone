@@ -35,6 +35,7 @@ class SearchController extends Controller
             'source' => $data['source'] ?? 'Backoffice',
             'detail' => $data,
         ]);
+
         return response()->json($search->toAdminArray(), 201);
     }
 
@@ -52,12 +53,14 @@ class SearchController extends Controller
             'source' => $data['source'] ?? $search->source,
             'detail' => $data,
         ])->save();
+
         return response()->json($search->toAdminArray());
     }
 
     public function destroy(string $id)
     {
         Search::findOrFail($id)->delete();
+
         return response()->json(['message' => 'Recherche supprimée.']);
     }
 }

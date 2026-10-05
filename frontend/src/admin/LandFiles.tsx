@@ -33,22 +33,25 @@ const MIN_PHOTOS = 3;
 /* ---------- Fichiers reçus du site public (formulaire « Vendre ») ----------
    Vrais fichiers téléversés → URLs « /storage/… » cliquables (aperçu pour les
    images) ; anciens dossiers → simples noms de fichiers, affichés tels quels. */
-const isFileUrl = (v: string) => v.startsWith('/storage/') || v.startsWith('http');
+const isFileUrl = (v: string) => v.startsWith('/storage/') || v.startsWith('/api/v1/admin/files/') || v.startsWith('http');
 const isImageUrl = (v: string) => /\.(jpe?g|png|webp|gif)$/i.test(v);
 
 function SiteFileItem({ value }: { value: string }) {
   const name = decodeURIComponent(value.split('/').pop() ?? value);
+  const protectedUrl = value.startsWith('/api/v1/admin/files/');
+  const previewUrl = useFileUrl(protectedUrl ? { id: value, name, type: '', size: 0, url: value } : undefined);
   if (!isFileUrl(value)) {
     return <span className="inline-flex items-center gap-1.5 rounded-lg bg-gray-100 px-2.5 py-1.5 text-xs text-gray-600">{name}</span>;
   }
+  const href = protectedUrl ? previewUrl : value;
   return (
     <a
-      href={value}
+      href={href ?? '#'}
       target="_blank"
       rel="noreferrer"
       className="group inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 transition hover:border-amber-400 hover:text-gray-900"
     >
-      {isImageUrl(value) && <img src={value} alt={name} className="h-9 w-9 rounded object-cover" />}
+      {isImageUrl(value) && href && <img src={href} alt={name} className="h-9 w-9 rounded object-cover" />}
       <span className="underline-offset-2 group-hover:underline">{name}</span>
     </a>
   );

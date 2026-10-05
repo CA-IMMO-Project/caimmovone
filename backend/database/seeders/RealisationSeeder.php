@@ -55,6 +55,6 @@ class RealisationSeeder extends Seeder
             Realisation::updateOrCreate(['title' => $row['title']], $row);
         }
 
-        $this->command?->info(count($rows) . ' réalisations insérées.');
+        $this->command?->info(count($rows).' réalisations insérées.');
     }
 }

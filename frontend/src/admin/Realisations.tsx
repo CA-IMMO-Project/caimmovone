@@ -116,7 +116,7 @@ function RealisationForm({ initial, onClose, onSave }: { initial: Realisation; o
 
           <div>
             <p className="text-xs font-medium text-gray-600 mb-1.5">Photos <span className="text-red-500">*</span> <span className="text-gray-400">(la première sert de couverture)</span></p>
-            <FileDrop accept="image/jpeg,image/png,image/webp" maxMb={15} multiple label="Ajouter des photos" hint="JPG, PNG, WEBP · 15 Mo max" onFiles={(files) => set('photos', [...r.photos, ...files])} />
+            <FileDrop visibility="public" accept="image/jpeg,image/png,image/webp" maxMb={15} multiple label="Ajouter des photos" hint="JPG, PNG, WEBP · 15 Mo max" onFiles={(files) => set('photos', [...r.photos, ...files])} />
             {tried && !r.photos.length && <p className="text-xs text-red-600 mt-1">Ajoutez au moins une photo.</p>}
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-3">
               {r.photos.map((p, i) => (
