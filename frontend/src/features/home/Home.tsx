@@ -211,13 +211,13 @@ export default function Home() {
               </span>
             </Eyebrow>
             <h1 className="text-4xl md:text-6xl font-extrabold leading-none tracking-tight mb-5">
-              CA <span className="text-gold-500">Immo</span>
+              CA <span className="text-gold-500">IMMO</span>
             </h1>
             <p className="text-xl md:text-2xl font-semibold mb-6">
               Votre projet immobilier, notre engagement.
             </p>
             <p className="text-sm md:text-base text-white/80 leading-relaxed mb-10 max-w-md">
-              Depuis plus de 12 ans, CA Immo vous accompagne dans vos projets
+              Depuis plus de 12 ans, CA IMMO vous accompagne dans vos projets
               immobiliers à Madagascar : achat, vente, recherche de terrain,
               lotissement et acquisition de maisons clé en main.
             </p>
@@ -292,12 +292,12 @@ export default function Home() {
           </motion.div>
 
           <motion.div {...fadeUp} className="lg:col-span-5">
-            <Eyebrow>CA Immo en quelques mots</Eyebrow>
+            <Eyebrow>CA IMMO en quelques mots</Eyebrow>
             <h2 className="text-2xl md:text-3xl font-bold text-navy-900 leading-tight mb-6">
               Une expertise immobilière au service de vos projets
             </h2>
             <p className="text-sm text-slate-600 leading-relaxed mb-4">
-              CA Immo est{" "}
+              CA IMMO est{" "}
               <strong className="text-navy-900">
                 une entreprise immobilière avec plus de 12 ans d’expérience
               </strong>
@@ -489,7 +489,7 @@ export default function Home() {
         </svg>
         <div className="relative mx-auto max-w-full px-4 sm:px-6 lg:px-8 grid gap-12 lg:grid-cols-12">
           <motion.div {...fadeUp} className="lg:col-span-4">
-            <Eyebrow light>Pourquoi choisir CA Immo ?</Eyebrow>
+            <Eyebrow light>Pourquoi choisir CA IMMO ?</Eyebrow>
             <h2 className="text-2xl md:text-3xl font-bold leading-tight">
               Plus qu’un bien immobilier, un{" "}
               <span className="text-gold-500">accompagnement sécurisé</span>
