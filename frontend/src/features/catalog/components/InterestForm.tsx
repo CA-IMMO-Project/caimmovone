@@ -9,9 +9,9 @@ import { AnimatePresence, motion } from 'motion/react';
 import { formatAriary } from '../../../lib/format';
 import { landReference } from '../../../lib/land';
 import { phoneError, emailError } from '../../../lib/validate';
-import type { Land, ReservationPayload } from '../../../types';
+import type { Land, Lot, ReservationPayload } from '../../../types';
 
-export default function InterestForm({ land, onDone }: { land: Land; onDone: (result: SubmitResult) => void }) {
+export default function InterestForm({ land, lot, onDone }: { land: Land; lot?: Lot; onDone: (result: SubmitResult) => void }) {
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -83,6 +83,7 @@ export default function InterestForm({ land, onDone }: { land: Land; onDone: (re
     const payload: ReservationPayload = {
       kind: 'interet',
       landId: land.id,
+      lotId: lot?.id,
       fullName: `${form.firstName} ${form.lastName}`.trim(),
       phone: form.phone,
       email: form.email || undefined,
@@ -256,9 +257,11 @@ export default function InterestForm({ land, onDone }: { land: Land; onDone: (re
                 <div className="flex items-center gap-4 rounded-2xl border border-navy-900/8 bg-white px-5 py-4">
                   <LandPlot className="h-5 w-5 shrink-0 text-gold-700" />
                   <div>
-                    <strong className="block text-sm font-medium text-navy-900">{land.title}</strong>
+                    <strong className="block text-sm font-medium text-navy-900">
+                      {land.title}{lot ? ` — ${lot.number}` : ''}
+                    </strong>
                     <span className="text-xs font-normal text-navy-900/80">
-                      {formatAriary(land.price)} • Réf. {landReference(land)}
+                      {formatAriary(lot?.price ?? land.price)} • Réf. {landReference(land)}
                     </span>
                   </div>
                 </div>

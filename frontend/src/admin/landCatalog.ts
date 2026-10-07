@@ -34,6 +34,7 @@ export function createEmptyLand(): Land {
     featured: false,
     publicationStatus: 'brouillon',
     lots: [],
+    sales: [],
   };
 }
 

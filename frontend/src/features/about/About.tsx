@@ -287,7 +287,7 @@ export default function About() {
               Une expertise immobilière au service de Madagascar
             </h2>
             <p className="mt-5 text-sm md:text-[15px] text-slate-600 leading-relaxed">
-              Chez CA IMMO, nous partons d’un principe simple : un projet
+              Chez CA Immo, nous partons d’un principe simple : un projet
               immobilier ne réussit que s’il est sécurisé. Chaque parcelle que
               nous proposons est vérifiée — situation foncière, limites, accès —
               avant d’être présentée, et chaque dossier est suivi par un
@@ -349,7 +349,7 @@ export default function About() {
                 {[
                   {
                     y: "2012",
-                    t: "Création de CA IMMO",
+                    t: "Création de CA Immo",
                     d: "Une vision claire : faciliter l’accès à la propriété.",
                     ring: false,
                   },

@@ -2,14 +2,14 @@
 import { ReactNode, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  CalendarClock, Check, CheckCircle2, Clock, FileCheck, MapPin, Phone, Plus, Square, Trash2, Users, CalendarDays,
+  CalendarClock, Check, CheckCircle2, Clock, FileCheck, FileText, MapPin, Phone, Plus, Square, Trash2, Users, CalendarDays,
   Mail, MessageCircle, Repeat, PenLine, Eye, MoreHorizontal,
 } from 'lucide-react';
 import { Land } from '../../types';
 import { getLands } from '../../lib/store';
 import { newId } from '../../lib/store';
 import { ACTION_TYPES, ActionType, PlannedAction, getBuyRequests, fullName } from './model';
-import { Badge, Choice, Field, Info, MapPicker, Modal, Section, btnGold, btnIcon, btnOutline, btnPrimary, fmtAr, fmtDate, fmtDateTime, fmtM2, fmtNum, input } from './kit';
+import { Badge, Choice, Field, FileChip, Info, MapPicker, Modal, Preview, Section, btnGold, btnIcon, btnOutline, btnPrimary, fmtAr, fmtDate, fmtDateTime, fmtM2, fmtNum, input } from './kit';
 
 // ---------- Choix du terrain (et de la parcelle) ----------
 export function LandPicker({ landId, lotId, onChange, error }: {
@@ -65,6 +65,7 @@ function LandMini({ land, lotId }: { land: Land; lotId?: string }) {
 
 // ---------- Fiche complète du terrain ----------
 export function LandDetails({ landId, lotId }: { landId: string; lotId?: string }) {
+  const [docPreview, setDocPreview] = useState<import('./model').StoredFile | null>(null);
   const land = getLands().find((l) => l.id === landId);
   if (!land) {
     return (
@@ -145,6 +146,17 @@ export function LandDetails({ landId, lotId }: { landId: string; lotId?: string 
         </Section>
       )}
 
+      {(land.documents?.length ?? 0) > 0 && (
+        <Section title="Documents du terrain" icon={<FileText className="w-4 h-4" />}>
+          <p className="mb-3 text-xs text-gray-500">Pièces officielles déposées sur la fiche catalogue (titre foncier, plan, certificat…) — consultables ici sans quitter le dossier.</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {land.documents!.map((doc) => (
+              <FileChip key={doc.id} file={doc} onPreview={() => setDocPreview(doc)} />
+            ))}
+          </div>
+        </Section>
+      )}
+
       {land.coordinates && (
         <Section title="Localisation" icon={<MapPin className="w-4 h-4" />}>
           <p className="text-sm text-gray-500 mb-3">GPS : {land.coordinates[0]}, {land.coordinates[1]}</p>
@@ -177,6 +189,8 @@ export function LandDetails({ landId, lotId }: { landId: string; lotId?: string 
           </ul>
         </Section>
       )}
+
+      <Preview file={docPreview} onClose={() => setDocPreview(null)} />
     </div>
   );
 }

@@ -4,14 +4,19 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import LandCard from '../features/catalog/LandCard';
 import { formatArea, formatAriary } from '../lib/format';
 import { getLands, saveLand } from '../lib/store';
-import { Land, Lot } from '../types';
+import { Land, LandDocument, Lot } from '../types';
 import { Badge, Card, PageHeader, btnGhost, btnPrimary, inputClass } from './ui';
-import { FileDrop } from './crm/kit';
+import { FileChip, FileDrop, Preview, Tabs } from './crm/kit';
 import type { StoredFile } from './crm/model';
+import { removeFile } from './crm/files';
 import { createEmptyLand, LAND_STATUSES, landFrontMissing, landFrontScore, landPublishIssues, PAYMENT_MODES, PUBLICATION_STATUSES, RELIEF_OPTIONS, TITLE_STATUSES } from './landCatalog';
 import LandFrontPreview from './LandFrontPreview';
 
 const OUTLINE_BTN = 'inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-navy-900 transition hover:bg-gray-50';
+
+// Mêmes sous-sections (onglets) que les fiches « Demandes de vente » / « Demandes
+// d'achat » : un seul schéma d'affichage pour toutes les fiches terrain.
+type TabId = 'identite' | 'visuels' | 'terrain' | 'prix' | 'documents' | 'lots';
 
 function parseLines(text: string): string[] {
   return text.split('\n').map((line) => line.trim()).filter(Boolean);
@@ -53,28 +58,33 @@ function publicationLabel(status: Land['publicationStatus']) {
   }
 }
 
+// Même habillage que crm/kit.tsx (Section/Field) utilisé par les écrans
+// « Dossiers de vente » et la fiche de détail du catalogue (AdminLandDetail) :
+// un seul style de carte/section dans tout le back office « terrain ».
 function Section({ title, hint, icon, children }: { title: string; hint?: string; icon: ReactNode; children: ReactNode }) {
   return (
-    <Card className="p-6">
-      <div className="mb-5 flex items-start gap-3">
-        <div className="mt-0.5 rounded-xl bg-brand-50 p-2 text-navy-900">{icon}</div>
-        <div>
-          <h2 className="text-lg font-semibold text-navy-900">{title}</h2>
-          {hint && <p className="mt-1 text-sm text-gray-500">{hint}</p>}
-        </div>
+    <section className="bg-white rounded-2xl border border-gray-200 shadow-sm">
+      <header className="flex items-start justify-between gap-3 px-5 py-4 border-b border-gray-100">
+        <h2 className="flex items-center gap-2 font-semibold text-navy-900">
+          <span className="text-gold-600">{icon}</span>
+          {title}
+        </h2>
+      </header>
+      <div className="p-5">
+        {hint && <p className="mb-4 -mt-1 text-sm text-gray-500">{hint}</p>}
+        {children}
       </div>
-      {children}
-    </Card>
+    </section>
   );
 }
 
 function Field({ label, children, hint, full = false }: { label: string; children: ReactNode; hint?: string; full?: boolean }) {
   return (
-    <div className={`block ${full ? 'sm:col-span-2' : ''}`}>
-      <div className="mb-1 text-sm font-medium text-navy-900">{label}</div>
+    <label className={`block ${full ? 'sm:col-span-2' : ''}`}>
+      <span className="block text-xs font-medium text-gray-600 mb-1.5">{label}</span>
       {children}
-      {hint && <div className="mt-1 text-xs text-gray-500">{hint}</div>}
-    </div>
+      {hint && <span className="block text-xs text-gray-400 mt-1">{hint}</span>}
+    </label>
   );
 }
 
@@ -105,18 +115,20 @@ export default function LandEditor() {
   const [form, setForm] = useState<Land>(() => existing ?? createEmptyLand());
   const [featuresText, setFeaturesText] = useState(joinLines(existing?.features));
   const [galleryItems, setGalleryItems] = useState<string[]>((existing?.gallery ?? []).filter((src) => src !== existing?.imageUrl));
-  const [documentsText, setDocumentsText] = useState(joinLines(existing?.documents));
+  const [documents, setDocuments] = useState<LandDocument[]>(existing?.documents ?? []);
+  const [docPreview, setDocPreview] = useState<StoredFile | null>(null);
   const [lat, setLat] = useState(existing?.coordinates?.[0]?.toString() ?? '');
   const [lng, setLng] = useState(existing?.coordinates?.[1]?.toString() ?? '');
   const [lots, setLots] = useState<Lot[]>(existing?.lots ?? []);
   const [saving, setSaving] = useState(false);
+  const [tab, setTab] = useState<TabId>('identite');
 
   useEffect(() => {
     const next = existing ?? createEmptyLand();
     setForm(next);
     setFeaturesText(joinLines(next.features));
     setGalleryItems((next.gallery ?? []).filter((src) => src !== next.imageUrl));
-    setDocumentsText(joinLines(next.documents));
+    setDocuments(next.documents ?? []);
     setLat(next.coordinates?.[0]?.toString() ?? '');
     setLng(next.coordinates?.[1]?.toString() ?? '');
     setLots(next.lots ?? []);
@@ -145,7 +157,6 @@ export default function LandEditor() {
   const gallery = useMemo(() => buildGallery(form.imageUrl, galleryItems), [form.imageUrl, galleryItems]);
   const galleryExtras = useMemo(() => galleryItems.filter(Boolean), [galleryItems]);
   const features = useMemo(() => parseLines(featuresText), [featuresText]);
-  const documents = useMemo(() => parseLines(documentsText), [documentsText]);
   const coordinates = useMemo<[number, number] | undefined>(() => {
     if (!lat.trim() || !lng.trim()) return undefined;
     const latitude = Number(lat);
@@ -234,6 +245,20 @@ export default function LandEditor() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="space-y-6">
+          <Tabs
+            value={tab}
+            onChange={(t) => setTab(t)}
+            tabs={[
+              { id: 'identite', label: '1. Identité & publication' },
+              { id: 'visuels', label: '2. Visuels' },
+              { id: 'terrain', label: '3. Terrain & localisation' },
+              { id: 'prix', label: '4. Prix & conditions' },
+              { id: 'documents', label: `5. Documents (${documents.length})` },
+              { id: 'lots', label: `6. Lotissement (${lots.length})` },
+            ]}
+          />
+
+          {tab === 'identite' && (
           <Section title="Identité, statut et publication" hint="On distingue désormais le statut commercial du workflow éditorial du front office." icon={<Sparkles className="h-5 w-5" />}>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Titre *" full>
@@ -293,6 +318,9 @@ export default function LandEditor() {
               )}
             </div>
           </Section>
+          )}
+
+          {tab === 'visuels' && (
 
           <Section title="Visuels et arguments commerciaux" hint="Upload direct des images uniquement : plus de saisie manuelle d’URL pour les visuels du catalogue." icon={<ImagePlus className="h-5 w-5" />}>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -334,6 +362,9 @@ export default function LandEditor() {
               </Field>
             </div>
           </Section>
+          )}
+
+          {tab === 'terrain' && (
 
           <Section title="Caractéristiques, localisation et viabilisation" hint="Informations opérationnelles que le visiteur retrouve sur la fiche détaillée." icon={<MapPinned className="h-5 w-5" />}>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -372,6 +403,9 @@ export default function LandEditor() {
               </div>
             </div>
           </Section>
+          )}
+
+          {tab === 'prix' && (
 
           <Section title="Prix, modalités et pièces juridiques" hint="Bloc essentiel pour la cohérence avec la page détail du front office." icon={<WalletCards className="h-5 w-5" />}>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -392,11 +426,45 @@ export default function LandEditor() {
               <Field label="Durée maximale / échéancier">
                 <input value={form.installments ?? ''} onChange={(e) => set('installments', e.target.value)} className={inputClass} placeholder="Ex : Jusqu’à 12 mois" />
               </Field>
-              <Field label="Documents disponibles" full hint="Un document par ligne : ces éléments apparaissent dans la fiche publique.">
-                <textarea rows={5} value={documentsText} onChange={(e) => setDocumentsText(e.target.value)} className={inputClass} placeholder="Titre foncier&#10;Plan topographique&#10;Certificat juridique" />
-              </Field>
             </div>
           </Section>
+          )}
+
+          {tab === 'documents' && (
+          <Section title="Documents du terrain" hint="Déposez les vrais fichiers (titre foncier, plan, certificat…) : ils sont consultables et téléchargeables depuis cette fiche, pas de simple texte." icon={<FileText className="h-5 w-5" />}>
+            <Field label="Documents du dossier" full>
+              <div className="space-y-3">
+                <FileDrop
+                  visibility="private"
+                  accept="application/pdf,image/jpeg,image/png,image/webp"
+                  maxMb={20}
+                  multiple
+                  label="Déposer des documents"
+                  hint="PDF, JPG, PNG, WEBP · 20 Mo max par fichier"
+                  onFiles={(files) => setDocuments((current) => [...current, ...files])}
+                />
+                {documents.length > 0 ? (
+                  <div className="space-y-2">
+                    {documents.map((doc) => (
+                      <FileChip
+                        key={doc.id}
+                        file={doc}
+                        onPreview={() => setDocPreview(doc)}
+                        onRemove={() => { removeFile(doc); setDocuments((current) => current.filter((d) => d.id !== doc.id)); }}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
+                    Aucun document déposé pour le moment.
+                  </div>
+                )}
+              </div>
+            </Field>
+          </Section>
+          )}
+
+          {tab === 'lots' && (
 
           <Section title="Lotissement et parcelles" hint="Gestion plus riche des lots sans passer par une modale compacte." icon={<Layers3 className="h-5 w-5" />}>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-brand-50 p-4 text-sm">
@@ -449,6 +517,7 @@ export default function LandEditor() {
               ))}
             </div>
           </Section>
+          )}
 
           <div className="flex flex-wrap justify-end gap-2">
             <Link to="/admin/terrains" className={OUTLINE_BTN}>Annuler</Link>
@@ -551,6 +620,7 @@ export default function LandEditor() {
       >
         <LandFrontPreview land={previewLand} />
       </Section>
+      <Preview file={docPreview} onClose={() => setDocPreview(null)} />
     </form>
   );
 }

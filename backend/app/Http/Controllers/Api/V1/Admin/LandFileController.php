@@ -40,12 +40,16 @@ class LandFileController extends Controller
     {
         $file = LandFile::findOrFail($id);
         $data = $request->all();
+        // Fusion (pas remplacement) avec le détail déjà en base : si le client
+        // envoie un instantané incomplet (onglet resté ouvert, dépôt concurrent
+        // depuis le site public pendant l'édition…), les champs absents de la
+        // requête restent ceux déjà enregistrés au lieu d'être effacés.
         $file->fill([
             'client_id' => array_key_exists('clientId', $data) ? (is_numeric($data['clientId']) ? (int) $data['clientId'] : null) : $file->client_id,
             'status' => $data['status'] ?? $file->status,
             'full_name' => $data['fullName'] ?? $data['ownerName'] ?? $file->full_name,
             'phone' => array_key_exists('phone', $data) ? ($data['phone'] ?: null) : $file->phone,
-            'detail' => $data,
+            'detail' => array_merge($file->detail ?? [], $data),
         ])->save();
 
         return response()->json($file->toAdminArray());

@@ -51,7 +51,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (res.status === 401) {
     setToken(null); // jeton expiré ou révoqué : on repart sur l'écran de connexion
-    throw new ApiError('Session expirée — reconnectez-vous.', 401);
+    // Exception : /admin/login renvoie aussi 401 pour un mot de passe erroné —
+    // ce n'est pas une session qui expire, il n'y en a pas encore. On relaie
+    // alors le vrai message de l'API (« Identifiants incorrects. ») plutôt que
+    // d'afficher « Session expirée » qui n'a aucun sens avant la 1ère connexion.
+    if (path !== '/admin/login') {
+      throw new ApiError('Session expirée — reconnectez-vous.', 401);
+    }
   }
 
   if (!res.ok) {

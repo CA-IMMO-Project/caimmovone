@@ -54,8 +54,9 @@ class RequestController extends Controller
         return response()->json($siteRequest->toAdminArray(), 201);
     }
 
-    /** Mise à jour : l'objet admin complet remplace le détail, les champs
-        structurés suivent (statut, priorité…). */
+    /** Mise à jour : fusion (pas remplacement) avec le détail déjà en base —
+        un instantané incomplet côté client ne doit pas effacer les champs
+        absents de la requête ; les champs structurés suivent (statut, priorité…). */
     public function update(Request $request, string $id)
     {
         $siteRequest = SiteRequest::findOrFail($id);
@@ -69,7 +70,7 @@ class RequestController extends Controller
             'phone' => $data['phone'] ?? $siteRequest->phone,
             'email' => array_key_exists('email', $data) ? ($data['email'] ?: null) : $siteRequest->email,
             'message' => array_key_exists('message', $data) ? $data['message'] : $siteRequest->message,
-            'detail' => $data,
+            'detail' => array_merge($siteRequest->detail ?? [], $data),
             'status' => $data['status'] ?? $siteRequest->status,
             'priority' => $data['priority'] ?? $siteRequest->priority,
             'source' => $data['source'] ?? $siteRequest->source,

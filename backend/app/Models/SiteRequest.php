@@ -22,7 +22,7 @@ class SiteRequest extends Model
     protected $table = 'requests';
 
     protected $fillable = [
-        'ref', 'kind', 'land_id', 'client_id', 'full_name', 'phone', 'email',
+        'ref', 'kind', 'land_id', 'lot_id', 'client_id', 'full_name', 'phone', 'email',
         'message', 'meta', 'detail', 'status', 'priority', 'source',
     ];
 
@@ -46,6 +46,7 @@ class SiteRequest extends Model
             'ref' => $this->ref,
             'kind' => $this->kind,
             'landId' => $this->land_id ? (string) $this->land_id : null,
+            'lotId' => $this->lot_id,
             'fullName' => $this->full_name,
             'phone' => $this->phone,
             'email' => $this->email,
@@ -88,6 +89,7 @@ class SiteRequest extends Model
             'ref' => $this->ref,
             'kind' => $this->kind,
             'landId' => $this->land_id ? (string) $this->land_id : ($detail['landId'] ?? null),
+            'lotId' => $detail['lotId'] ?? $this->lot_id ?? ($meta['lotId'] ?? null),
             'clientId' => $this->client_id ? (string) $this->client_id : ($detail['clientId'] ?? null),
             'status' => $detail['status'] ?? $this->status,
             'priority' => $detail['priority'] ?? $this->priority,

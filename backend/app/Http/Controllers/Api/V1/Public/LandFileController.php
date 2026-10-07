@@ -32,6 +32,14 @@ class LandFileController extends Controller
         $area = (int) ($data['area'] ?? 0);
         $price = (int) ($data['price'] ?? 0);
 
+        // Les envois multipart (avec fichiers) transmettent lat/lng en tant
+        // que chaînes : on les force en nombre pour que le back office (qui
+        // teste `typeof lat === 'number'` pour centrer la carte et afficher
+        // le repère) les reconnaisse — sinon le pin GPS reste invisible bien
+        // que la position soit bien enregistrée.
+        $lat = isset($data['lat']) && $data['lat'] !== '' ? (float) $data['lat'] : null;
+        $lng = isset($data['lng']) && $data['lng'] !== '' ? (float) $data['lng'] : null;
+
         // Anti-doublon : le même vendeur qui redépose le même terrain (même
         // intitulé, dossier encore ouvert) voit son dossier MIS À JOUR plutôt
         // qu'un second dossier VEN créé.
@@ -56,8 +64,8 @@ class LandFileController extends Controller
                 'commune' => $data['commune'] ?? ($detail['commune'] ?? ''),
                 'fokontany' => $data['fokontany'] ?? ($detail['fokontany'] ?? ''),
                 'addressHint' => $data['directions'] ?? ($detail['addressHint'] ?? ''),
-                'lat' => $data['lat'] ?? ($detail['lat'] ?? null),
-                'lng' => $data['lng'] ?? ($detail['lng'] ?? null),
+                'lat' => $lat ?? ($detail['lat'] ?? null),
+                'lng' => $lng ?? ($detail['lng'] ?? null),
                 'salePayment' => $data['payment'] ?? ($detail['salePayment'] ?? ''),
                 'maxDuration' => $data['paymentDuration'] ?? ($detail['maxDuration'] ?? ''),
                 'depositRange' => $data['deposit'] ?? ($detail['depositRange'] ?? ''),
@@ -65,16 +73,25 @@ class LandFileController extends Controller
             ] as $key => $value) {
                 $detail[$key] = $value;
             }
-            // Fichiers joints à ce nouvel envoi : ajoutés au dossier existant.
-            $uploaded = $this->storeUploads($request, $dupe->ref);
-            $site = $detail['siteFiles'] ?? ['photos' => [], 'videos' => [], 'documents' => [], 'docTypes' => [], 'idCards' => []];
-            foreach (['photos', 'videos', 'documents', 'idCards'] as $key) {
-                if (! empty($uploaded[$key])) {
-                    $site[$key] = array_values(array_unique(array_merge($site[$key] ?? [], $uploaded[$key])));
-                }
+
+            // Fichiers joints à ce nouvel envoi : ajoutés DIRECTEMENT aux
+            // photos / documents / pièce d'identité du dossier (pas dans un
+            // tiroir à part) — ils sont donc visibles tout de suite dans les
+            // onglets « Photos » et « Documents » du back office.
+            $uploaded = $this->storeUploads($request, $dupe->ref, $fullName, $data['docTypes'] ?? []);
+            $detail['photos'] = array_values(array_merge($detail['photos'] ?? [], $uploaded['photos']));
+            $detail['documents'] = array_values(array_merge($detail['documents'] ?? [], $uploaded['documents']));
+            if (($uploaded['idCards'][0] ?? null) !== null) {
+                $detail['idDoc'] = array_merge($detail['idDoc'] ?? [], ['file' => $uploaded['idCards'][0]]);
             }
-            if (! empty($data['docTypes'])) {
-                $site['docTypes'] = array_values(array_unique(array_merge($site['docTypes'] ?? [], $data['docTypes'])));
+            // Au-delà de la 1ère pièce d'identité, et les vidéos (pas de case
+            // dédiée dans la fiche) : conservées dans « Fichiers reçus du site ».
+            $site = $detail['siteFiles'] ?? ['videos' => [], 'idCards' => []];
+            if (! empty($uploaded['videos'])) {
+                $site['videos'] = array_values(array_merge($site['videos'] ?? [], $uploaded['videos']));
+            }
+            if (count($uploaded['idCards']) > 1) {
+                $site['idCards'] = array_values(array_merge($site['idCards'] ?? [], array_slice($uploaded['idCards'], 1)));
             }
             $detail['siteFiles'] = $site;
 
@@ -104,11 +121,8 @@ class LandFileController extends Controller
         // Référence connue d'avance pour ranger les fichiers du vendeur,
         // envoyés en multipart par le formulaire « Vendre » du site.
         $ref = LandFile::nextRef();
-        $uploaded = $this->storeUploads($request, $ref);
+        $uploaded = $this->storeUploads($request, $ref, $fullName, $data['docTypes'] ?? []);
 
-        // Détail au format de l'écran « Dossiers de vente » (crm/LandFile) :
-        // ce que le formulaire public ne demande pas reçoit une valeur vide,
-        // l'agence le complètera dans le back office.
         $detail = [
             'ownerId' => 'PROP-'.strtoupper(substr(uniqid(), -6)),
             'owner' => [
@@ -131,6 +145,10 @@ class LandFileController extends Controller
                 'issuedAt' => '',
                 'expiresAt' => '',
                 'authority' => '',
+                // Scan de la pièce d'identité envoyé par le vendeur : visible
+                // directement dans la fiche (pas besoin d'aller le chercher
+                // dans un tiroir à part).
+                'file' => $uploaded['idCards'][0] ?? null,
             ],
             'title' => $data['title'],
             'category' => 'Terrain nu',
@@ -149,19 +167,17 @@ class LandFileController extends Controller
             'commune' => $data['commune'] ?? '',
             'fokontany' => $data['fokontany'] ?? '',
             'addressHint' => $data['directions'] ?? '',
-            'lat' => $data['lat'] ?? null,
-            'lng' => $data['lng'] ?? null,
+            'lat' => $lat,
+            'lng' => $lng,
             'salePayment' => $data['payment'] ?? '',
             'maxDuration' => $data['paymentDuration'] ?? '',
             'depositRange' => $data['deposit'] ?? '',
-            // Fichiers annoncés par le vendeur (noms) — les vrais fichiers
-            // sont récupérés par l'agence puis déposés via le back office.
+            // Vidéos et éventuelles pièces d'identité au-delà de la 1ère : pas
+            // de case dédiée dans la fiche, elles restent visibles dans
+            // « Fichiers reçus du site web ».
             'siteFiles' => [
-                'photos' => $uploaded['photos'] !== [] ? $uploaded['photos'] : array_values($data['photoNames'] ?? []),
-                'videos' => $uploaded['videos'] !== [] ? $uploaded['videos'] : array_values($data['videoNames'] ?? []),
-                'documents' => $uploaded['documents'] !== [] ? $uploaded['documents'] : array_values($data['docNames'] ?? []),
-                'docTypes' => array_values($data['docTypes'] ?? []),
-                'idCards' => $uploaded['idCards'] !== [] ? $uploaded['idCards'] : array_values($data['idFileNames'] ?? []),
+                'videos' => $uploaded['videos'],
+                'idCards' => array_slice($uploaded['idCards'], 1),
             ],
             'summary' => $data['summary'] ?? '',
             'receivedAt' => now()->format('Y-m-d'),
@@ -169,8 +185,12 @@ class LandFileController extends Controller
             'notes' => [],
             'tasks' => [],
             'checklist' => [],
-            'photos' => [],
-            'documents' => [],
+            // Photos et documents envoyés par le vendeur : visibles tout de
+            // suite dans les onglets « Photos » / « Documents » du dossier —
+            // l'agence n'a plus besoin d'aller les chercher dans un tiroir à
+            // part avant de pouvoir les consulter.
+            'photos' => $uploaded['photos'],
+            'documents' => $uploaded['documents'],
             'actions' => [],
             'history' => $history,
             'source' => 'Site web',
@@ -192,22 +212,63 @@ class LandFileController extends Controller
     }
 
     /**
-     * Stocke les pièces du vendeur hors de la racine publique. Leur lecture
-     * passe exclusivement par la route Sanctum /admin/files/{path}.
+     * Stocke les pièces du vendeur hors de la racine publique (lecture
+     * exclusivement via la route Sanctum /admin/files/{path}) et renvoie des
+     * objets directement exploitables par la fiche du back office (même forme
+     * que les fichiers déposés depuis l'admin : id, name, type, size, url).
      */
-    private function storeUploads(Request $request, string $ref): array
+    private function storeUploads(Request $request, string $ref, string $ownerName, array $docTypes): array
     {
-        $urls = ['photos' => [], 'videos' => [], 'documents' => [], 'idCards' => []];
+        $out = ['photos' => [], 'videos' => [], 'documents' => [], 'idCards' => []];
         foreach (['photos' => 'photos', 'videos' => 'videos', 'documents' => 'documents', 'idFiles' => 'idCards'] as $field => $key) {
-            foreach ((array) $request->file($field, []) as $i => $file) {
-                $ext = strtolower($file->extension() ?: 'bin');
-                $name = Str::uuid().'-'.$i.'.'.$ext;
-                $path = $file->storeAs('land-files/'.$ref, $name, 'local');
+            $i = 0;
+            foreach ((array) $request->file($field, []) as $uploadedFile) {
+                $ext = strtolower($uploadedFile->extension() ?: pathinfo((string) $uploadedFile->getClientOriginalName(), PATHINFO_EXTENSION) ?: 'bin');
+                $storedName = Str::uuid().'-'.$i.'.'.$ext;
+                $path = $uploadedFile->storeAs('land-files/'.$ref, $storedName, 'local');
                 abort_if($path === false, 500, 'Impossible de stocker une pièce jointe.');
-                $urls[$key][] = '/api/v1/admin/files/'.str_replace('%2F', '/', rawurlencode($path));
+
+                $entry = [
+                    'id' => (string) Str::uuid(),
+                    'name' => $uploadedFile->getClientOriginalName() ?: $storedName,
+                    'type' => $uploadedFile->getMimeType() ?: $this->guessMime($ext),
+                    'size' => (int) $uploadedFile->getSize(),
+                    'url' => '/api/v1/admin/files/'.str_replace('%2F', '/', rawurlencode($path)),
+                ];
+
+                if ($key === 'documents') {
+                    // Catégorie au mieux (le formulaire ne lie pas un type à
+                    // un fichier précis) : on fait tourner les types cochés
+                    // par le vendeur, sinon « Autre document ». L'agent peut
+                    // corriger la catégorie en un clic dans le back office.
+                    $entry['category'] = $docTypes !== [] ? $docTypes[$i % count($docTypes)] : 'Autre document';
+                    $entry['number'] = '';
+                    $entry['issuedAt'] = '';
+                    $entry['ownerName'] = $ownerName;
+                    $entry['status'] = 'À vérifier';
+                }
+
+                $out[$key][] = $entry;
+                $i++;
             }
         }
 
-        return $urls;
+        return $out;
+    }
+
+    private function guessMime(string $ext): string
+    {
+        return match ($ext) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            'gif' => 'image/gif',
+            'mp4' => 'video/mp4',
+            'mov' => 'video/quicktime',
+            'webm' => 'video/webm',
+            'avi' => 'video/x-msvideo',
+            'pdf' => 'application/pdf',
+            default => 'application/octet-stream',
+        };
     }
 }

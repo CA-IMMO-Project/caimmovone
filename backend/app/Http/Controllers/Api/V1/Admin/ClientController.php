@@ -56,12 +56,14 @@ class ClientController extends Controller
     {
         $client = Client::findOrFail($id);
         $data = $request->all();
+        // Fusion (pas remplacement) avec le détail déjà en base : un instantané
+        // incomplet côté client ne doit pas effacer les champs absents de la requête.
         $client->fill([
             'full_name' => $data['fullName'] ?? trim(($data['firstName'] ?? '').' '.($data['lastName'] ?? '')) ?: $client->full_name,
             'phone' => $data['phone'] ?? $client->phone,
             'email' => array_key_exists('email', $data) ? ($data['email'] ?: null) : $client->email,
             'source' => $data['source'] ?? $client->source,
-            'detail' => $data,
+            'detail' => array_merge($client->detail ?? [], $data),
         ])->save();
 
         return response()->json($client->toAdminArray());

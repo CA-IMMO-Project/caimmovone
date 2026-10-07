@@ -27,6 +27,7 @@ class StoreSiteRequest extends FormRequest
             'email' => 'nullable|email|max:160',
             'message' => 'nullable|string|max:5000',
             'landId' => 'nullable|string|max:64',
+            'lotId' => 'nullable|string|max:64',
             'budget' => 'nullable|string|max:120',
             'profession' => 'nullable|string|max:120',
             'bankAccount' => 'nullable|string|max:160',

@@ -118,6 +118,11 @@ export function VisitDetail() {
   const navigate = useNavigate();
   const [r, setR] = useState(() => (id ? getBuyRequest(id) : undefined));
 
+  // Resync à l'ouverture de la fiche + mise à jour auto sans F5 : sans ce bloc,
+  // la fiche affiche un instantané figé du cache mémoire (potentiellement
+  // périmé si la visite a été modifiée ailleurs entre-temps).
+  useEffect(() => { if (id) { refreshCache(true).then(() => setR(getBuyRequest(id))); } return subscribeCache(() => { if (id) setR(getBuyRequest(id)); }); }, [id]);
+
   if (!r || (r.kind ?? 'interet') !== 'visite') {
     return <p className="text-center py-20 text-gray-500">Visite introuvable. <Link to={BASE} className="underline">Retour</Link></p>;
   }

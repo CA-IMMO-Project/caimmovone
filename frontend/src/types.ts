@@ -34,7 +34,8 @@ export interface Land {
   access?: string;
   water?: boolean;
   electricity?: boolean;
-  documents?: string[];
+  /** Pièces du dossier : vrais fichiers déposés (pas de simples libellés texte). */
+  documents?: LandDocument[];
   payment?: string;
   paymentMode?: PaymentMode;
   downPayment?: string;
@@ -47,6 +48,15 @@ export interface Land {
   /* — Lotissement / ventes (suivis dans le backoffice) — */
   lots?: Lot[];
   sales?: Sale[];
+}
+
+/** Document du dossier terrain (titre foncier, plan…) réellement déposé et consultable. */
+export interface LandDocument {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  url?: string;
 }
 
 export interface Lot {

@@ -1,4 +1,4 @@
-import { Land, PaymentMode, Relief } from '../types';
+import { Land, LandDocument, PaymentMode, Relief } from '../types';
 
 /** Terrain dont les champs « fiche » sont garantis présents. */
 export interface LandComplete extends Land {
@@ -8,7 +8,7 @@ export interface LandComplete extends Land {
   access: string;
   water: boolean;
   electricity: boolean;
-  documents: string[];
+  documents: LandDocument[];
   payment: string;
   paymentMode: PaymentMode;
   downPayment: string;
@@ -27,7 +27,7 @@ export function normalizeLand(land: Land): LandComplete {
     access: land.access ?? 'Accès par route',
     water: land.water ?? false,
     electricity: land.electricity ?? false,
-    documents: land.documents ?? [land.titleStatus],
+    documents: land.documents?.length ? land.documents : [{ id: 'default-title', name: land.titleStatus, type: '', size: 0 }],
     payment: land.payment ?? 'Comptant',
     paymentMode: land.paymentMode ?? 'comptant',
     downPayment: land.downPayment ?? 'Selon accord',

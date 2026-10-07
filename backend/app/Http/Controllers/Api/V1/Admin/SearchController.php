@@ -43,6 +43,8 @@ class SearchController extends Controller
     {
         $search = Search::findOrFail($id);
         $data = $request->all();
+        // Fusion (pas remplacement) avec le détail déjà en base : un instantané
+        // incomplet côté client ne doit pas effacer les champs absents de la requête.
         $search->fill([
             'client_id' => array_key_exists('clientId', $data) ? (is_numeric($data['clientId']) ? (int) $data['clientId'] : null) : $search->client_id,
             'status' => $data['status'] ?? $search->status,
@@ -51,7 +53,7 @@ class SearchController extends Controller
             'phone' => array_key_exists('phone', $data) ? ($data['phone'] ?: null) : $search->phone,
             'email' => array_key_exists('email', $data) ? ($data['email'] ?: null) : $search->email,
             'source' => $data['source'] ?? $search->source,
-            'detail' => $data,
+            'detail' => array_merge($search->detail ?? [], $data),
         ])->save();
 
         return response()->json($search->toAdminArray());

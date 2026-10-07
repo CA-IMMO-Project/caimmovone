@@ -21,6 +21,12 @@ class SearchController extends Controller
 
         $client = Client::findOrCreateFromRequest($data);
 
+        // Les envois multipart transmettent lat/lng en tant que chaînes : on
+        // les force en nombre pour que le back office (carte de zone) les
+        // reconnaisse (même correctif que pour les dépôts de terrain).
+        $lat = isset($data['lat']) && $data['lat'] !== '' ? (float) $data['lat'] : null;
+        $lng = isset($data['lng']) && $data['lng'] !== '' ? (float) $data['lng'] : null;
+
         // Anti-doublon : si ce client a déjà une recherche active (non trouvée,
         // non clôturée), on la MET À JOUR avec les nouveaux critères plutôt que
         // d'ouvrir une seconde fiche REC pour la même personne.
@@ -44,8 +50,8 @@ class SearchController extends Controller
                 'mainZone' => $data['mainZone'] ?? ($detail['mainZone'] ?? ''),
                 'otherZones' => $data['otherZones'] ?? ($detail['otherZones'] ?? ''),
                 'targetZone' => $data['targetZone'] ?? ($detail['targetZone'] ?? ''),
-                'lat' => $data['lat'] ?? ($detail['lat'] ?? null),
-                'lng' => $data['lng'] ?? ($detail['lng'] ?? null),
+                'lat' => $lat ?? ($detail['lat'] ?? null),
+                'lng' => $lng ?? ($detail['lng'] ?? null),
                 'radiusKm' => (int) ($data['radiusKm'] ?? ($detail['radiusKm'] ?? 5)),
                 'flexible' => $data['flexible'] ?? ($detail['flexible'] ?? 'Oui'),
                 'suggestNearby' => $data['suggestNearby'] ?? ($detail['suggestNearby'] ?? true),
@@ -94,8 +100,8 @@ class SearchController extends Controller
             'mainZone' => $data['mainZone'] ?? '',
             'otherZones' => $data['otherZones'] ?? '',
             'targetZone' => $data['targetZone'] ?? '',
-            'lat' => $data['lat'] ?? null,
-            'lng' => $data['lng'] ?? null,
+            'lat' => $lat,
+            'lng' => $lng,
             'radiusKm' => (int) ($data['radiusKm'] ?? 5),
             'flexible' => $data['flexible'] ?? 'Oui',
             'suggestNearby' => $data['suggestNearby'] ?? true,

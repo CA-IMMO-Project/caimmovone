@@ -45,11 +45,20 @@ import {
 } from "../../shared/ui";
 import InterestForm from "./components/InterestForm";
 import VisitForm from "./components/VisitForm";
-import { Land } from "../../types";
+import { Land, Lot } from "../../types";
 import { fetchLand, fetchLands } from "../../services/landService";
 import type { ReservationPayload } from "../../types";
 import { formatArea, formatAriary } from "../../lib/format";
 import { landReference, normalizeLand, pricePerSqm } from "../../lib/land";
+
+/** Cible d'une demande : le terrain entier, ou une parcelle précise. */
+type RequestTarget = "whole" | Lot;
+
+function lotStatusBadge(status: Lot["status"]) {
+  if (status === "vendu") return { label: "Vendu", className: "bg-gray-700 text-white" };
+  if (status === "réservé") return { label: "Réservé", className: "bg-amber-500 text-white" };
+  return { label: "Disponible", className: "bg-green-100 text-green-800" };
+}
 
 /* ============================ Formulaires ============================ */
 /* ============================ Page ============================ */
@@ -67,8 +76,8 @@ export default function LandDetail() {
   useBodyScrollLock(lightbox !== null); // page figée derrière la visionneuse
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
-  const [interest, setInterest] = useState(false);
-  const [visit, setVisit] = useState(false);
+  const [interest, setInterest] = useState<RequestTarget | null>(null);
+  const [visit, setVisit] = useState<RequestTarget | null>(null);
   const [done, setDone] = useState<
     import("../../services/requestService").SubmitResult | null
   >(null); // référence de la demande enregistrée
@@ -394,6 +403,79 @@ export default function LandDetail() {
               </p>
             </div>
 
+            {/* Lots / parcelles — si le terrain est loti, chaque parcelle peut être
+                demandée indépendamment (la demande garde la trace du lot choisi). */}
+            {land.lots && land.lots.length > 0 && (
+              <div className="mt-14">
+                <div className="flex flex-wrap items-end justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-navy-900 md:text-3xl">
+                      Parcelles disponibles
+                    </h2>
+                    <p className="mt-3 max-w-2xl text-sm font-normal text-navy-900/80">
+                      Ce terrain est divisé en {land.lots.length} lot
+                      {land.lots.length > 1 ? "s" : ""}. Choisissez celui qui
+                      vous intéresse pour envoyer une demande ciblée.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {land.lots.map((lot) => {
+                    const badge = lotStatusBadge(lot.status);
+                    const soldOut = lot.status === "vendu";
+                    return (
+                      <div
+                        key={lot.id}
+                        className="flex flex-col overflow-hidden rounded-3xl border border-navy-900/8 bg-white"
+                      >
+                        <div className="relative h-36 w-full bg-navy-900/5">
+                          {lot.imageUrl ? (
+                            <img
+                              src={lot.imageUrl}
+                              alt={lot.number}
+                              className="h-full w-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <div className="grid h-full place-items-center text-navy-900/30">
+                              <LandPlot className="h-8 w-8" />
+                            </div>
+                          )}
+                          <span
+                            className={`absolute right-3 top-3 rounded-full px-3 py-1 text-xs font-bold ${badge.className}`}
+                          >
+                            {badge.label}
+                          </span>
+                        </div>
+                        <div className="flex flex-1 flex-col gap-2 p-5">
+                          <strong className="text-base font-bold text-navy-900">
+                            {lot.number}
+                          </strong>
+                          <p className="text-sm font-medium text-navy-900/85">
+                            {formatArea(lot.area)} ·{" "}
+                            {formatAriary(lot.price)}
+                          </p>
+                          {lot.details && (
+                            <p className="text-xs font-normal leading-relaxed text-navy-900/70">
+                              {lot.details}
+                            </p>
+                          )}
+                          <button
+                            onClick={() => setInterest(lot)}
+                            disabled={soldOut}
+                            className="btn-gold mt-auto w-full disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            {soldOut ? "Déjà vendu" : "Je suis intéressé"}{" "}
+                            {!soldOut && <ArrowRight className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Documents */}
             <div className="mt-14">
               <h2 className="text-2xl font-bold text-navy-900 md:text-3xl">
@@ -406,7 +488,7 @@ export default function LandDetail() {
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 {full.documents.map((d) => (
                   <div
-                    key={d}
+                    key={d.id}
                     className="flex items-center gap-4 rounded-2xl border border-navy-900/8 bg-white px-5 py-4"
                   >
                     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-navy-900/5 text-navy-900/90">
@@ -414,7 +496,7 @@ export default function LandDetail() {
                     </span>
                     <div>
                       <strong className="block text-sm font-medium text-navy-900">
-                        {d}
+                        {d.name}
                       </strong>
                       <small className="text-xs font-normal text-navy-900/70">
                         Reçu et contrôlé
@@ -530,7 +612,7 @@ export default function LandDetail() {
 
                 <div className="hidden lg:block">
                   <button
-                    onClick={() => setInterest(true)}
+                    onClick={() => setInterest("whole")}
                     disabled={land.status === "vendu"}
                     className="btn-gold mt-8 w-full disabled:cursor-not-allowed disabled:opacity-40"
                   >
@@ -541,7 +623,7 @@ export default function LandDetail() {
                     <ArrowRight className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => setVisit(true)}
+                    onClick={() => setVisit("whole")}
                     disabled={land.status === "vendu"}
                     className="btn-outline mt-3 w-full disabled:cursor-not-allowed disabled:opacity-40"
                   >
@@ -636,31 +718,41 @@ export default function LandDetail() {
 
       {/* — Modales — */}
       <Modal
-        open={interest}
-        onClose={() => setInterest(false)}
+        open={interest !== null}
+        onClose={() => setInterest(null)}
         title="Votre projet d’achat"
-        subtitle={`Terrain ${ref} • ${land.location}`}
+        subtitle={
+          interest && interest !== "whole"
+            ? `Terrain ${ref} • ${interest.number} • ${land.location}`
+            : `Terrain ${ref} • ${land.location}`
+        }
         size="lg"
       >
         <InterestForm
           land={land}
+          lot={interest && interest !== "whole" ? interest : undefined}
           onDone={(result) => {
-            setInterest(false);
+            setInterest(null);
             setDone(result);
           }}
         />
       </Modal>
 
       <Modal
-        open={visit}
-        onClose={() => setVisit(false)}
+        open={visit !== null}
+        onClose={() => setVisit(null)}
         title="Planifier une visite"
-        subtitle={`${land.title} • ${land.location}`}
+        subtitle={
+          visit && visit !== "whole"
+            ? `${land.title} • ${visit.number} • ${land.location}`
+            : `${land.title} • ${land.location}`
+        }
       >
         <VisitForm
           land={land}
+          lot={visit && visit !== "whole" ? visit : undefined}
           onDone={(result) => {
-            setVisit(false);
+            setVisit(null);
             setDone(result);
           }}
         />
@@ -680,14 +772,14 @@ export default function LandDetail() {
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-navy-900/10 bg-white/95 backdrop-blur-md lg:hidden">
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           <button
-            onClick={() => setInterest(true)}
+            onClick={() => setInterest("whole")}
             disabled={land.status === "vendu"}
             className="btn-gold flex-1 !px-3 !text-sm disabled:cursor-not-allowed disabled:opacity-40"
           >
             Je suis intéressé <ArrowRight className="h-4 w-4" />
           </button>
           <button
-            onClick={() => setVisit(true)}
+            onClick={() => setVisit("whole")}
             disabled={land.status === "vendu"}
             className="btn-outline flex-1 !px-3 !text-sm disabled:cursor-not-allowed disabled:opacity-40"
           >

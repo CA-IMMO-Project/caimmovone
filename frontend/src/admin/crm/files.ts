@@ -41,25 +41,35 @@ export function removeFile(f: StoredFile) {
   if (!f.url) tx('readwrite', (s) => s.delete(f.id)).catch(() => {});
 }
 
-/** URL affichable d'un fichier stocké (libérée automatiquement). */
-export function useFileUrl(f?: StoredFile) {
+/**
+ * URL affichable d'un fichier stocké (libérée automatiquement), accompagnée
+ * d'un indicateur `resolved` : certains documents « historiques » (anciens
+ * libellés texte migrés en objets, sans fichier réellement déposé) n'ont ni
+ * URL serveur ni blob local — sans ce signal, l'aperçu restait bloqué sur
+ * « Chargement… » indéfiniment au lieu d'annoncer l'absence de fichier.
+ */
+export function useFileUrl(f?: StoredFile): string | undefined;
+export function useFileUrl(f: StoredFile | undefined, withStatus: true): { url: string | undefined; resolved: boolean };
+export function useFileUrl(f?: StoredFile, withStatus?: true) {
   const [url, setUrl] = useState<string | undefined>();
+  const [resolved, setResolved] = useState(false);
   useEffect(() => {
-    if (!f) return setUrl(undefined);
+    setResolved(false);
+    if (!f) { setUrl(undefined); setResolved(true); return; }
     let objectUrl: string | undefined;
     let alive = true;
     const source = f.url ? fetchProtectedFile(f.url) : tx<Blob | undefined>('readonly', (s) => s.get(f.id));
     source.then((blob) => {
-      if (!alive || !blob) return;
-      objectUrl = URL.createObjectURL(blob);
-      setUrl(objectUrl);
-    }).catch(() => alive && setUrl(undefined));
+      if (!alive) return;
+      if (blob) { objectUrl = URL.createObjectURL(blob); setUrl(objectUrl); }
+      setResolved(true);
+    }).catch(() => { if (alive) { setUrl(undefined); setResolved(true); } });
     return () => {
       alive = false;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [f?.id, f?.url]);
-  return url;
+  return withStatus ? { url, resolved } : url;
 }
 
 export async function downloadFile(f: StoredFile) {

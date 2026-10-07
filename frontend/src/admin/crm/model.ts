@@ -141,7 +141,7 @@ export interface BuyRequest extends Person {
 // ---------- Dossier terrain ----------
 /** Fichiers transmis par le vendeur depuis le site public : URLs « /storage/… »
     (vrais fichiers téléversés) ou simples noms (anciens dossiers). */
-export interface SiteFiles { photos: string[]; videos: string[]; documents: string[]; docTypes: string[]; idCards: string[] }
+export interface SiteFiles { photos?: string[]; videos?: (string | StoredFile)[]; documents?: string[]; docTypes?: string[]; idCards?: (string | StoredFile)[] }
 
 export interface LandDoc extends StoredFile { category: string; number: string; issuedAt: string; ownerName: string; status: DocStatus }
 
@@ -149,6 +149,8 @@ export interface LandFile {
   id: string;
   createdAt: string;
   updatedAt: string;
+  /** Fiche dans la base clients (rapprochée par email/téléphone à la soumission) — permet de retrouver tous les dossiers d'un même client depuis sa fiche. */
+  clientId?: string;
   // Propriétaire
   ownerId: string;
   owner: Person & { accountNumber: string };

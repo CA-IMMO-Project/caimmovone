@@ -1,8 +1,10 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ChevronRight, FileText, HandCoins, History, ImageIcon, Pencil, Plus, Receipt, RotateCcw, Sparkles, Trash2, UserPlus, Users } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  ChevronRight, Eye, FileText, HandCoins, History, ImageIcon, Plus, Receipt, RotateCcw, Sparkles, UserPlus, Users,
+} from 'lucide-react';
 import { Land } from '../types';
-import { deleteLand, getLands, resetLands } from '../lib/store';
+import { getLands, resetLands } from '../lib/store';
 import { formatAriary, formatArea } from '../lib/format';
 import { Badge, Card, PageHeader, btnGhost, btnPrimary } from './ui';
 import { ListToolbar, Select } from './crm/kit';
@@ -11,13 +13,7 @@ import { askConfirm } from './crm/dialog';
 import SaleDialog from './SaleDialog';
 import { ClientRows, InterestDialog, LotDialog } from './LotDialog';
 import { getBuyRequests } from './crm/model';
-import { LAND_STATUSES, landFrontMissing, landFrontScore, PUBLICATION_STATUSES } from './landCatalog';
-
-function scoreTone(score: number) {
-  if (score >= 90) return 'bg-green-100 text-green-800';
-  if (score >= 70) return 'bg-amber-100 text-amber-800';
-  return 'bg-red-100 text-red-700';
-}
+import { LAND_STATUSES, PUBLICATION_STATUSES } from './landCatalog';
 
 function publicationTone(status: Land['publicationStatus']) {
   switch (status) {
@@ -42,8 +38,9 @@ function publicationLabel(status: Land['publicationStatus']) {
 }
 
 function frontSummary(land: Land) {
-  const gallery = [...new Set([land.imageUrl, ...(land.gallery ?? [])].filter(Boolean))];
+  const gallery = [...new Set([land.imageUrl, ...(land.gallery ?? [])].filter(Boolean))] as string[];
   return {
+    gallery,
     galleryCount: gallery.length,
     documentsCount: land.documents?.length ?? 0,
     payment: land.payment?.trim() || 'À préciser',
@@ -52,6 +49,7 @@ function frontSummary(land: Land) {
 }
 
 export default function AdminLands() {
+  const navigate = useNavigate();
   const [lands, setLands] = useState(getLands);
   useEffect(() => { refreshCache().then(() => setLands(getLands())); return subscribeCache(() => setLands(getLands())); }, []);
   const [q, setQ] = useState('');
@@ -75,12 +73,6 @@ export default function AdminLands() {
     );
   }, [lands, publicationStatus, q, status]);
 
-  const remove = async (land: Land) => {
-    if (!(await askConfirm(`Supprimer « ${land.title} » ?`))) return;
-    await deleteLand(land.id);
-    refresh();
-  };
-
   const reset = async () => {
     if (!(await askConfirm('Réinitialiser la liste des terrains avec les données d\'origine ? Vos modifications seront perdues.'))) return;
     await resetLands();
@@ -91,7 +83,7 @@ export default function AdminLands() {
     <>
       <PageHeader
         title="Catalogue du site"
-        subtitle={`${lands.length} terrain(s) au catalogue — édition enrichie pour mieux refléter le front office.`}
+        subtitle={`${lands.length} terrain(s) au catalogue — cliquez sur une ligne pour dérouler le détail, ou sur « Voir » pour la fiche complète.`}
         action={
           <div className="flex gap-2">
             <button onClick={reset} className={btnGhost}><RotateCcw className="w-4 h-4" /> Réinitialiser</button>
@@ -121,7 +113,6 @@ export default function AdminLands() {
               <th className="p-3 font-medium">Région</th>
               <th className="p-3 font-medium">Surface</th>
               <th className="p-3 font-medium">Prix</th>
-              <th className="p-3 font-medium">Cohérence FO</th>
               <th className="p-3 font-medium">Lots</th>
               <th className="p-3 font-medium">Statut</th>
               <th className="p-3" />
@@ -129,40 +120,24 @@ export default function AdminLands() {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {filtered.map((land) => {
-              const missing = landFrontMissing(land);
-              const score = landFrontScore(land);
               const summary = frontSummary(land);
+              const isOpen = expanded === land.id;
               return (
                 <Fragment key={land.id}>
-                  <tr className="cursor-pointer hover:bg-gray-50" onClick={() => setExpanded(expanded === land.id ? null : land.id)}>
+                  <tr className="cursor-pointer hover:bg-gray-50" onClick={() => setExpanded(isOpen ? null : land.id)}>
                     <td className="h-16 p-3">
                       <div className="flex items-center gap-3">
-                        <ChevronRight className={`w-4 h-4 shrink-0 transition-transform text-gray-400 ${expanded === land.id ? 'rotate-90' : ''}`} />
+                        <ChevronRight className={`w-4 h-4 shrink-0 transition-transform text-gray-400 ${isOpen ? 'rotate-90' : ''}`} />
                         {land.imageUrl && <img src={land.imageUrl} alt="" className="h-10 w-14 rounded object-cover" referrerPolicy="no-referrer" />}
                         <div className="min-w-0">
                           <p className="max-w-[260px] truncate font-medium text-navy-900" title={land.title}>{land.title}</p>
-                          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs leading-tight text-gray-500">
-                            <span className="truncate">{land.titleStatus}{land.zone ? ` · ${land.zone}` : ''}</span>
-                            <span className={`rounded-full px-2 py-0.5 font-semibold ${publicationTone(land.publicationStatus)}`}>{publicationLabel(land.publicationStatus)}</span>
-                          </div>
+                          <p className="mt-1 truncate text-xs text-gray-500">{land.titleStatus}{land.zone ? ` · ${land.zone}` : ''}</p>
                         </div>
                       </div>
                     </td>
                     <td className="p-3">{land.region}</td>
                     <td className="p-3 whitespace-nowrap">{formatArea(land.area)}</td>
                     <td className="p-3 whitespace-nowrap">{formatAriary(land.price)}</td>
-                    <td className="p-3 align-top">
-                      <div className="space-y-1.5">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${scoreTone(score)}`}>{score}%</span>
-                          {land.featured && <span className="rounded-full bg-gold-500 px-2.5 py-1 text-xs font-semibold text-navy-950">À la une</span>}
-                          {land.verified && <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-800">Vérifié</span>}
-                        </div>
-                        <p className="max-w-[250px] truncate text-xs text-gray-500" title={missing.length ? `Manque : ${missing.join(', ')}` : 'Fiche front riche'}>
-                          {missing.length ? `Manque : ${missing.slice(0, 2).join(', ')}${missing.length > 2 ? ` +${missing.length - 2}` : ''}` : 'Fiche bien renseignée pour le front'}
-                        </p>
-                      </div>
-                    </td>
                     <td className="p-3 whitespace-nowrap">
                       {land.lots?.length ? `${land.lots.filter((lot) => lot.status === 'disponible').length} / ${land.lots.length} dispo.` : '—'}
                     </td>
@@ -176,14 +151,27 @@ export default function AdminLands() {
                       {land.status !== 'vendu' && (
                         <button onClick={() => setSelling({ land })} className={`${btnGhost} text-blue-700`} title="Enregistrer une vente"><HandCoins className="w-4 h-4" /> Vendre</button>
                       )}
-                      <Link to={`/admin/terrains/${land.id}/modifier`} className={btnGhost} aria-label="Modifier"><Pencil className="w-4 h-4" /></Link>
-                      <button onClick={() => remove(land)} className={`${btnGhost} hover:text-red-600`} aria-label="Supprimer"><Trash2 className="w-4 h-4" /></button>
+                      <Link to={`/admin/terrains/${land.id}`} className={btnPrimary} aria-label="Voir la fiche"><Eye className="w-4 h-4" /> Voir</Link>
                     </td>
                   </tr>
-                  {expanded === land.id && (
+                  {isOpen && (
                     <tr className="bg-gray-50">
-                      <td colSpan={8} className="px-3 pb-4 pt-1">
+                      <td colSpan={7} className="px-3 pb-4 pt-1">
                         <div className="space-y-4 pl-7">
+                          {summary.gallery.length > 0 && (
+                            <div className="flex gap-2 overflow-x-auto pb-1">
+                              {summary.gallery.slice(0, 8).map((src, i) => (
+                                <img
+                                  key={`${src}-${i}`}
+                                  src={src}
+                                  alt={`${land.title} — visuel ${i + 1}`}
+                                  className="h-20 w-28 shrink-0 rounded-lg border border-gray-200 object-cover"
+                                  referrerPolicy="no-referrer"
+                                />
+                              ))}
+                            </div>
+                          )}
+
                           <div className="grid gap-3 lg:grid-cols-4">
                             <div className="rounded-xl border border-gray-200 bg-white p-3">
                               <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-gray-500"><ImageIcon className="h-3.5 w-3.5" /> Photos</p>
@@ -288,7 +276,7 @@ export default function AdminLands() {
               );
             })}
             {filtered.length === 0 && (
-              <tr><td colSpan={8} className="p-6 text-center text-gray-500">Aucun terrain trouvé.</td></tr>
+              <tr><td colSpan={7} className="p-6 text-center text-gray-500">Aucun terrain trouvé.</td></tr>
             )}
           </tbody>
         </table>
@@ -311,7 +299,7 @@ export default function AdminLands() {
           land={selling.land}
           lotId={selling.lotId}
           onClose={() => setSelling(null)}
-          onDone={() => { refresh(); setSelling(null); setExpanded(selling.land.id); }}
+          onDone={() => { refresh(); setSelling(null); setExpanded(selling.land.id); navigate(`/admin/terrains/${selling.land.id}`); }}
         />
       )}
     </>

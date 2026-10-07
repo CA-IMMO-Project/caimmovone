@@ -28,8 +28,8 @@ const links = [
   { to: "/admin/clients", label: "Base clients", icon: Users },
   { to: "/admin/achats", label: "Demandes d’achat", icon: ShoppingBag },
   { to: "/admin/visites", label: "Visites", icon: CalendarCheck },
-  { to: "/admin/recherches", label: "Recherches spécifiques", icon: Compass },
-  { to: "/admin/dossiers-terrains", label: "À vendre", icon: Tag },
+  { to: "/admin/recherches", label: "Recherches", icon: Compass },
+  { to: "/admin/dossiers-terrains", label: "Demandes de vente", icon: Tag },
   { to: "/admin/terrains", label: "Catalogue du site", icon: Map },
   { to: "/admin/realisations", label: "Réalisations", icon: Hammer },
   { to: "/admin/messages", label: "Messages", icon: Mail },
@@ -171,7 +171,7 @@ export default function AdminLayout() {
 
 export function AdminLogin() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

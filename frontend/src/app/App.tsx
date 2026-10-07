@@ -18,6 +18,7 @@ import Realisations from '../features/realisations/Realisations';
 import AdminLayout, { AdminLogin } from '../admin/AdminLayout';
 import Dashboard from '../admin/Dashboard';
 import AdminLands from '../admin/AdminLands';
+import AdminLandDetail from '../admin/AdminLandDetail';
 import LandEditor from '../admin/LandEditor';
 import { AdminMessages } from '../admin/AdminRequests';
 import { BuyRequestDetail, BuyRequestForm, BuyRequestList } from '../admin/BuyRequests';
@@ -75,6 +76,7 @@ export default function App() {
           <Route path="terrains" element={<AdminLands />} />
           <Route path="terrains/nouveau" element={<LandEditor />} />
           <Route path="terrains/:id/modifier" element={<LandEditor />} />
+          <Route path="terrains/:id" element={<AdminLandDetail />} />
           <Route path="achats" element={<BuyRequestList />} />
           <Route path="achats/nouveau" element={<BuyRequestForm />} />
           <Route path="achats/:id" element={<BuyRequestDetail />} />

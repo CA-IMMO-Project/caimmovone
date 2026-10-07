@@ -27,6 +27,16 @@ class RequestController extends Controller
             abort_if($land === null, 422, 'Terrain introuvable.');
         }
 
+        // La parcelle (si la demande porte sur un lot précis) doit appartenir
+        // à ce terrain — sinon on l'ignore plutôt que de la stocker à tort.
+        $lotId = null;
+        if (! empty($data['lotId']) && $land !== null) {
+            $lots = collect($land->lots ?? []);
+            $lotId = $lots->contains(fn ($lot) => (string) ($lot['id'] ?? '') === (string) $data['lotId'])
+                ? (string) $data['lotId']
+                : null;
+        }
+
         // Fiche client (rapprochée par email ou téléphone).
         $client = Client::findOrCreateFromRequest($data);
 
@@ -39,6 +49,8 @@ class RequestController extends Controller
                 ->where('client_id', $client->id)
                 ->where('kind', $data['kind'])
                 ->where('land_id', $land->id)
+                // Une parcelle précise et le terrain entier sont deux besoins distincts.
+                ->when($lotId !== null, fn ($q) => $q->where('lot_id', $lotId), fn ($q) => $q->whereNull('lot_id'))
                 // Une demande déjà traitée/annulée ne bloque pas un nouveau besoin.
                 ->whereNotIn('status', ['Annulée', 'Refusée', 'Effectuée', 'Terminée', 'Traitée', 'Clôturée', 'Vendu'])
                 ->where('created_at', '>=', now()->subDays(30))
@@ -66,6 +78,9 @@ class RequestController extends Controller
                     }
                 }
                 $meta['landTitle'] = $land->title;
+                if ($lotId) {
+                    $meta['lotId'] = $lotId;
+                }
                 $meta['resendCount'] = (int) ($meta['resendCount'] ?? 0) + 1;
                 $meta['lastResentAt'] = now()->toIso8601String();
 
@@ -112,11 +127,15 @@ class RequestController extends Controller
         if ($land) {
             $meta['landTitle'] = $land->title;
         }
+        if ($lotId) {
+            $meta['lotId'] = $lotId;
+        }
 
         $siteRequest = SiteRequest::create([
             'ref' => SiteRequest::nextRef($data['kind']),
             'kind' => $data['kind'],
             'land_id' => $land?->id,
+            'lot_id' => $lotId,
             'client_id' => $client->id,
             'full_name' => $data['fullName'],
             'phone' => $data['phone'],

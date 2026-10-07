@@ -1,13 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, FileSpreadsheet, Mail, Pencil, Phone, Plus, Search, ShoppingBag, Trash2, User, Receipt, Compass } from 'lucide-react';
+import { ArrowLeft, CalendarDays, FileSpreadsheet, Mail, Pencil, Phone, Plus, Search, ShoppingBag, Trash2, User, Receipt, Compass, Landmark } from 'lucide-react';
 import { getLands } from '../lib/store';
-import { fullName as requestName, getBuyRequests } from './crm/model';
+import { fullName as requestName, getBuyRequests, getLandFiles, phoneOf } from './crm/model';
 import { Client, ClientFields, createClient, deleteClient, emptyClientFields, getClient, getClients, getSearches, saveClient } from './crm/people';
 import { refreshCache, subscribeCache } from './crm/sync';
 import { askConfirm } from './crm/dialog';
 import { Badge, Column, DataTable, Field, Info, ListToolbar, Modal, PageHeader, RelDate, Section, Select, Stat, TelLink, btnDanger, btnGold, btnIcon, btnOutline, btnPrimary, fmtAr, fmtDate, input } from './crm/kit';
 import { phoneError, sanitizePhone } from '../lib/validate';
+import { visitStatusOf } from './Visits';
+
+/** Compare deux numéros en ignorant la mise en forme (espaces, indicatif…). */
+const digitsOnly = (p?: string) => String(p ?? '').replace(/\D/g, '');
+
 
 const BASE = '/admin/clients';
 
@@ -57,12 +62,17 @@ export function ClientForm({ initial, title, onClose, onSave }: {
 
 /** Ventes rattachées au client : via ses dossiers d'achat OU le téléphone de l'acheteur. */
 function salesOfClient(c: Client) {
-  const digits = (p: string) => String(p ?? '').replace(/\D/g, '');
   const reqIds = getBuyRequests().filter((r) => r.clientId === c.id).map((r) => r.id);
   return getLands().flatMap((land) =>
     (land.sales ?? [])
-      .filter((s) => reqIds.includes(s.buyRequestId) || (digits(s.buyer.phone) !== '' && digits(s.buyer.phone) === digits(c.phone)))
+      .filter((s) => reqIds.includes(s.buyRequestId) || (digitsOnly(s.buyer.phone) !== '' && digitsOnly(s.buyer.phone) === digitsOnly(c.phone)))
       .map((sale) => ({ land, sale })));
+}
+
+/** Dossiers « Demandes de vente » (LandFile) déposés par ce client : rapprochés par
+ * fiche client liée à la soumission, ou à défaut par téléphone du propriétaire. */
+function landFilesOfClient(c: Client) {
+  return getLandFiles().filter((f) => f.clientId === c.id || (digitsOnly(phoneOf(f.owner)) !== '' && digitsOnly(phoneOf(f.owner)) === digitsOnly(c.phone)));
 }
 
 const columns: Column<Client>[] = [
@@ -151,12 +161,23 @@ export function ClientDetail() {
   const [c, setC] = useState(() => (id ? getClient(id) : undefined));
   const [editing, setEditing] = useState(false);
 
+  // Resync à l'ouverture de la fiche + mise à jour auto sans F5 : sans ce bloc,
+  // la fiche affiche un instantané figé du cache mémoire (potentiellement
+  // périmé si le client a été modifié ailleurs entre-temps).
+  useEffect(() => { if (id) { refreshCache(true).then(() => setC(getClient(id))); } return subscribeCache(() => { if (id) setC(getClient(id)); }); }, [id]);
+
   if (!c) return <p className="text-center py-20 text-gray-500">Client introuvable. <Link to={BASE} className="underline">Retour</Link></p>;
 
-  const requests = getBuyRequests().filter((r) => r.clientId === c.id);
+  // Les demandes de visite (kind = « visite ») suivent un tunnel différent
+  // (écran « Visites » dédié) : on les sort des demandes d'achat/intérêt au
+  // lieu de les mélanger dans une même liste.
+  const allRequests = getBuyRequests().filter((r) => r.clientId === c.id);
+  const requests = allRequests.filter((r) => (r.kind ?? 'interet') !== 'visite');
+  const visits = allRequests.filter((r) => (r.kind ?? 'interet') === 'visite');
   const searches = getSearches().filter((s) => s.clientId === c.id);
   const lands = getLands();
   const purchases = salesOfClient(c);
+  const landFiles = landFilesOfClient(c);
 
   return (
     <>
@@ -206,6 +227,27 @@ export function ClientDetail() {
               })}
             </ul>
           </Section>
+          <Section title={`Demandes de visite (${visits.length})`} icon={<CalendarDays className="w-4 h-4" />}>
+            {!visits.length && <p className="text-sm text-gray-400">Aucune demande de visite.</p>}
+            <ul className="divide-y divide-gray-100">
+              {visits.map((r) => {
+                const land = lands.find((l) => l.id === r.landId);
+                const lot = land?.lots?.find((l) => l.id === r.lotId);
+                return (
+                  <li key={r.id}>
+                    <Link to={`/admin/visites/${r.id}`} className="flex flex-wrap items-center justify-between gap-2 py-3 hover:text-gold-600">
+                      <span>
+                        <span className="font-mono text-xs text-gray-500">{r.ref}</span>{' '}
+                        <span className="font-medium">{land ? `${land.title}${lot ? ` — ${lot.number}` : ''}` : requestName(r)}</span>
+                        {r.visitDate && <span className="text-gray-500"> · {fmtDate(r.visitDate)}{r.visitTime ? ` · ${r.visitTime}` : ''}</span>}
+                      </span>
+                      <Badge value={visitStatusOf(r)} dot />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </Section>
           <Section title={`Achats réalisés (${purchases.length})`} icon={<Receipt className="w-4 h-4" />}>
             {!purchases.length && <p className="text-sm text-gray-400">Aucun achat finalisé.</p>}
             <ul className="divide-y divide-gray-100 text-sm">
@@ -213,6 +255,22 @@ export function ClientDetail() {
                 <li key={sale.id} className="py-3 flex flex-wrap justify-between gap-2">
                   <span className="font-medium">{land.title}{sale.lotId ? ` — ${land.lots?.find((l) => l.id === sale.lotId)?.number ?? ''}` : ''}</span>
                   <span className="text-gray-500">{fmtDate(sale.date)} · <strong className="text-navy-900">{fmtAr(sale.price)}</strong></span>
+                </li>
+              ))}
+            </ul>
+          </Section>
+          <Section title={`Demandes de vente (${landFiles.length})`} icon={<Landmark className="w-4 h-4" />}>
+            {!landFiles.length && <p className="text-sm text-gray-400">Aucun terrain déposé à la vente par ce client.</p>}
+            <ul className="divide-y divide-gray-100">
+              {landFiles.map((f) => (
+                <li key={f.id}>
+                  <Link to={`/admin/dossiers-terrains/${f.id}`} className="flex flex-wrap items-center justify-between gap-2 py-3 hover:text-gold-600">
+                    <span>
+                      <span className="font-mono text-xs text-gray-500">{f.ref}</span>{' '}
+                      <span className="font-medium">{f.title || 'Sans titre'}</span>
+                    </span>
+                    <Badge value={f.status} dot />
+                  </Link>
                 </li>
               ))}
             </ul>

@@ -92,6 +92,14 @@ export function resetCache() {
 /* --- Helpers d'upsert optimiste : la donnée est visible immédiatement,
        puis remplacée par la version serveur quand la réponse arrive. --- */
 
+// IMPORTANT : chaque fonction ci-dessous RÉASSIGNE cache[key] à un NOUVEAU
+// tableau (au lieu de muter `list` en place avec `list[i] = …` / `splice` /
+// `unshift`). Les écrans s'abonnent via subscribeCache() puis appellent
+// setState(getLands()) : si cache.lands gardait la même référence après une
+// mutation, React considère que l'état n'a pas changé (Object.is) et NE
+// RE-RENDER PAS — c'était la cause des écrans « figés » après une action
+// (ex. vente enregistrée mais invisible tant que la page n'était pas
+// rechargée manuellement).
 export function upsertSync<K extends keyof typeof cache>(
   key: K,
   item: (typeof cache)[K][number],
@@ -100,22 +108,19 @@ export function upsertSync<K extends keyof typeof cache>(
   const list = cache[key] as { id: string }[];
   const target = serverItem ?? item;
   const i = list.findIndex((x) => x.id === item.id || (serverItem && x.id === serverItem.id));
-  if (i >= 0) list[i] = target as never;
-  else list.unshift(target as never);
+  cache[key] = (i >= 0 ? list.map((x, idx) => (idx === i ? target : x)) : [target, ...list]) as never;
   notifyCache();
 }
 
 export function replaceSync<K extends keyof typeof cache>(key: K, tempId: string, serverItem: (typeof cache)[K][number]): void {
   const list = cache[key] as { id: string }[];
-  const i = list.findIndex((x) => x.id === tempId);
-  if (i >= 0) list[i] = serverItem as never;
+  cache[key] = list.map((x) => (x.id === tempId ? serverItem : x)) as never;
   notifyCache();
 }
 
 export function removeSync<K extends keyof typeof cache>(key: K, id: string): void {
   const list = cache[key] as { id: string }[];
-  const i = list.findIndex((x) => x.id === id);
-  if (i >= 0) list.splice(i, 1);
+  cache[key] = list.filter((x) => x.id !== id) as never;
   notifyCache();
 }
 

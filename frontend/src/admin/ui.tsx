@@ -40,8 +40,10 @@ export function formatDate(iso: string) {
   return new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
 }
 
+// Identique au style partagé crm/kit.tsx (`input`) — un seul style de champ
+// dans tout le back office, qu'il s'agisse du catalogue ou des dossiers.
 export const inputClass =
-  'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gold-500';
+  'w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm text-navy-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed';
 
 export const btnPrimary =
   'inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-navy-900 text-white text-sm font-semibold hover:bg-navy-800 disabled:opacity-40 disabled:cursor-not-allowed';

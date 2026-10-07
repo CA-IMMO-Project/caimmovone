@@ -16,7 +16,7 @@ class Land extends Model
         'gallery', 'features', 'documents', 'coordinates', 'area', 'title_status',
         'status', 'relief', 'access', 'water', 'electricity', 'payment',
         'payment_mode', 'down_payment', 'installments', 'verified', 'featured',
-        'publication_status', 'lots',
+        'publication_status', 'lots', 'sales',
     ];
 
     protected function casts(): array
@@ -24,6 +24,7 @@ class Land extends Model
         return [
             'gallery' => 'array',
             'lots' => 'array',
+            'sales' => 'array',
             'features' => 'array',
             'documents' => 'array',
             'coordinates' => 'array',
@@ -50,6 +51,7 @@ class Land extends Model
             'downPayment' => 'down_payment', 'installments' => 'installments',
             'verified' => 'verified', 'featured' => 'featured',
             'publicationStatus' => 'publication_status', 'lots' => 'lots',
+            'sales' => 'sales',
         ];
         $attributes = [];
         foreach ($map as $public => $column) {
@@ -82,7 +84,7 @@ class Land extends Model
             'access' => $this->access,
             'water' => (bool) $this->water,
             'electricity' => (bool) $this->electricity,
-            'documents' => $this->documents ?? [],
+            'documents' => $this->normalizedDocuments(),
             'payment' => $this->payment,
             'paymentMode' => $this->payment_mode,
             'downPayment' => $this->down_payment,
@@ -91,6 +93,40 @@ class Land extends Model
             'featured' => (bool) $this->featured,
             'publicationStatus' => $this->publication_status ?? 'publie',
             'lots' => $this->lots ?? [],
+            // Historique des ventes de la fiche (vente du terrain entier ou d'un lot) :
+            // sans cette colonne, le backoffice perdait l'historique à chaque rechargement.
+            'sales' => $this->sales ?? [],
         ];
+    }
+
+    /**
+     * Les anciens jeux de données (seed d'origine) stockent les documents du
+     * dossier comme de simples libellés ("Titre foncier"…). Le backoffice
+     * permet désormais d'y déposer de vrais fichiers (id/name/type/size/url) :
+     * on normalise ici pour que l'API renvoie toujours la même forme d'objet,
+     * quelle que soit l'ancienneté de la donnée en base.
+     */
+    private function normalizedDocuments(): array
+    {
+        $documents = $this->documents ?? [];
+
+        return array_values(array_map(function ($document, $index) {
+            if (is_string($document)) {
+                return ['id' => "doc-{$index}", 'name' => $document, 'type' => '', 'size' => 0];
+            }
+
+            // Document déjà « objet » (déposé depuis le backoffice, ou migré
+            // précédemment) : on complète quand même les clés manquantes ou
+            // nulles (ex. `type` à null) pour que le frontend — qui appelle
+            // `file.type.startsWith(...)` — ne plante jamais sur une donnée
+            // historique incomplète.
+            return [
+                'id' => $document['id'] ?? "doc-{$index}",
+                'name' => $document['name'] ?? 'Document',
+                'type' => $document['type'] ?? '',
+                'size' => $document['size'] ?? 0,
+                'url' => $document['url'] ?? null,
+            ];
+        }, $documents, array_keys($documents)));
     }
 }
