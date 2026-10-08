@@ -211,7 +211,7 @@ export default function Home() {
               </span>
             </Eyebrow>
             <h1 className="text-4xl md:text-6xl font-extrabold leading-none tracking-tight mb-5">
-              CA <span className="text-gold-500">Immo</span>
+              CA <span className="text-gold-500">IMMO</span>
             </h1>
             <p className="text-xl md:text-2xl font-semibold mb-6">
               Votre projet immobilier, notre engagement.
