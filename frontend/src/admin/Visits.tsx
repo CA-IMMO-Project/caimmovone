@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, CalendarDays, CalendarPlus, Mail, MapPin, Phone, Search, User } from 'lucide-react';
 import { getLands } from '../lib/store';
+import { formatPhone, phoneHref } from '../lib/phone';
 import { BuyRequest, fullName, getBuyRequest, getBuyRequests, historyEntry, saveBuyRequest } from './crm/model';
 import { getClient } from './crm/people';
 import { refreshCache, subscribeCache } from './crm/sync';
@@ -46,7 +47,7 @@ const columns: Column<BuyRequest>[] = [
   ), sort: (r) => fullName(r).toLowerCase(), csv: (r) => fullName(r) },
   { key: 'land', label: 'Terrain', render: (r) => {
       const land = getLands().find((l) => l.id === r.landId);
-      return land ? <span>{land.title}</span> : <span className="text-gray-400">—</span>;
+      return land ? <span>{land.title}</span> : <span className="text-gray-600">—</span>;
     }, sort: (r) => r.landId, csv: (r) => getLands().find((l) => l.id === r.landId)?.title ?? '' },
   { key: 'date', label: 'Visite souhaitée', render: (r) => <span className="whitespace-nowrap">{fmtVisitDate(r)}</span>, sort: (r) => r.visitDate ?? '', csv: (r) => fmtVisitDate(r) },
   { key: 'status', label: 'Statut', render: (r) => <Badge value={visitStatusOf(r)} dot />, sort: (r) => VISIT_STATUSES.indexOf(visitStatusOf(r)), csv: (r) => visitStatusOf(r) },
@@ -165,7 +166,7 @@ export function VisitDetail() {
         <Section title="Visite souhaitée" icon={<CalendarDays className="w-4 h-4" />}>
           <div className="space-y-2 text-sm">
             <p className="flex items-center gap-2">
-              <CalendarPlus className="w-4 h-4 text-gold-600" />
+              <CalendarPlus className="w-4 h-4 text-gold-700" />
               <span className="font-medium text-navy-900">{fmtVisitDate(r)}</span>
             </p>
             {r.message && <p className="text-gray-600 whitespace-pre-line mt-3">« {r.message} »</p>}
@@ -177,7 +178,7 @@ export function VisitDetail() {
           <div className="space-y-2 text-sm">
             <p className="font-medium text-navy-900">{client?.fullName ?? fullName(r)}</p>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-gray-600">
-              <a href={`tel:${r.phone.replace(/\s/g, '')}`} className="flex items-center gap-1 hover:text-navy-900"><Phone className="w-3.5 h-3.5" /> {r.phone}</a>
+              <a href={phoneHref(r.phone, r.dialCode)} className="flex items-center gap-1 hover:text-navy-900"><Phone className="w-3.5 h-3.5" /> {formatPhone(r.phone, r.dialCode)}</a>
               {r.email && <a href={`mailto:${r.email}`} className="flex items-center gap-1 hover:text-navy-900"><Mail className="w-3.5 h-3.5" /> {r.email}</a>}
             </div>
             {client && (
@@ -198,7 +199,7 @@ export function VisitDetail() {
                 <p className="font-medium text-navy-900">{land.title}</p>
                 <p className="text-sm text-gray-500">{land.location} · {fmtAr(land.price)}</p>
               </div>
-              <Link to={`/terrains/${land.id}`} target="_blank" className={btnOutline}>Voir sur le site</Link>
+              <Link to={`/terrains/${land.id}`} target="_blank" rel="noopener noreferrer" className={btnOutline}>Voir sur le site</Link>
             </div>
           </Section>
         </div>

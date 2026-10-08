@@ -19,14 +19,10 @@ import {
 } from "../../lib/contact";
 import { createContactMessage } from "../../services/requestService";
 import { phoneError, emailError, sanitizePhone } from "../../lib/validate";
-import { PageHero } from "../../shared/ui";
+import { PHONE_PLACEHOLDER } from "../../lib/phone";
+import { ErrorBanner, FormField, Input, PageHero, Select, Textarea } from "../../shared/ui";
 
 const IMG_CONTACT = "/media/terrains/highlands.jpg";
-
-/* Champs et libellés — même style que la page Contact de référence. */
-const field =
-  "w-full rounded-xl border border-navy-900/10 bg-brand-50 px-4 py-3 text-sm text-navy-900 transition placeholder:text-navy-900/40 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500";
-const label = "mb-2 block text-sm font-semibold text-navy-900";
 
 const SUBJECTS = [
   "Achat de terrain",
@@ -47,12 +43,17 @@ export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!firstName.trim() || !lastName.trim() || !message.trim()) {
       setError("Merci de renseigner votre prénom, votre nom et votre message.");
+      return;
+    }
+    if (!privacyConsent) {
+      setError("Merci de prendre connaissance des informations sur le traitement de vos données.");
       return;
     }
     const badPhone = phoneError(phone);
@@ -81,6 +82,7 @@ export default function ContactPage() {
       setPhone("");
       setEmail("");
       setMessage("");
+      setPrivacyConsent(false);
       window.setTimeout(() => setIsSubmitted(false), 6000);
     } catch (err) {
       // Message du serveur s'il en fournit un (sinon repli générique).
@@ -107,13 +109,13 @@ export default function ContactPage() {
         <>
           <a
             href={PHONE_1_TEL}
-            className="block transition-colors hover:text-gold-600"
+            className="block transition-colors hover:text-gold-700"
           >
             {PHONE_1}
           </a>
           <a
             href={PHONE_2_TEL}
-            className="block transition-colors hover:text-gold-600"
+            className="block transition-colors hover:text-gold-700"
           >
             {PHONE_2}
           </a>
@@ -128,7 +130,7 @@ export default function ContactPage() {
           href={FB_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="transition-colors hover:text-gold-600"
+          className="transition-colors hover:text-gold-700"
         >
           CA IMMO
         </a>
@@ -189,7 +191,7 @@ export default function ContactPage() {
                   key={title}
                   className="flex items-start gap-4 rounded-2xl border border-navy-900/5 bg-white p-5 shadow-xl shadow-navy-900/5"
                 >
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gold-500/15 text-gold-600">
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gold-500/15 text-gold-700">
                     <Icon className="h-5 w-5" />
                   </span>
                   <div>
@@ -231,7 +233,7 @@ export default function ContactPage() {
                   className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-gold-500 bg-gold-400/15 px-5 py-4 text-navy-900"
                 >
                   <div className="flex items-center gap-3">
-                    <CheckCircle className="h-6 w-6 shrink-0 text-gold-600" />
+                    <CheckCircle className="h-6 w-6 shrink-0 text-gold-700" />
                     <div>
                       <p className="font-semibold">
                         Message envoyé avec succès !
@@ -252,61 +254,34 @@ export default function ContactPage() {
               )}
             </AnimatePresence>
 
-            {error && (
-              <div
-                className="mb-6 rounded-xl bg-red-50 px-5 py-4 text-sm text-red-700"
-                role="alert"
-              >
-                {error}
-              </div>
-            )}
+            {error && <ErrorBanner className="mb-6">{error}</ErrorBanner>}
 
             <form className="space-y-6" onSubmit={handleSubmit} noValidate>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div>
-                  <label htmlFor="firstName" className={label}>
-                    Prénom
-                    <em className="ml-0.5 not-italic text-gold-700" aria-hidden>
-                      *
-                    </em>
-                  </label>
-                  <input
+                <FormField label="Prénom" required>
+                  <Input
                     type="text"
                     id="firstName"
                     required
                     autoComplete="given-name"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className={field}
                     placeholder="Rakoto"
                   />
-                </div>
-                <div>
-                  <label htmlFor="lastName" className={label}>
-                    Nom
-                    <em className="ml-0.5 not-italic text-gold-700" aria-hidden>
-                      *
-                    </em>
-                  </label>
-                  <input
+                </FormField>
+                <FormField label="Nom" required>
+                  <Input
                     type="text"
                     id="lastName"
                     required
                     autoComplete="family-name"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    className={field}
                     placeholder="Andrianina"
                   />
-                </div>
-                <div>
-                  <label htmlFor="phone" className={label}>
-                    Téléphone
-                    <em className="ml-0.5 not-italic text-gold-700" aria-hidden>
-                      *
-                    </em>
-                  </label>
-                  <input
+                </FormField>
+                <FormField label="Téléphone" required>
+                  <Input
                     type="tel"
                     id="phone"
                     required
@@ -314,70 +289,67 @@ export default function ContactPage() {
                     inputMode="tel"
                     value={phone}
                     onChange={(e) => setPhone(sanitizePhone(e.target.value))}
-                    className={field}
-                    placeholder="034 12 345 67"
+                    placeholder={PHONE_PLACEHOLDER}
                   />
-                </div>
-                <div>
-                  <label htmlFor="email" className={label}>
-                    Email
-                  </label>
-                  <input
+                </FormField>
+                <FormField label="Email">
+                  <Input
                     type="email"
                     id="email"
                     autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className={field}
                     placeholder="vous@exemple.com"
                   />
-                </div>
+                </FormField>
               </div>
 
-              <div>
-                <label htmlFor="subject" className={label}>
-                  Sujet
-                </label>
-                <select
+              <FormField label="Sujet">
+                <Select
                   id="subject"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  className={field}
                 >
                   {SUBJECTS.map((s) => (
                     <option key={s}>{s}</option>
                   ))}
-                </select>
-              </div>
+                </Select>
+              </FormField>
 
-              <div>
-                <label htmlFor="message" className={label}>
-                  Message
-                  <em className="ml-0.5 not-italic text-gold-700" aria-hidden>
-                    *
-                  </em>
-                </label>
-                <textarea
+              <FormField label="Message" required>
+                <Textarea
                   id="message"
                   required
                   rows={6}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  className={`${field} resize-none`}
                   placeholder="Décrivez votre projet ou votre question…"
                 />
-              </div>
+              </FormField>
+
+              <label className="flex cursor-pointer items-start gap-3 text-sm leading-relaxed text-navy-900/85">
+                <input
+                  type="checkbox"
+                  checked={privacyConsent}
+                  onChange={(event) => setPrivacyConsent(event.target.checked)}
+                  className="mt-1 h-4 w-4 shrink-0 accent-navy-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy-900"
+                />
+                <span>
+                  J’accepte d’être recontacté(e) à propos de mon message et j’ai pris connaissance des <Link to="/confidentialite" onClick={(event) => event.stopPropagation()} className="font-semibold underline decoration-gold-500 underline-offset-2">informations sur mes données personnelles</Link>.
+                </span>
+              </label>
 
               <button
                 type="submit"
                 disabled={
                   isSubmitting ||
+                  !privacyConsent ||
                   !firstName.trim() ||
                   !lastName.trim() ||
                   !phone.trim() ||
                   !message.trim()
                 }
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gold-500 px-8 py-3.5 text-sm font-semibold text-navy-900 shadow-lg shadow-gold-500/30 transition hover:-translate-y-0.5 hover:bg-gold-400 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 sm:w-auto"
+                className="btn-gold w-full sm:w-auto"
               >
                 <Send className="h-4 w-4" />
                 {isSubmitting ? "Envoi en cours…" : "Envoyer le message"}

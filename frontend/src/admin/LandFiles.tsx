@@ -6,8 +6,10 @@ import {
   Phone, Plus, Printer, Save, Search, Star, Trash2, User, Wallet, XCircle, BellRing, IdCard, Film,
 } from 'lucide-react';
 import { newId } from '../lib/store';
+import { formatPhone, phoneHref, PHONE_PLACEHOLDER } from '../lib/phone';
+import { phoneError, sanitizePhone } from '../lib/validate';
 import {
-  ACCESSES, AGENTS, CHECKLIST, COUNTRIES, DEPOSITS, DIAL_CODES, DOC_CATEGORIES, DOC_STATUSES, FREQUENCIES, ID_TYPES,
+  ACCESSES, AGENTS, CHECKLIST, COUNTRIES, DEPOSITS, DOC_CATEGORIES, DOC_STATUSES, FREQUENCIES, ID_TYPES,
   LAND_CATEGORIES, LAND_STATUSES, LandDoc, LandFile, LandFileStatus, MAX_DURATIONS, OCCUPATIONS, PRIORITIES, REGIONS,
   RELIEFS, SALE_PAYMENT, StoredFile, PlannedAction, USAGES, YES_NO_NEAR, deleteLandFile, depositPercent, fullName, getLandFile,
   getLandFiles, historyEntry, newLandFile, phoneOf, pricePerM2, saveLandFile,
@@ -15,7 +17,7 @@ import {
 import {
   Badge, Choice, Column, DataTable, DateFilter, Field, FileChip, FileDrop, Grid, Info, MapPicker, Modal, MultiChoice, NotesPanel,
   NumberInput, Preview, Section, Select, Stat, Stepper, Tabs, Thumb, Timeline, btnDanger, btnGold, btnIcon, btnOutline,
-  btnPrimary, exportCsv, fmtAr, fmtDate, fmtDateTime, fmtM2, fmtNum, input, printHtml, printTable,
+  btnPrimary, escapeHtml, exportCsv, fmtAr, fmtDate, fmtDateTime, fmtM2, fmtNum, input, printHtml, printTable,
   ListToolbar, PageHeader, RelDate,
   TelLink,
 } from './crm/kit';
@@ -26,8 +28,8 @@ import { NotFound } from './BuyRequests';
 import { ActionPlanner, CompleteDialog, PlanDialog } from './crm/client';
 
 const BASE = '/admin/dossiers-terrains';
-const FLOW: LandFileStatus[] = ['Nouveau', 'À vérifier', 'Vérification terrain programmée', 'Vérification juridique', 'Validé', 'Publié', 'En négociation', 'Réservé', 'Vendu'];
-const FLOW_LABELS = ['Nouveau', 'À vérifier', 'Visite terrain', 'Juridique', 'Validé', 'Publié', 'Négociation', 'Réservé', 'Vendu'];
+const FLOW: LandFileStatus[] = ['Nouveau', "À l'étude", 'À vérifier', 'Vérification terrain programmée', 'Vérification juridique', 'Validé', 'Publié', 'En négociation', 'Réservé', 'Vendu'];
+const FLOW_LABELS = ['Nouveau', "À l'étude", 'À vérifier', 'Visite terrain', 'Juridique', 'Validé', 'Publié', 'Négociation', 'Réservé', 'Vendu'];
 const MIN_PHOTOS = 3;
 
 /* ---------- Fichiers reçus du site public (formulaire « Vendre ») ----------
@@ -65,9 +67,9 @@ function SiteFileItem({ value, onPreview }: { value: string | StoredFile; onPrev
       onClick={() => onPreview({ id: isRich ? value.id : url, name, type, size: isRich ? value.size : 0, url })}
       className="group inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 transition hover:border-amber-400 hover:text-gray-900"
     >
-      <Icon className="w-4 h-4 text-gray-400 shrink-0" />
+      <Icon className="w-4 h-4 text-gray-600 shrink-0" />
       <span className="underline-offset-2 group-hover:underline max-w-[200px] truncate">{name}</span>
-      <Eye className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+      <Eye className="w-3.5 h-3.5 text-gray-600 shrink-0" />
     </button>
   );
 }
@@ -167,7 +169,7 @@ export function LandFileList() {
     setBulkStatus('');
   };
   const chosen = () => (selected.length ? filtered.filter((r) => selected.includes(r.id)) : filtered);
-  const toCheck = rows.filter((r) => ['Nouveau', 'Dossier incomplet', 'À vérifier', 'Vérification terrain programmée', 'Vérification juridique'].includes(r.status));
+  const toCheck = rows.filter((r) => ['Nouveau', "À l'étude", 'Dossier incomplet', 'À vérifier', 'Vérification terrain programmée', 'Vérification juridique'].includes(r.status));
   const published = rows.filter((r) => r.status === 'Publié' || r.status === 'En négociation');
 
   return (
@@ -215,13 +217,13 @@ export function LandFileList() {
         columns={columns}
         selected={selected}
         onSelect={setSelected}
-        rowClass={(r) => (r.status === 'Nouveau' || r.status === 'Dossier incomplet' ? 'bg-blue-50/60' : '')}
+        rowClass={(r) => (r.status === 'Nouveau' || r.status === "À l'étude" || r.status === 'Dossier incomplet' ? 'bg-blue-50/60' : '')}
         onOpen={(r) => navigate(`${BASE}/${r.id}`)}
         rowActions={(r) => (
           <>
             <Link to={`${BASE}/${r.id}`} className={btnIcon} title="Consulter"><Eye className="w-4 h-4" /></Link>
             <Link to={`${BASE}/${r.id}/modifier`} className={btnIcon} title="Modifier"><Pencil className="w-4 h-4" /></Link>
-            <a href={`tel:${phoneOf(r.owner).replace(/\s/g, '')}`} className={btnIcon} title="Appeler le propriétaire"><Phone className="w-4 h-4" /></a>
+            <a href={phoneHref(r.owner.phone, r.owner.dialCode)} className={btnIcon} title="Appeler le propriétaire"><Phone className="w-4 h-4" /></a>
           </>
         )}
       />
@@ -239,6 +241,7 @@ function validate(f: LandFile): Errors {
   const o = f.owner;
   const need = (tab: TabId, key: string, v: unknown, msg = 'Champ obligatoire') => { if (!String(v ?? '').trim() || v === 0) e[`${tab}.${key}`] = msg; };
   need('owner', 'firstName', o.firstName); need('owner', 'lastName', o.lastName); need('owner', 'phone', o.phone);
+  if (o.phone.trim() && phoneError(o.phone)) e['owner.phone'] = phoneError(o.phone) ?? undefined;
   need('owner', 'email', o.email); if (o.email && !/^\S+@\S+\.\S+$/.test(o.email)) e['owner.email'] = 'Adresse email invalide';
   need('owner', 'birthDate', o.birthDate); need('owner', 'profession', o.profession); need('owner', 'hasBankAccount', o.hasBankAccount);
   if (o.country === 'Autre') need('owner', 'countryOther', o.countryOther, 'Précisez le pays');
@@ -264,7 +267,10 @@ export function LandFileForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const original = id ? getLandFile(id) : undefined;
-  const [f, setF] = useState<LandFile>(() => original ?? newLandFile());
+  const [f, setF] = useState<LandFile>(() => {
+    const initial = original ?? newLandFile();
+    return { ...initial, owner: { ...initial.owner, phone: formatPhone(initial.owner.phone, initial.owner.dialCode), dialCode: '' } };
+  });
   const [tab, setTab] = useState<TabId>('owner');
   const [errors, setErrors] = useState<Errors>({});
   const [submitted, setSubmitted] = useState(false);
@@ -365,12 +371,14 @@ export function LandFileForm() {
                 <Field label="Prénom" required error={err('owner.firstName')}><input className={input} value={f.owner.firstName} onChange={(e) => setOwner('firstName', e.target.value)} /></Field>
                 <Field label="Nom" required error={err('owner.lastName')}><input className={input} value={f.owner.lastName} onChange={(e) => setOwner('lastName', e.target.value)} /></Field>
                 <Field label="Téléphone" required error={err('owner.phone')}>
-                  <div className="flex gap-2">
-                    <select value={f.owner.dialCode} onChange={(e) => setOwner('dialCode', e.target.value)} className={`${input} w-24`} aria-label="Indicatif">
-                      {DIAL_CODES.map((d) => <option key={d}>{d}</option>)}
-                    </select>
-                    <input type="tel" className={input} value={f.owner.phone} onChange={(e) => setOwner('phone', e.target.value)} />
-                  </div>
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    className={input}
+                    value={f.owner.phone}
+                    onChange={(e) => setF((x) => ({ ...x, owner: { ...x.owner, phone: sanitizePhone(e.target.value), dialCode: '' } }))}
+                    placeholder={PHONE_PLACEHOLDER}
+                  />
                 </Field>
                 <Field label="Adresse email" required error={err('owner.email')}><input type="email" className={input} value={f.owner.email} onChange={(e) => setOwner('email', e.target.value)} /></Field>
                 <Field label="Date de naissance" required error={err('owner.birthDate')}><input type="date" className={input} value={f.owner.birthDate} onChange={(e) => setOwner('birthDate', e.target.value)} /></Field>
@@ -537,7 +545,7 @@ export function LandFileForm() {
                   </div>
                 </div>
               ))}
-              {!f.documents.length && <p className="text-sm text-gray-400">Aucun document foncier.</p>}
+              {!f.documents.length && <p className="text-sm text-gray-600">Aucun document foncier.</p>}
             </div>
           </Section>
         )}
@@ -665,23 +673,24 @@ export function LandFileDetail() {
   const cur = f.photos[Math.min(photo, f.photos.length - 1)];
 
   const printSheet = () => printHtml(`Fiche terrain ${f.ref}`, `
-    <h2>${f.title}</h2>
-    ${f.photos.slice(0, 3).filter((p) => p.url).map((p) => `<img src="${p.url}">`).join('')}
+    <h2>${escapeHtml(f.title)}</h2>
+    ${f.photos.slice(0, 3).filter((p) => p.url).map((p) => `<img src="${escapeHtml(p.url)}" alt="Photo du terrain">`).join('')}
     <dl>
-      <dt>Référence</dt><dd>${f.ref}</dd><dt>Statut</dt><dd>${f.status}</dd>
-      <dt>Superficie</dt><dd>${fmtM2(f.area)}</dd><dt>Prix</dt><dd>${fmtAr(f.price)} (${fmtNum(f.pricePerM2)} Ar/m²)</dd>
-      <dt>Localisation</dt><dd>${place(f)}</dd><dt>Indication</dt><dd>${f.addressHint}</dd>
-      <dt>GPS</dt><dd>${f.lat ?? '—'}, ${f.lng ?? '—'}</dd><dt>Relief</dt><dd>${f.relief}</dd>
-      <dt>Accès</dt><dd>${f.accesses.join(', ')}</dd><dt>Eau / Électricité</dt><dd>${f.water} / ${f.electricity}</dd>
-      <dt>Usage recommandé</dt><dd>${f.usage}</dd><dt>Occupation</dt><dd>${f.occupation}</dd>
+      <dt>Référence</dt><dd>${escapeHtml(f.ref)}</dd><dt>Statut</dt><dd>${escapeHtml(f.status)}</dd>
+      <dt>Superficie</dt><dd>${escapeHtml(fmtM2(f.area))}</dd><dt>Prix</dt><dd>${escapeHtml(fmtAr(f.price))} (${escapeHtml(fmtNum(f.pricePerM2))} Ar/m²)</dd>
+      <dt>Localisation</dt><dd>${escapeHtml(place(f))}</dd><dt>Indication</dt><dd>${escapeHtml(f.addressHint)}</dd>
+      <dt>GPS</dt><dd>${escapeHtml(`${f.lat ?? '—'}, ${f.lng ?? '—'}`)}</dd><dt>Relief</dt><dd>${escapeHtml(f.relief)}</dd>
+      <dt>Accès</dt><dd>${escapeHtml(f.accesses.join(', '))}</dd><dt>Eau / Électricité</dt><dd>${escapeHtml(`${f.water} / ${f.electricity}`)}</dd>
+      <dt>Usage recommandé</dt><dd>${escapeHtml(f.usage)}</dd><dt>Occupation</dt><dd>${escapeHtml(f.occupation)}</dd>
     </dl>
-    <h2>Description</h2><p>${f.description.replace(/</g, '&lt;')}</p>
+    <h2>Description</h2><p>${escapeHtml(f.description)}</p>
     <h2>Conditions de vente</h2><dl>
-      <dt>Paiement</dt><dd>${f.salePayment}</dd><dt>Durée max.</dt><dd>${f.maxDuration === 'Autre durée' ? f.maxDurationOther : f.maxDuration}</dd>
-      <dt>Acompte minimum</dt><dd>${f.depositRange} · ${fmtAr(depositAmount(f))}</dd><dt>Fréquence</dt><dd>${f.frequency}</dd>
-      <dt>Négociable</dt><dd>${f.saleNegotiable}${f.negotiationMargin ? ` (${f.negotiationMargin})` : ''}</dd>
+      <dt>Paiement</dt><dd>${escapeHtml(f.salePayment)}</dd><dt>Durée max.</dt><dd>${escapeHtml(f.maxDuration === 'Autre durée' ? f.maxDurationOther : f.maxDuration)}</dd>
+      <dt>Acompte minimum</dt><dd>${escapeHtml(`${f.depositRange} · ${fmtAr(depositAmount(f))}`)}</dd><dt>Fréquence</dt><dd>${escapeHtml(f.frequency)}</dd>
+      <dt>Négociable</dt><dd>${escapeHtml(`${f.saleNegotiable}${f.negotiationMargin ? ` (${f.negotiationMargin})` : ''}`)}</dd>
     </dl>
-    <h2>Propriétaire</h2><dl><dt>Nom</dt><dd>${fullName(f.owner)}</dd><dt>Téléphone</dt><dd>${phoneOf(f.owner)}</dd></dl>`);
+    <h2>Propriétaire</h2><dl><dt>Nom</dt><dd>${escapeHtml(fullName(f.owner))}</dd><dt>Téléphone</dt><dd>${escapeHtml(phoneOf(f.owner))}</dd></dl>`);
+
 
   const plan = (a: PlannedAction) => {
     update({ actions: [...f.actions, a] }, a.done ? `${a.type} effectué(e) le ${fmtDateTime(a.at)} : ${a.result}` : `${a.type} planifié(e) le ${fmtDateTime(a.at)}${a.note ? ` — ${a.note}` : ''}`);
@@ -745,7 +754,7 @@ export function LandFileDetail() {
             {cur ? (
               <>
                 <button type="button" onClick={() => setPreview(cur)} className="block w-full"><Thumb file={cur} className="w-full aspect-[16/9]" /></button>
-                <div className="flex gap-2 p-3 overflow-x-auto">
+                <div className="admin-scroll-x flex gap-2 p-3">
                   {f.photos.map((p, i) => (
                     <button key={p.id} type="button" onClick={() => setPhoto(i)} className={`shrink-0 rounded-lg overflow-hidden border-2 ${i === photo ? 'border-gold-500' : 'border-transparent'}`}>
                       <Thumb file={p} className="w-20 h-14" />
@@ -754,7 +763,7 @@ export function LandFileDetail() {
                 </div>
               </>
             ) : (
-              <div className="aspect-[16/9] flex flex-col items-center justify-center text-gray-400 bg-gray-50"><ImageIcon className="w-8 h-8" /><p className="text-sm mt-2">Aucune photo</p></div>
+              <div className="aspect-[16/9] flex flex-col items-center justify-center text-gray-600 bg-gray-50"><ImageIcon className="w-8 h-8" /><p className="text-sm mt-2">Aucune photo</p></div>
             )}
             {f.photos.length < MIN_PHOTOS && <p className="px-4 pb-3 text-xs text-orange-600">⚠ {f.photos.length} photo(s) sur {MIN_PHOTOS} minimum requises.</p>}
           </div>
@@ -811,7 +820,7 @@ export function LandFileDetail() {
 
           {tab === 'docs' && (
             <Section title="Documents fonciers" icon={<FileText className="w-4 h-4" />} confidential>
-              {!f.documents.length && <p className="text-sm text-gray-400">Aucun document. Ajoutez-les depuis « Modifier ».</p>}
+              {!f.documents.length && <p className="text-sm text-gray-600">Aucun document. Ajoutez-les depuis « Modifier ».</p>}
               <div className="space-y-3">
                 {f.documents.map((d) => (
                   <div key={d.id} className="p-3 rounded-xl border border-gray-200">
@@ -873,7 +882,7 @@ export function LandFileDetail() {
               <div className="grid grid-cols-2 gap-2">
                 <button className={btnPrimary} onClick={() => setDialog('Validé')}><BadgeCheck className="w-4 h-4" /> Valider</button>
                 <button className={btnDanger} onClick={() => setDialog('Refusé')}><XCircle className="w-4 h-4" /> Refuser</button>
-                <p className="col-span-2 text-xs text-gray-400">La décision est inscrite dans l’historique et le dossier passe dans les archives.</p>
+                <p className="col-span-2 text-xs text-gray-600">La décision est inscrite dans l’historique et le dossier passe dans les archives.</p>
               </div>
             )}
           </Section>
@@ -887,8 +896,8 @@ export function LandFileDetail() {
           <Section title="Propriétaire" icon={<User className="w-4 h-4" />}>
             <dl className="space-y-3">
               <Info label="Nom" value={`${fullName(f.owner)} (${f.ownerId})`} />
-              <Info label="Téléphone" value={<a href={`tel:${phoneOf(f.owner).replace(/\s/g, '')}`} className="hover:text-gold-600">{phoneOf(f.owner)}</a>} />
-              <Info label="Email" value={<a href={`mailto:${f.owner.email}`} className="hover:text-gold-600">{f.owner.email}</a>} />
+              <Info label="Téléphone" value={<a href={phoneHref(f.owner.phone, f.owner.dialCode)} className="hover:text-gold-700">{phoneOf(f.owner)}</a>} />
+              <Info label="Email" value={<a href={`mailto:${f.owner.email}`} className="hover:text-gold-700">{f.owner.email}</a>} />
               <Info label="Profession" value={f.owner.profession} />
               <Info label="Pays de résidence" value={f.owner.country === 'Autre' ? f.owner.countryOther : f.owner.country} />
               <Info label="Pièce d’identité" value={`${f.idDoc.type} · ${f.idDoc.number}${f.idDoc.file ? ' ✓' : ' (non fournie)'}`} />

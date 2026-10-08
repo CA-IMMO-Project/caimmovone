@@ -72,7 +72,7 @@ html {
   }
 
   .text-link {
-    @apply inline-flex items-center gap-1.5 text-sm font-medium text-navy-900 underline decoration-gold-500 decoration-2 underline-offset-4 transition-colors hover:text-gold-600;
+    @apply inline-flex items-center gap-1.5 text-sm font-medium text-navy-900 underline decoration-gold-500 decoration-2 underline-offset-4 transition-colors hover:text-gold-700;
   }
 
   /* — Surfaces — */
@@ -180,10 +180,10 @@ a, button, [role="button"], input, select, textarea, label, summary {
   }
 }
 
-/* — Barre de navigation admin : défilement discret aux couleurs de la marque — */
+/* — Scrollbars admin : tons neutres à contraste visible, défilement inchangé — */
 .admin-nav-scroll {
   scrollbar-width: thin;
-  scrollbar-color: rgba(247, 195, 37, 0.34) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.62) rgba(255, 255, 255, 0.14);
   scrollbar-gutter: stable;
   overscroll-behavior: contain;
 }
@@ -193,16 +193,56 @@ a, button, [role="button"], input, select, textarea, label, summary {
 }
 
 .admin-nav-scroll::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 9999px;
 }
 
 .admin-nav-scroll::-webkit-scrollbar-thumb {
-  background-color: rgba(247, 195, 37, 0.34);
+  background-color: rgba(255, 255, 255, 0.62);
   border: 1px solid transparent;
   border-radius: 9999px;
   background-clip: content-box;
 }
 
 .admin-nav-scroll::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(247, 195, 37, 0.75);
+  background-color: rgba(255, 255, 255, 0.88);
+}
+
+/* Défilement horizontal local (tableaux, onglets, galeries) :
+   le scroll reste local et tactile, avec une poignée neutre clairement visible. */
+.admin-content {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.admin-scroll-x {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #4b5563 #e5e7eb;
+}
+
+.admin-scroll-x::-webkit-scrollbar {
+  height: 8px;
+}
+
+.admin-scroll-x::-webkit-scrollbar-track {
+  background: #e5e7eb;
+  border-radius: 9999px;
+}
+
+.admin-scroll-x::-webkit-scrollbar-thumb {
+  background-color: #4b5563;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background-clip: content-box;
+}
+
+.admin-scroll-x::-webkit-scrollbar-thumb:hover {
+  background-color: #374151;
 }

@@ -53,7 +53,7 @@ function LandMini({ land, lotId }: { land: Land; lotId?: string }) {
   const lot = land.lots?.find((l) => l.id === lotId);
   return (
     <div className="flex gap-3 p-3 rounded-xl bg-gray-50 border border-gray-200">
-      <img src={lot?.imageUrl || land.imageUrl} alt="" className="w-24 h-20 rounded-lg object-cover shrink-0" referrerPolicy="no-referrer" />
+      <img src={lot?.imageUrl || land.imageUrl} alt="" className="w-24 h-20 rounded-lg object-cover shrink-0" referrerPolicy="no-referrer" loading="lazy" decoding="async" />
       <div className="min-w-0 text-sm">
         <p className="font-semibold text-navy-900 truncate">{land.title}{lot && ` — ${lot.number}`}</p>
         <p className="text-gray-500 truncate">{land.location}</p>
@@ -84,10 +84,10 @@ export function LandDetails({ landId, lotId }: { landId: string; lotId?: string 
       <Section
         title="Terrain souhaité"
         icon={<MapPin className="w-4 h-4" />}
-        action={<Link to="/admin/terrains" className="text-xs text-gold-600 hover:underline">Voir dans le catalogue</Link>}
+        action={<Link to="/admin/terrains" className="text-xs text-gold-700 hover:underline">Voir dans le catalogue</Link>}
       >
         <div className="grid md:grid-cols-5 gap-5">
-          <img src={land.imageUrl} alt={land.title} className="md:col-span-2 w-full aspect-[4/3] rounded-xl object-cover" referrerPolicy="no-referrer" />
+          <img src={land.imageUrl} alt={land.title} className="md:col-span-2 w-full aspect-[4/3] rounded-xl object-cover" referrerPolicy="no-referrer" loading="lazy" decoding="async" />
           <div className="md:col-span-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <h3 className="text-lg font-bold text-navy-900">{land.title}</h3>
@@ -99,7 +99,7 @@ export function LandDetails({ landId, lotId }: { landId: string; lotId?: string 
               <Info label="Prix total" value={fmtAr(land.price)} />
               <Info label="Surface totale" value={fmtM2(land.area)} />
               <Info label="Prix au m²" value={land.area ? `${fmtNum(Math.round(land.price / land.area))} Ar` : '—'} />
-              <Info label="Statut juridique" value={<span className="inline-flex items-center gap-1"><FileCheck className="w-3.5 h-3.5 text-gold-600" /> {land.titleStatus}</span>} />
+              <Info label="Statut juridique" value={<span className="inline-flex items-center gap-1"><FileCheck className="w-3.5 h-3.5 text-gold-700" /> {land.titleStatus}</span>} />
               <Info label="Référence catalogue" value={`#${land.id}`} />
               <Info label="Parcelles" value={lots.length ? `${lots.length} lots · ${sold} vendu(s)` : 'Terrain non loti'} />
             </dl>
@@ -115,7 +115,7 @@ export function LandDetails({ landId, lotId }: { landId: string; lotId?: string 
       {lot && (
         <Section title={`Parcelle choisie : ${lot.number}`} icon={<Square className="w-4 h-4" />}>
           <div className="flex flex-col sm:flex-row gap-4">
-            {lot.imageUrl && <img src={lot.imageUrl} alt={lot.number} className="sm:w-48 aspect-[4/3] rounded-xl object-cover" referrerPolicy="no-referrer" />}
+            {lot.imageUrl && <img src={lot.imageUrl} alt={lot.number} className="sm:w-48 aspect-[4/3] rounded-xl object-cover" referrerPolicy="no-referrer" loading="lazy" decoding="async" />}
             <div className="flex-1">
               <dl className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <Info label="Surface" value={fmtM2(lot.area)} />
@@ -134,7 +134,7 @@ export function LandDetails({ landId, lotId }: { landId: string; lotId?: string 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {lots.map((l) => (
               <div key={l.id} className={`flex gap-2 p-2 rounded-lg border ${l.id === lotId ? 'border-gold-500 bg-gold-400/10' : 'border-gray-200'}`}>
-                {l.imageUrl && <img src={l.imageUrl} alt="" className="w-14 h-12 rounded object-cover shrink-0" referrerPolicy="no-referrer" />}
+                {l.imageUrl && <img src={l.imageUrl} alt="" className="w-14 h-12 rounded object-cover shrink-0" referrerPolicy="no-referrer" loading="lazy" decoding="async" />}
                 <div className="min-w-0 text-sm">
                   <p className="font-medium">{l.number} · {fmtM2(l.area)}</p>
                   <p className="text-xs text-gray-500">{fmtAr(l.price)}</p>
@@ -182,7 +182,7 @@ export function LandDetails({ landId, lotId }: { landId: string; lotId?: string 
           <ul className="divide-y divide-gray-100 text-sm">
             {interested.map((r) => (
               <li key={r.id} className="py-2 flex justify-between gap-2">
-                <Link to={`/admin/achats/${r.id}`} className="hover:text-gold-600">{fullName(r)} <span className="text-gray-400 font-mono text-xs">{r.ref}</span></Link>
+                <Link to={`/admin/achats/${r.id}`} className="hover:text-gold-700">{fullName(r)} <span className="text-gray-600 font-mono text-xs">{r.ref}</span></Link>
                 <Badge value={r.status} />
               </li>
             ))}
@@ -212,7 +212,7 @@ export function lateCount(actions: PlannedAction[]) {
 }
 
 export function ActionLabel({ a }: { a?: PlannedAction }) {
-  if (!a) return <span className="text-gray-400">—</span>;
+  if (!a) return <span className="text-gray-600">—</span>;
   const Icon = ACTION_ICONS[a.type];
   return (
     <span className={`inline-flex items-center gap-1.5 whitespace-nowrap ${isLate(a) ? 'text-red-600 font-semibold' : isToday(a) ? 'text-amber-600 font-semibold' : ''}`}>
@@ -234,7 +234,7 @@ export function ActionPlanner({ actions, onPlan, onComplete, onDelete }: {
       icon={<CalendarClock className="w-4 h-4" />}
       action={<button className={btnGold} onClick={onPlan}><Plus className="w-4 h-4" /> Planifier</button>}
     >
-      {!todo.length && <p className="text-sm text-gray-400">Aucune action à venir. Planifiez un appel, un rendez-vous ou une visite.</p>}
+      {!todo.length && <p className="text-sm text-gray-600">Aucune action à venir. Planifiez un appel, un rendez-vous ou une visite.</p>}
       <ul className="space-y-2">
         {todo.map((a) => {
           const Icon = ACTION_ICONS[a.type];
@@ -324,7 +324,7 @@ export function CompleteDialog({ action, onClose, onSave }: { action: PlannedAct
 /** Journal des actions effectuées (appels, rendez-vous… avec leur compte rendu). */
 export function DoneActions({ actions }: { actions: PlannedAction[] }) {
   const done = actions.filter((a) => a.done).sort((a, b) => (b.doneAt ?? b.at).localeCompare(a.doneAt ?? a.at));
-  if (!done.length) return <p className="text-sm text-gray-400">Aucune action effectuée pour l’instant.</p>;
+  if (!done.length) return <p className="text-sm text-gray-600">Aucune action effectuée pour l’instant.</p>;
   return (
     <ul className="space-y-2">
       {done.map((a) => {
@@ -333,7 +333,7 @@ export function DoneActions({ actions }: { actions: PlannedAction[] }) {
           <li key={a.id} className="flex gap-3 p-3 rounded-xl border border-gray-100">
             <span className="shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center"><Icon className="w-4 h-4" /></span>
             <div className="min-w-0">
-              <p className="text-sm font-semibold">{a.type} <span className="font-normal text-gray-400">· {fmtDateTime(a.doneAt ?? a.at)}</span></p>
+              <p className="text-sm font-semibold">{a.type} <span className="font-normal text-gray-600">· {fmtDateTime(a.doneAt ?? a.at)}</span></p>
               {a.note && <p className="text-xs text-gray-500">{a.note}</p>}
               {a.result && <p className="text-sm mt-1">{a.result}</p>}
             </div>

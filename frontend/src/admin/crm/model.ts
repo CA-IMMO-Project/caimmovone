@@ -3,6 +3,7 @@
 // fichiers (photos, vidéos, documents) dans IndexedDB (voir files.ts).
 
 import { newId } from '../../lib/store';
+import { formatPhone, normalizePhone } from '../../lib/phone';
 
 // ---------- Listes de choix ----------
 export const REGIONS = [
@@ -11,7 +12,6 @@ export const REGIONS = [
   'Vatovavy', 'Fitovinany', 'Atsimo-Atsinanana', 'Ihorombe', 'Menabe', 'Atsimo-Andrefana', 'Androy', 'Anosy',
 ];
 export const COUNTRIES = ['Madagascar', 'France', 'La Réunion', 'Autre'] as const;
-export const DIAL_CODES = ['+261', '+33', '+262', '+1', '+44', '+49', '+230'];
 export const AGENTS = ['Non assigné', 'Hery Rakoto', 'Fanja Randria', 'Tiana Rabe', 'Mialy Andriam'];
 export const SOURCES = ['Site web', 'Téléphone', 'Facebook', 'WhatsApp', 'Agence', 'Recommandation', 'Autre'];
 export const PRIORITIES = ['Faible', 'Normale', 'Haute', 'Urgente'] as const;
@@ -44,7 +44,7 @@ export const DEPOSITS: [string, number][] = [
 ];
 export const FREQUENCIES = ['Mensuelle', 'Bimestrielle', 'Trimestrielle', 'Personnalisée'];
 export const LAND_STATUSES = [
-  'Brouillon', 'Nouveau', 'Dossier incomplet', 'À vérifier', 'Vérification terrain programmée', 'Vérification juridique',
+  'Brouillon', 'Nouveau', "À l'étude", 'Dossier incomplet', 'À vérifier', 'Vérification terrain programmée', 'Vérification juridique',
   'Validé', 'Publié', 'En négociation', 'Réservé', 'Vendu', 'Rejeté', 'Archivé',
 ] as const;
 export const CHECKLIST = [
@@ -239,7 +239,8 @@ export function depositPercent(f: Pick<LandFile, 'depositRange' | 'depositCustom
 }
 
 export const fullName = (p: Pick<Person, 'firstName' | 'lastName'>) => `${p.firstName} ${p.lastName}`.trim();
-export const phoneOf = (p: Pick<Person, 'dialCode' | 'phone'>) => [p.dialCode, p.phone].filter(Boolean).join(' ').trim(); // robuste si dialCode absent
+/** Affiche tous les numéros malgaches au format national, même les anciens +261 03… */
+export const phoneOf = (p: Pick<Person, 'dialCode' | 'phone'>) => formatPhone(p.phone, p.dialCode);
 export const ACTOR = 'Administrateur';
 
 export function historyEntry(text: string): HistoryEntry {
@@ -274,7 +275,12 @@ export function getBuyRequest(id: string) {
 /** Enregistre une demande : visible immédiatement (cache), persistée vers l'API.
     Retourne l'objet tel que stocké (id serveur une fois la réponse arrivée). */
 export async function saveBuyRequest(r: BuyRequest): Promise<BuyRequest> {
-  const item: BuyRequest = { ...r, updatedAt: new Date().toISOString() };
+  const item: BuyRequest = {
+    ...r,
+    phone: normalizePhone(r.phone, r.dialCode),
+    dialCode: '',
+    updatedAt: new Date().toISOString(),
+  };
   upsertSync('requests', item);
   try {
     const server = await saveRequestApi(item);
@@ -307,7 +313,15 @@ export function getLandFile(id: string) {
   return getLandFiles().find((f) => f.id === id);
 }
 export async function saveLandFile(f: LandFile): Promise<LandFile> {
-  const item: LandFile = { ...f, updatedAt: new Date().toISOString() };
+  const item: LandFile = {
+    ...f,
+    owner: {
+      ...f.owner,
+      phone: normalizePhone(f.owner.phone, f.owner.dialCode),
+      dialCode: '',
+    },
+    updatedAt: new Date().toISOString(),
+  };
   upsertSync('landFiles', item);
   try {
     const server = await saveLandFileApi(item);
@@ -327,7 +341,7 @@ export async function deleteLandFile(id: string): Promise<void> {
 
 // ---------- Nouveaux dossiers ----------
 const emptyPerson = (): Person => ({
-  firstName: '', lastName: '', dialCode: '+261', phone: '', email: '', birthDate: '', profession: '',
+  firstName: '', lastName: '', dialCode: '', phone: '', email: '', birthDate: '', profession: '',
   country: 'Madagascar', countryOther: '', address: '', hasBankAccount: '', bank: '',
 });
 

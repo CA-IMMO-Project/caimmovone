@@ -116,6 +116,7 @@ export default function Lands() {
     maxPrice: searchParams.get("max") ?? "",
     minArea: searchParams.get("amin") ?? "",
     maxArea: searchParams.get("amax") ?? "",
+    maxPricePerSqm: searchParams.get("prixm2") ?? "",
     relief: (searchParams.get("relief") as Relief | "") ?? "",
     payment: (searchParams.get("paiement") as FilterState["payment"]) ?? "",
     titleStatus: searchParams.get("titre") ?? "",
@@ -138,6 +139,8 @@ export default function Lands() {
   const [zones, setZones] = useState<string[]>([]);
   const [lands, setLands] = useState<Land[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   const update = <K extends keyof FilterState>(
     key: K,
@@ -161,6 +164,7 @@ export default function Lands() {
     if (filters.maxPrice) p.set("max", filters.maxPrice);
     if (filters.minArea) p.set("amin", filters.minArea);
     if (filters.maxArea) p.set("amax", filters.maxArea);
+    if (filters.maxPricePerSqm) p.set("prixm2", filters.maxPricePerSqm);
     if (filters.relief) p.set("relief", filters.relief);
     if (filters.payment) p.set("paiement", filters.payment);
     if (filters.titleStatus) p.set("titre", filters.titleStatus);
@@ -182,7 +186,9 @@ export default function Lands() {
   }, []);
 
   useEffect(() => {
+    let active = true;
     setLoading(true);
+    setLoadError(false);
     const timeout = setTimeout(() => {
       const payload: LandFilters = {
         q: filters.q || undefined,
@@ -203,12 +209,25 @@ export default function Lands() {
         sort,
       };
       fetchLands(payload)
-        .then(setLands)
-        .catch(() => setLands([]))
-        .finally(() => setLoading(false));
+        .then((results) => {
+          if (!active) return;
+          setLands(results);
+          setLoadError(false);
+        })
+        .catch(() => {
+          if (!active) return;
+          setLands([]);
+          setLoadError(true);
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
     }, 250);
-    return () => clearTimeout(timeout);
-  }, [filters, sort]);
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
+  }, [filters, sort, retryCount]);
 
   const activeChips = useMemo(() => {
     const chips: { key: keyof FilterState; label: string }[] = [];
@@ -705,6 +724,14 @@ export default function Lands() {
                     </div>
                   ))}
                 </div>
+              ) : loadError ? (
+                <div role="alert" className="mx-auto max-w-2xl rounded-2xl border border-red-200 bg-red-50 px-6 py-8 text-center">
+                  <h2 className="text-lg font-bold text-red-900">Impossible de charger le catalogue</h2>
+                  <p className="mt-2 text-sm leading-relaxed text-red-800">Une erreur de connexion empêche l’affichage des terrains. Vos filtres restent en place ; réessayez dans un instant.</p>
+                  <button type="button" onClick={() => setRetryCount((count) => count + 1)} className="btn-outline mt-5">
+                    <RotateCcw className="h-4 w-4" /> Réessayer
+                  </button>
+                </div>
               ) : currentItems.length > 0 ? (
                 <div
                   className={`grid gap-7 ${view === "grid" ? (showFilters ? "md:grid-cols-2" : "md:grid-cols-2 xl:grid-cols-3") : "grid-cols-1"}`}
@@ -739,11 +766,13 @@ export default function Lands() {
                 </EmptyState>
               )}
 
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-              />
+              {!loadError && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -757,7 +786,7 @@ export default function Lands() {
             <h2 className="mt-5 text-2xl font-bold leading-tight tracking-tight text-navy-900 md:text-3xl">
               Confiez-nous la recherche
               <br />
-              de votre <span className="text-gold-500">terrain idéal</span>
+              de votre <span className="text-gold-700">terrain idéal</span>
             </h2>
             <p className="mt-5 max-w-md text-sm font-normal leading-relaxed text-navy-900/85">
               Zone, surface, budget, environnement : décrivez-nous votre projet
@@ -773,6 +802,8 @@ export default function Lands() {
               src="/media/terrains/colline.jpg"
               alt="Paysage de terrain à Madagascar"
               className="absolute inset-0 h-full w-full object-cover"
+              loading="lazy"
+              decoding="async"
               referrerPolicy="no-referrer"
             />
           </div>

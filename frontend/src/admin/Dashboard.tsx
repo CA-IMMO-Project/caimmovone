@@ -125,11 +125,11 @@ export default function Dashboard() {
                 <span className={`grid h-10 w-10 place-items-center rounded-xl ${tint}`}>
                   <Icon className="w-5 h-5" />
                 </span>
-                <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-gold-600 transition-colors" />
+                <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-gold-700 transition-colors" />
               </div>
               <p className="mt-3 text-3xl font-bold text-navy-900">{value}</p>
               <p className="text-sm font-medium text-gray-600">{label}</p>
-              <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
+              <p className="text-xs text-gray-600 mt-0.5">{sub}</p>
             </Card>
           </Link>
         ))}
@@ -166,7 +166,7 @@ export default function Dashboard() {
           </div>
           <p className="text-xs text-gray-500">Valeur des terrains disponibles</p>
           <p className="text-2xl font-bold text-navy-900 mt-1">{formatAriary(stockValue)}</p>
-          <p className="text-xs text-gray-400 mt-1">prix moyen : {formatAriary(avgPrice)}</p>
+          <p className="text-xs text-gray-600 mt-1">prix moyen : {formatAriary(avgPrice)}</p>
           <div className="mt-4 space-y-2 text-sm">
             <p className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-green-500" /> Disponibles <span className="ml-auto font-semibold text-navy-900">{available.length}</span></p>
             <p className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Réservés <span className="ml-auto font-semibold text-navy-900">{reserved.length}</span></p>
@@ -190,7 +190,7 @@ export default function Dashboard() {
                   <Avatar name={fullName(r)} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium text-navy-900">{fullName(r)}</span>
-                    <span className="block text-xs text-gray-400">{r.ref} · {fmtRel(r.createdAt)}</span>
+                    <span className="block text-xs text-gray-600">{r.ref} · {fmtRel(r.createdAt)}</span>
                   </span>
                   <Badge value={r.status} />
                 </Link>
@@ -209,11 +209,11 @@ export default function Dashboard() {
             {todo.slice(0, 4).map((a) => (
               <li key={a.id} className="text-sm">
                 <ActionLabel a={a} />
-                {a.note && <p className="text-xs text-gray-400 truncate ml-5">{a.note}</p>}
+                {a.note && <p className="text-xs text-gray-600 truncate ml-5">{a.note}</p>}
               </li>
             ))}
           </ul>
-          {todo.length > 4 && <p className="text-xs text-gray-400 mt-3">+ {todo.length - 4} autre(s) action(s)</p>}
+          {todo.length > 4 && <p className="text-xs text-gray-600 mt-3">+ {todo.length - 4} autre(s) action(s)</p>}
         </Card>
 
         <Card className="p-5">
@@ -229,7 +229,7 @@ export default function Dashboard() {
                   <Avatar name={`${m.firstName} ${m.lastName}`} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium text-navy-900">{m.firstName} {m.lastName}</span>
-                    <span className="block text-xs text-gray-400 truncate">{m.subject || m.message}</span>
+                    <span className="block text-xs text-gray-600 truncate">{m.subject || m.message}</span>
                   </span>
                   {m.status === 'nouveau' && <span className="shrink-0 h-2 w-2 rounded-full bg-gold-500" aria-label="non traité" />}
                 </Link>
@@ -240,7 +240,7 @@ export default function Dashboard() {
       </div>
 
       {/* — Rappel discret : valeur du stock — */}
-      <p className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-400">
+      <p className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-600">
         <Wallet className="w-3.5 h-3.5" />
         Valeur du stock disponible : {formatAriary(stockValue)} · {available.length} terrain(s)
       </p>

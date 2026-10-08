@@ -17,6 +17,8 @@ const USAGE_KEYWORDS: Record<string, string[]> = {
 
 export type LandSort = 'recent' | 'priceAsc' | 'priceDesc' | 'area';
 
+const naturalIdOrder = new Intl.Collator('fr', { numeric: true, sensitivity: 'base' });
+
 export interface LandFilters {
   q?: string;
   region?: string;
@@ -89,8 +91,8 @@ export async function fetchLands(filters: LandFilters = {}): Promise<Land[]> {
       sorted.sort((a, b) => b.area - a.area);
       break;
     default:
-      // « Plus récents » : les biens mis en avant d'abord, puis par référence.
-      sorted.sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || b.id.localeCompare(a.id));
+      // Mise en avant d'abord, puis ordre naturel numérique des identifiants (land-10 avant land-2).
+      sorted.sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || naturalIdOrder.compare(b.id, a.id));
   }
   return sorted;
 }

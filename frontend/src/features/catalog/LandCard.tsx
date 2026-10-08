@@ -27,6 +27,8 @@ export default function LandCard({ land, horizontal = false }: LandCardProps) {
           src={full.gallery[0]}
           alt={land.title}
           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+          loading="lazy"
+          decoding="async"
           referrerPolicy="no-referrer"
         />
 
@@ -49,14 +51,13 @@ export default function LandCard({ land, horizontal = false }: LandCardProps) {
       {/* — Contenu — */}
       <div className={`flex flex-1 flex-col p-6 ${horizontal ? 'justify-center' : ''}`}>
         <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-navy-900/70">
-          <MapPin className="h-3.5 w-3.5 shrink-0 text-gold-600" />
+          <MapPin className="h-3.5 w-3.5 shrink-0 text-gold-700" />
           <span className="truncate">{land.location}</span>
         </div>
 
         <h3 className="mt-2.5 line-clamp-2 min-h-[2.6em] text-lg font-bold leading-snug tracking-tight text-navy-900 sm:text-xl">
           <Link to={`/terrains/${land.id}`} className="transition-colors hover:text-navy-800">
             {land.title}
-            <span className="absolute inset-0 z-0" aria-hidden />
           </Link>
         </h3>
 
@@ -85,10 +86,13 @@ export default function LandCard({ land, horizontal = false }: LandCardProps) {
               {formatAriary(pricePerSqm(land))} / m² · Réf. {landReference(full)}
             </span>
           </div>
-          {/* Un seul arrêt clavier : le lien étiré sur toute la carte. */}
-          <span className="relative z-10 inline-flex shrink-0 items-center gap-1.5 rounded-full bg-mist px-4 py-2.5 text-xs font-bold text-navy-900 transition-colors group-hover:bg-gold-500">
-            Voir le terrain <ArrowRight className="h-3.5 w-3.5" />
-          </span>
+          <Link
+            to={`/terrains/${land.id}`}
+            aria-label={`Voir le terrain ${land.title}`}
+            className="relative z-10 inline-flex shrink-0 items-center gap-1.5 rounded-full bg-mist px-4 py-2.5 text-xs font-bold text-navy-900 transition-colors hover:bg-gold-500 focus-visible:ring-2 focus-visible:ring-navy-900 focus-visible:ring-offset-2"
+          >
+            Voir le terrain <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </Link>
         </div>
       </div>
     </article>

@@ -5,7 +5,8 @@ import {
 } from 'lucide-react';
 import { Land } from '../types';
 import { getLands, resetLands } from '../lib/store';
-import { formatAriary, formatArea } from '../lib/format';
+import { formatAriary, formatArea, formatDateShort } from '../lib/format';
+import { formatPhone } from '../lib/phone';
 import { Badge, Card, PageHeader, btnGhost, btnPrimary } from './ui';
 import { ListToolbar, Select } from './crm/kit';
 import { refreshCache, subscribeCache } from './crm/sync';
@@ -13,40 +14,7 @@ import { askConfirm } from './crm/dialog';
 import SaleDialog from './SaleDialog';
 import { ClientRows, InterestDialog, LotDialog } from './LotDialog';
 import { getBuyRequests } from './crm/model';
-import { LAND_STATUSES, PUBLICATION_STATUSES } from './landCatalog';
-
-function publicationTone(status: Land['publicationStatus']) {
-  switch (status) {
-    case 'publie':
-      return 'bg-green-100 text-green-800';
-    case 'archive':
-      return 'bg-gray-200 text-gray-700';
-    default:
-      return 'bg-amber-100 text-amber-800';
-  }
-}
-
-function publicationLabel(status: Land['publicationStatus']) {
-  switch (status) {
-    case 'publie':
-      return 'Publié';
-    case 'archive':
-      return 'Archivé';
-    default:
-      return 'Brouillon';
-  }
-}
-
-function frontSummary(land: Land) {
-  const gallery = [...new Set([land.imageUrl, ...(land.gallery ?? [])].filter(Boolean))] as string[];
-  return {
-    gallery,
-    galleryCount: gallery.length,
-    documentsCount: land.documents?.length ?? 0,
-    payment: land.payment?.trim() || 'À préciser',
-    access: land.access?.trim() || 'À préciser',
-  };
-}
+import { LAND_STATUSES, PUBLICATION_STATUSES, landFrontSummary, publicationLabel, publicationTone } from './landCatalog';
 
 export default function AdminLands() {
   const navigate = useNavigate();
@@ -105,8 +73,9 @@ export default function AdminLands() {
         activeFilters={(status ? 1 : 0) + (publicationStatus ? 1 : 0)}
       />
 
-      <Card className="overflow-x-auto">
-        <table className="w-full text-sm">
+      <Card className="overflow-hidden">
+        <div className="admin-scroll-x" role="region" aria-label="Tableau du catalogue, défilement horizontal possible" tabIndex={0}>
+        <table className="w-full min-w-[760px] text-sm">
           <thead className="bg-gray-50 text-left text-gray-500">
             <tr>
               <th className="p-3 font-medium">Terrain</th>
@@ -120,15 +89,15 @@ export default function AdminLands() {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {filtered.map((land) => {
-              const summary = frontSummary(land);
+              const summary = landFrontSummary(land);
               const isOpen = expanded === land.id;
               return (
                 <Fragment key={land.id}>
                   <tr className="cursor-pointer hover:bg-gray-50" onClick={() => setExpanded(isOpen ? null : land.id)}>
                     <td className="h-16 p-3">
                       <div className="flex items-center gap-3">
-                        <ChevronRight className={`w-4 h-4 shrink-0 transition-transform text-gray-400 ${isOpen ? 'rotate-90' : ''}`} />
-                        {land.imageUrl && <img src={land.imageUrl} alt="" className="h-10 w-14 rounded object-cover" referrerPolicy="no-referrer" />}
+                        <ChevronRight className={`w-4 h-4 shrink-0 transition-transform text-gray-600 ${isOpen ? 'rotate-90' : ''}`} />
+                        {land.imageUrl && <img src={land.imageUrl} alt="" className="h-10 w-14 rounded object-cover" referrerPolicy="no-referrer" loading="lazy" decoding="async" />}
                         <div className="min-w-0">
                           <p className="max-w-[260px] truncate font-medium text-navy-900" title={land.title}>{land.title}</p>
                           <p className="mt-1 truncate text-xs text-gray-500">{land.titleStatus}{land.zone ? ` · ${land.zone}` : ''}</p>
@@ -159,15 +128,14 @@ export default function AdminLands() {
                       <td colSpan={7} className="px-3 pb-4 pt-1">
                         <div className="space-y-4 pl-7">
                           {summary.gallery.length > 0 && (
-                            <div className="flex gap-2 overflow-x-auto pb-1">
+                            <div className="admin-scroll-x flex gap-2 pb-1">
                               {summary.gallery.slice(0, 8).map((src, i) => (
                                 <img
                                   key={`${src}-${i}`}
                                   src={src}
                                   alt={`${land.title} — visuel ${i + 1}`}
                                   className="h-20 w-28 shrink-0 rounded-lg border border-gray-200 object-cover"
-                                  referrerPolicy="no-referrer"
-                                />
+                                  referrerPolicy="no-referrer" loading="lazy" decoding="async" />
                               ))}
                             </div>
                           )}
@@ -201,7 +169,7 @@ export default function AdminLands() {
                               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                                 {land.lots.map((lot) => (
                                   <div key={lot.id} className="flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white">
-                                    {lot.imageUrl && <img src={lot.imageUrl} alt="" className="h-24 w-full object-cover" referrerPolicy="no-referrer" />}
+                                    {lot.imageUrl && <img src={lot.imageUrl} alt="" className="h-24 w-full object-cover" referrerPolicy="no-referrer" loading="lazy" decoding="async" />}
                                     <div className="flex flex-1 flex-col p-3">
                                       <div className="flex items-center justify-between gap-2">
                                         <span className="font-medium text-navy-900">{lot.number}</span>
@@ -214,7 +182,7 @@ export default function AdminLands() {
                                         const buyer = land.sales?.find((sale) => sale.lotId === lot.id)?.buyer;
                                         return (
                                           <p className="mt-2 flex items-center gap-1 text-xs text-gray-600">
-                                            <Users className="h-3.5 w-3.5 text-gold-600" />
+                                            <Users className="h-3.5 w-3.5 text-gold-700" />
                                             {buyer ? `Acheteur : ${buyer.firstName} ${buyer.lastName}` : `${count} client(s) intéressé(s)`}
                                           </p>
                                         );
@@ -238,17 +206,17 @@ export default function AdminLands() {
 
                           <div className="grid gap-4 lg:grid-cols-2">
                             <div className="rounded-lg border border-gray-200 bg-white p-3">
-                              <p className="mb-2 flex items-center gap-2 font-medium text-navy-900"><Receipt className="w-4 h-4 text-gold-600" /> Historique des ventes</p>
-                              {!land.sales?.length ? <p className="text-sm text-gray-400">Aucune vente enregistrée.</p> : (
+                              <p className="mb-2 flex items-center gap-2 font-medium text-navy-900"><Receipt className="w-4 h-4 text-gold-700" /> Historique des ventes</p>
+                              {!land.sales?.length ? <p className="text-sm text-gray-600">Aucune vente enregistrée.</p> : (
                                 <ul className="divide-y divide-gray-100">
                                   {[...land.sales].sort((x, y) => y.date.localeCompare(x.date)).map((sale) => (
                                     <li key={sale.id} className="py-2 text-sm">
                                       <div className="flex flex-wrap justify-between gap-2">
-                                        <Link to={`/admin/achats/${sale.buyRequestId}`} className="font-medium hover:text-gold-600">{sale.buyer.firstName} {sale.buyer.lastName}</Link>
+                                        <Link to={`/admin/achats/${sale.buyRequestId}`} className="font-medium hover:text-gold-700">{sale.buyer.firstName} {sale.buyer.lastName}</Link>
                                         <span className="font-semibold">{formatAriary(sale.price)}</span>
                                       </div>
                                       <p className="text-xs text-gray-500">
-                                        {new Date(sale.date).toLocaleDateString('fr-FR')} · {sale.lotId ? land.lots?.find((lot) => lot.id === sale.lotId)?.number ?? 'Parcelle' : 'Terrain entier'} · {sale.buyer.phone} · {sale.paymentMode.split(' –')[0]}
+                                        {formatDateShort(sale.date)} · {sale.lotId ? land.lots?.find((lot) => lot.id === sale.lotId)?.number ?? 'Parcelle' : 'Terrain entier'} · {formatPhone(sale.buyer.phone)} · {sale.paymentMode.split(' –')[0]}
                                       </p>
                                       {sale.notes && <p className="mt-0.5 text-xs text-gray-600">{sale.notes}</p>}
                                     </li>
@@ -258,12 +226,12 @@ export default function AdminLands() {
                             </div>
                             <div className="rounded-lg border border-gray-200 bg-white p-3">
                               <div className="mb-2 flex items-center justify-between gap-2">
-                                <p className="flex items-center gap-2 font-medium text-navy-900"><Users className="w-4 h-4 text-gold-600" /> Clients intéressés</p>
+                                <p className="flex items-center gap-2 font-medium text-navy-900"><Users className="w-4 h-4 text-gold-700" /> Clients intéressés</p>
                                 {land.status !== 'vendu' && <button onClick={() => setInterest(land)} className={`${btnGhost} text-navy-900`}><UserPlus className="w-4 h-4" /> Ajouter</button>}
                               </div>
                               {(() => {
                                 const list = requests.filter((request) => request.landId === land.id && request.status !== 'Achat finalisé');
-                                if (!list.length) return <p className="text-sm text-gray-400">Aucun client intéressé pour l’instant.</p>;
+                                if (!list.length) return <p className="text-sm text-gray-600">Aucun client intéressé pour l’instant.</p>;
                                 return <ClientRows rows={list} />;
                               })()}
                             </div>
@@ -280,6 +248,10 @@ export default function AdminLands() {
             )}
           </tbody>
         </table>
+        </div>
+        <p className="border-t border-gray-100 bg-gray-50/60 px-4 py-1.5 text-[11px] text-gray-500 sm:hidden">
+          Faites glisser le tableau horizontalement pour voir toutes les colonnes.
+        </p>
       </Card>
 
       {lotView && (

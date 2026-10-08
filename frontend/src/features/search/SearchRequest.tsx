@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowRight,
@@ -41,6 +41,7 @@ import type {
 } from "../../services/requestService";
 
 import { PHONE_1, PHONE_1_TEL } from "../../lib/contact";
+import { PHONE_PLACEHOLDER } from "../../lib/phone";
 import {
   phoneError,
   emailError,
@@ -136,7 +137,7 @@ export default function SearchRequest() {
     contribution: "",
     deadline: "Dès que possible" as (typeof DEADLINES)[number],
     info: "",
-    consent: true,
+    consent: false,
   });
   const [needs, setNeeds] = useState<string[]>([]);
 
@@ -388,7 +389,7 @@ export default function SearchRequest() {
                     </strong>
                     <a
                       href={PHONE_1_TEL}
-                      className="mt-0.5 block text-xs font-semibold text-navy-900/80 transition hover:text-gold-600"
+                      className="mt-0.5 block text-xs font-semibold text-navy-900/80 transition hover:text-gold-700"
                     >
                       {PHONE_1}
                     </a>
@@ -462,7 +463,7 @@ export default function SearchRequest() {
                         <FormField label="Téléphone" required>
                           <Input
                             type="tel"
-                            placeholder="+261 34 00 000 00"
+                            placeholder={PHONE_PLACEHOLDER}
                             inputMode="tel"
                             value={form.phone}
                             onChange={(e) =>
@@ -865,9 +866,7 @@ export default function SearchRequest() {
                             />
                           </span>
                           <p className="text-xs font-normal leading-relaxed text-navy-900/85">
-                            J’accepte d’être contacté(e) par CA IMMO au sujet de
-                            ma recherche et j’ai lu la politique de
-                            confidentialité.
+                            J’accepte d’être contacté(e) par CA IMMO au sujet de ma recherche et j’ai pris connaissance des <Link to="/confidentialite" onClick={(event) => event.stopPropagation()} className="font-semibold underline decoration-gold-500 underline-offset-2">informations sur mes données personnelles</Link>.
                           </p>
                         </label>
                       </div>
@@ -896,7 +895,7 @@ export default function SearchRequest() {
                 ) : (
                   <button
                     onClick={submit}
-                    disabled={sending}
+                    disabled={sending || !form.consent}
                     className="btn-gold disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Confier ma recherche <ArrowRight className="h-4 w-4" />

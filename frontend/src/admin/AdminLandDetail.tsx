@@ -11,7 +11,8 @@ import {
 import { Land } from '../types';
 import type { StoredFile } from './crm/model';
 import { deleteLand, getLands } from '../lib/store';
-import { formatAriary, formatArea } from '../lib/format';
+import { formatAriary, formatArea, formatDateShort } from '../lib/format';
+import { formatPhone } from '../lib/phone';
 import { Badge, Card, PageHeader, btnGhost, btnPrimary } from './ui';
 import { btnDanger, FileChip, Info, MapPicker, Preview, Section, Tabs } from './crm/kit';
 import { refreshCache, subscribeCache } from './crm/sync';
@@ -19,39 +20,7 @@ import { askConfirm } from './crm/dialog';
 import SaleDialog from './SaleDialog';
 import { ClientRows, InterestDialog, LotDialog } from './LotDialog';
 import { getBuyRequests } from './crm/model';
-
-function publicationTone(status: Land['publicationStatus']) {
-  switch (status) {
-    case 'publie':
-      return 'bg-green-100 text-green-800';
-    case 'archive':
-      return 'bg-gray-200 text-gray-700';
-    default:
-      return 'bg-amber-100 text-amber-800';
-  }
-}
-
-function publicationLabel(status: Land['publicationStatus']) {
-  switch (status) {
-    case 'publie':
-      return 'Publié';
-    case 'archive':
-      return 'Archivé';
-    default:
-      return 'Brouillon';
-  }
-}
-
-function frontSummary(land: Land) {
-  const gallery = [...new Set([land.imageUrl, ...(land.gallery ?? [])].filter(Boolean))] as string[];
-  return {
-    gallery,
-    galleryCount: gallery.length,
-    documentsCount: land.documents?.length ?? 0,
-    payment: land.payment?.trim() || 'À préciser',
-    access: land.access?.trim() || 'À préciser',
-  };
-}
+import { landFrontSummary, publicationLabel, publicationTone } from './landCatalog';
 
 export default function AdminLandDetail() {
   const { id } = useParams<{ id: string }>();
@@ -73,7 +42,7 @@ export default function AdminLandDetail() {
   if (!land) return <Navigate to="/admin/terrains" replace />;
 
   const refresh = () => setLands(getLands());
-  const summary = frontSummary(land);
+  const summary = landFrontSummary(land);
 
   const remove = async () => {
     if (!(await askConfirm(`Supprimer « ${land.title} » ? Cette action est définitive.`))) return;
@@ -116,8 +85,7 @@ export default function AdminLandDetail() {
               src={summary.gallery[0]}
               alt={land.title}
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-              referrerPolicy="no-referrer"
-            />
+              referrerPolicy="no-referrer" loading="lazy" decoding="async" />
             <span className="absolute bottom-4 left-4 flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-navy-900 backdrop-blur-md">
               <Expand className="h-3.5 w-3.5" /> Agrandir
             </span>
@@ -136,14 +104,14 @@ export default function AdminLandDetail() {
                   aria-label={`Photo ${i + 1} sur ${summary.gallery.length}`}
                   className={`relative h-16 overflow-hidden rounded-lg bg-navy-900/5 sm:h-20 ${i === 0 ? 'ring-2 ring-gold-500 ring-offset-1' : ''}`}
                 >
-                  <img src={src} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                  <img src={src} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" loading="lazy" decoding="async" />
                 </button>
               ))}
             </div>
           )}
         </div>
       ) : (
-        <div className="mb-5 flex h-32 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-400">
+        <div className="mb-5 flex h-32 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-600">
           Aucun visuel déposé pour cette fiche — ajoutez-en depuis « Modifier ».
         </div>
       )}
@@ -173,8 +141,8 @@ export default function AdminLandDetail() {
             <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Info label="Surface" value={formatArea(land.area)} />
               <Info label="Prix total" value={formatAriary(land.price)} />
-              <Info label="Prix au m²" value={land.area ? `${Math.round(land.price / land.area).toLocaleString('fr-FR')} Ar` : '—'} />
-              <Info label="Statut juridique" value={<span className="inline-flex items-center gap-1"><ShieldCheck className="h-3.5 w-3.5 text-gold-600" /> {land.titleStatus}</span>} />
+              <Info label="Prix au m²" value={land.area ? formatAriary(Math.round(land.price / land.area)) : '—'} />
+              <Info label="Statut juridique" value={<span className="inline-flex items-center gap-1"><ShieldCheck className="h-3.5 w-3.5 text-gold-700" /> {land.titleStatus}</span>} />
               <Info label="Relief" value={land.relief || 'Non précisé'} />
               <Info label="Localisation affichée" value={land.location} />
               <Info label="Eau" value={<span className="inline-flex items-center gap-1"><Droplets className="h-3.5 w-3.5 text-blue-500" /> {land.water ? 'Disponible' : 'Non précisé'}</span>} />
@@ -200,12 +168,12 @@ export default function AdminLandDetail() {
 
           {land.lots && land.lots.length > 0 && (
             <Card className="p-5">
-              <p className="mb-2 flex items-center gap-2 font-medium text-navy-900"><ImageIcon className="h-4 w-4 text-gold-600" /> Parcelles : {formatArea(land.lots.reduce((total, lot) => total + lot.area, 0))} sur {formatArea(land.area)}</p>
+              <p className="mb-2 flex items-center gap-2 font-medium text-navy-900"><ImageIcon className="h-4 w-4 text-gold-700" /> Parcelles : {formatArea(land.lots.reduce((total, lot) => total + lot.area, 0))} sur {formatArea(land.area)}</p>
               <p className="mb-3 text-xs text-gray-500">Le site public les affiche et les demandes reçues précisent la parcelle choisie.</p>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 {land.lots.map((lot) => (
                   <div key={lot.id} className="flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white">
-                    {lot.imageUrl && <img src={lot.imageUrl} alt="" className="h-24 w-full object-cover" referrerPolicy="no-referrer" />}
+                    {lot.imageUrl && <img src={lot.imageUrl} alt="" className="h-24 w-full object-cover" referrerPolicy="no-referrer" loading="lazy" decoding="async" />}
                     <div className="flex flex-1 flex-col p-3">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-medium text-navy-900">{lot.number}</span>
@@ -218,7 +186,7 @@ export default function AdminLandDetail() {
                         const buyer = land.sales?.find((sale) => sale.lotId === lot.id)?.buyer;
                         return (
                           <p className="mt-2 flex items-center gap-1 text-xs text-gray-600">
-                            <Users className="h-3.5 w-3.5 text-gold-600" />
+                            <Users className="h-3.5 w-3.5 text-gold-700" />
                             {buyer ? `Acheteur : ${buyer.firstName} ${buyer.lastName}` : `${count} client(s) intéressé(s)`}
                           </p>
                         );
@@ -254,7 +222,7 @@ export default function AdminLandDetail() {
               </div>
             </>
           ) : (
-            <p className="text-sm text-gray-400">Aucun document déposé.</p>
+            <p className="text-sm text-gray-600">Aucun document déposé.</p>
           )}
         </Section>
       )}
@@ -262,17 +230,17 @@ export default function AdminLandDetail() {
       {tab === 'sales' && (
         <div className="grid gap-4 lg:grid-cols-2">
           <Card className="p-4">
-            <p className="mb-2 flex items-center gap-2 font-medium text-navy-900"><Receipt className="w-4 h-4 text-gold-600" /> Historique des ventes</p>
-            {!land.sales?.length ? <p className="text-sm text-gray-400">Aucune vente enregistrée.</p> : (
+            <p className="mb-2 flex items-center gap-2 font-medium text-navy-900"><Receipt className="w-4 h-4 text-gold-700" /> Historique des ventes</p>
+            {!land.sales?.length ? <p className="text-sm text-gray-600">Aucune vente enregistrée.</p> : (
               <ul className="divide-y divide-gray-100">
                 {[...land.sales].sort((x, y) => y.date.localeCompare(x.date)).map((sale) => (
                   <li key={sale.id} className="py-2 text-sm">
                     <div className="flex flex-wrap justify-between gap-2">
-                      <Link to={`/admin/achats/${sale.buyRequestId}`} className="font-medium hover:text-gold-600">{sale.buyer.firstName} {sale.buyer.lastName}</Link>
+                      <Link to={`/admin/achats/${sale.buyRequestId}`} className="font-medium hover:text-gold-700">{sale.buyer.firstName} {sale.buyer.lastName}</Link>
                       <span className="font-semibold">{formatAriary(sale.price)}</span>
                     </div>
                     <p className="text-xs text-gray-500">
-                      {new Date(sale.date).toLocaleDateString('fr-FR')} · {sale.lotId ? land.lots?.find((lot) => lot.id === sale.lotId)?.number ?? 'Parcelle' : 'Terrain entier'} · {sale.buyer.phone} · {sale.paymentMode.split(' –')[0]}
+                      {formatDateShort(sale.date)} · {sale.lotId ? land.lots?.find((lot) => lot.id === sale.lotId)?.number ?? 'Parcelle' : 'Terrain entier'} · {formatPhone(sale.buyer.phone)} · {sale.paymentMode.split(' –')[0]}
                     </p>
                     {sale.notes && <p className="mt-0.5 text-xs text-gray-600">{sale.notes}</p>}
                   </li>
@@ -282,12 +250,12 @@ export default function AdminLandDetail() {
           </Card>
           <Card className="p-4">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="flex items-center gap-2 font-medium text-navy-900"><Users className="w-4 h-4 text-gold-600" /> Clients intéressés</p>
+              <p className="flex items-center gap-2 font-medium text-navy-900"><Users className="w-4 h-4 text-gold-700" /> Clients intéressés</p>
               {land.status !== 'vendu' && <button onClick={() => setInterest(true)} className={`${btnGhost} text-navy-900`}><UserPlus className="w-4 h-4" /> Ajouter</button>}
             </div>
             {(() => {
               const list = requests.filter((request) => request.landId === land.id && request.status !== 'Achat finalisé');
-              if (!list.length) return <p className="text-sm text-gray-400">Aucun client intéressé pour l’instant.</p>;
+              if (!list.length) return <p className="text-sm text-gray-600">Aucun client intéressé pour l’instant.</p>;
               return <ClientRows rows={list} />;
             })()}
           </Card>

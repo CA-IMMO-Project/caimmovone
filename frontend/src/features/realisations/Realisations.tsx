@@ -15,16 +15,10 @@ import { getPublishedRealisations } from "../../services/realisationService";
 import type { Realisation } from "../../services/realisationService";
 import { RealisationThumb } from "./RealisationThumb";
 import { WHATSAPP_URL } from "../../lib/contact";
+import { formatArea, formatMonthYear } from "../../lib/format";
 import { EmptyState, Eyebrow, Modal, PageHero } from "../../shared/ui";
 
-const monthLabel = (ym: string) =>
-  ym
-    ? new Date(`${ym}-01`).toLocaleDateString("fr-FR", {
-        month: "long",
-        year: "numeric",
-      })
-    : "";
-const fmtArea = (m2: number) => new Intl.NumberFormat("fr-FR").format(m2);
+const monthLabel = (ym: string) => (ym ? formatMonthYear(`${ym}-01`) : "");
 
 export default function Realisations() {
   const [items, setItems] = useState<Realisation[]>([]);
@@ -166,7 +160,7 @@ export default function Realisations() {
                         <span className="inline-flex items-center gap-2">
                           <Ruler className="h-4 w-4 text-gold-700" />
                           <strong className="font-bold text-navy-900">
-                            {fmtArea(r.area)} m²
+{formatArea(r.area)}
                           </strong>
                         </span>
                       )}
@@ -258,7 +252,7 @@ function RealisationModal({
     {
       icon: Ruler,
       label: "Surface",
-      value: r.area > 0 ? `${fmtArea(r.area)} m²` : "",
+      value: r.area > 0 ? formatArea(r.area) : "",
     },
   ].filter((m) => m.value);
 

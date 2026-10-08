@@ -19,29 +19,38 @@ class Phone
     public static function normalize(?string $phone): string
     {
         $digits = preg_replace('/[\s.\-()]/', '', trim((string) $phone));
-        if (preg_match('/^\+?261(3\d{8})$/', (string) $digits)) {
-            $digits = '0'.substr((string) $digits, -9);
+        if (preg_match('/^\+?261(0?3\d{8})$/', (string) $digits, $matches) === 1) {
+            $national = $matches[1];
+            $digits = str_starts_with($national, '0') ? $national : '0'.$national;
         }
 
         return $digits;
     }
 
     /**
-     * Formats acceptés (mobile Madagascar) :
-     *   034 12 345 67       → 10 chiffres commençant par 03
-     *   +261 34 12 345 67   → 261 + 9 chiffres (le 0 initial est omis)
+     * Formats acceptés :
+     *   034 12 345 67       → mobile local malgache
+     *   +261 34 12 345 67   → mobile malgache international
+     *   +33 6 12 34 56 78   → numéro étranger complet au format E.164
      */
     public static function isValid(?string $phone): bool
     {
-        $digits = ltrim(self::normalize($phone), '+');
+        $normalized = self::normalize($phone);
+        $digits = ltrim($normalized, '+');
 
-        return preg_match('/^03\d{8}$/', $digits) === 1
-            || preg_match('/^2613\d{8}$/', $digits) === 1;
+        if (preg_match('/^03\d{8}$/', $digits) === 1
+            || preg_match('/^2613\d{8}$/', $digits) === 1) {
+            return true;
+        }
+
+        // Les numéros +261 restent soumis à la règle mobile malgache ci-dessus.
+        return ! str_starts_with($normalized, '+261')
+            && preg_match('/^\+[1-9]\d{7,14}$/', $normalized) === 1;
     }
 
     /** Message d'erreur affiché côté site public (422). */
     public static function message(): string
     {
-        return 'Numéro de téléphone invalide. Format attendu : 034 12 345 67 ou +261 34 12 345 67.';
+        return 'Numéro invalide. Format attendu : 034 12 345 67 ou un numéro international complet (+indicatif…).';
     }
 }

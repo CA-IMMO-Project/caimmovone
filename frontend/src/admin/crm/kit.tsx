@@ -1,5 +1,5 @@
 // Composants partagés des modules « Demandes d'achat » et « Terrains ».
-import { ReactNode, useMemo, useRef, useState } from 'react';
+import { ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Download, Eye, FileDown, FileSpreadsheet, FileText, Film, Printer, Search, SlidersHorizontal, Upload, X,
 } from 'lucide-react';
@@ -7,29 +7,36 @@ import { Circle, MapContainer, Marker, TileLayer, useMapEvents } from 'react-lea
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { newId } from '../../lib/store';
+import { formatPhone, phoneHref } from '../../lib/phone';
+import { formatAriary, formatArea, formatDateShort, formatDateTime, formatNumber } from '../../lib/format';
+import { ADMIN_BADGE_BASE, ADMIN_BUTTON_BASE, ADMIN_BUTTON_DANGER, ADMIN_BUTTON_GOLD, ADMIN_BUTTON_ICON, ADMIN_BUTTON_OUTLINE, ADMIN_BUTTON_PRIMARY, ADMIN_INPUT, ADMIN_SURFACE } from '../tokens';
+import { ADMIN_STATUS_TONES, adminToneClass } from '../status';
 import type { HistoryEntry, Note, StoredFile } from './model';
 import { ACTOR } from './model';
 import { downloadFile, formatSize, putFile, useFileUrl } from './files';
 import { notice } from './dialog';
+import { useBodyScrollLock, useDialogFocus } from '../../shared/ui';
 
-// ---------- Mise en forme ----------
-export const input =
-  'w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm text-navy-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500 disabled:bg-gray-50';
-export const btn = 'inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed';
-export const btnPrimary = `${btn} bg-navy-900 text-white hover:bg-navy-800`;
-export const btnGold = `${btn} bg-gold-500 text-navy-950 hover:bg-gold-400`;
-export const btnOutline = `${btn} border border-gray-300 bg-white text-navy-900 hover:bg-gray-50`;
-export const btnDanger = `${btn} border border-red-200 bg-white text-red-700 hover:bg-red-50`;
-export const btnIcon = 'p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-navy-900 transition-colors';
+// ---------- Primitives et formats partagés ----------
+export const input = ADMIN_INPUT;
+export const btn = ADMIN_BUTTON_BASE;
+export const btnPrimary = ADMIN_BUTTON_PRIMARY;
+export const btnGold = ADMIN_BUTTON_GOLD;
+export const btnOutline = ADMIN_BUTTON_OUTLINE;
+export const btnDanger = ADMIN_BUTTON_DANGER;
+export const btnIcon = ADMIN_BUTTON_ICON;
 
-export const fmtAr = (n: number) => (n ? `${new Intl.NumberFormat('fr-FR').format(n)} Ar` : '—');
-export const fmtNum = (n: number) => new Intl.NumberFormat('fr-FR').format(n);
-export const fmtM2 = (n: number) => (n ? `${fmtNum(n)} m²` : '—');
-export const fmtDate = (iso?: string) => (iso ? new Date(iso).toLocaleDateString('fr-FR') : '—');
+export const fmtAr = formatAriary;
+export const fmtNum = formatNumber;
+export const fmtM2 = formatArea;
+export const fmtDate = formatDateShort;
+export const fmtDateTime = formatDateTime;
 /** Date relative, scannable : « il y a 2 h », « hier », puis date courte. */
 export function fmtRelative(iso?: string): string {
   if (!iso) return '—';
-  const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  const timestamp = new Date(iso).getTime();
+  if (Number.isNaN(timestamp)) return '—';
+  const min = Math.floor((Date.now() - timestamp) / 60000);
   if (min < 1) return 'à l’instant';
   if (min < 60) return `il y a ${min} min`;
   const h = Math.floor(min / 60);
@@ -47,36 +54,36 @@ export function RelDate({ iso }: { iso?: string }) {
 
 /** Téléphone cliquable dans une ligne de tableau (n'ouvre pas la fiche). */
 export function TelLink({ phone }: { phone?: string }) {
-  if (!phone) return <span className="text-gray-400">—</span>;
+  if (!phone) return <span className="text-gray-600">—</span>;
   return (
     <a
-      href={`tel:${phone.replace(/\s/g, '')}`}
+      href={phoneHref(phone)}
       onClick={(e) => e.stopPropagation()}
       className="whitespace-nowrap text-navy-900 underline-offset-2 hover:text-gold-700 hover:underline"
     >
-      {phone}
+      {formatPhone(phone)}
     </a>
   );
 }
 
-export const fmtDateTime = (iso?: string) =>
-  iso ? new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '—';
-
 // ---------- Mise en page ----------
-export function Section({ title, icon, children, action, confidential }: {
-  title: string; icon?: ReactNode; children: ReactNode; action?: ReactNode; confidential?: boolean;
+export function Section({ title, icon, children, action, confidential, hint }: {
+  title: string; icon?: ReactNode; children: ReactNode; action?: ReactNode; confidential?: boolean; hint?: ReactNode;
 }) {
   return (
-    <section className="bg-white rounded-2xl border border-gray-200 shadow-sm">
+    <section className={ADMIN_SURFACE}>
       <header className="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-100">
         <h2 className="flex items-center gap-2 font-semibold text-navy-900">
-          {icon && <span className="text-gold-600">{icon}</span>}
+          {icon && <span className="text-gold-700">{icon}</span>}
           {title}
           {confidential && <span className="ml-1 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-red-50 text-red-700">Confidentiel</span>}
         </h2>
         {action}
       </header>
-      <div className="p-5">{children}</div>
+      <div className="p-5">
+        {hint && <p className="mb-4 -mt-1 text-sm text-gray-500">{hint}</p>}
+        {children}
+      </div>
     </section>
   );
 }
@@ -86,17 +93,17 @@ export function Grid({ children, cols = 3 }: { children: ReactNode; cols?: 2 | 3
   return <div className={`grid grid-cols-1 ${c} gap-4`}>{children}</div>;
 }
 
-export function Field({ label, required, children, hint, error, span }: {
-  label: string; required?: boolean; children: ReactNode; hint?: string; error?: string; span?: 'full' | 2;
+export function Field({ label, required, children, hint, error, span, full = false }: {
+  label: string; required?: boolean; children: ReactNode; hint?: string; error?: string; span?: 'full' | 2; full?: boolean;
 }) {
-  const s = span === 'full' ? 'sm:col-span-2 lg:col-span-full' : span === 2 ? 'sm:col-span-2' : '';
+  const s = full || span === 'full' ? 'sm:col-span-2 lg:col-span-full' : span === 2 ? 'sm:col-span-2' : '';
   return (
     <label className={`block ${s}`}>
       <span className="block text-xs font-medium text-gray-600 mb-1.5">
         {label} {required && <span className="text-red-500">*</span>}
       </span>
       {children}
-      {error ? <span className="block text-xs text-red-600 mt-1">{error}</span> : hint && <span className="block text-xs text-gray-400 mt-1">{hint}</span>}
+      {error ? <span className="block text-xs text-red-600 mt-1">{error}</span> : hint && <span className="block text-xs text-gray-600 mt-1">{hint}</span>}
     </label>
   );
 }
@@ -164,14 +171,14 @@ export function NumberInput({ value, onChange, suffix, placeholder }: { value: n
         placeholder={placeholder}
         className={`${input} ${suffix ? 'pr-14' : ''}`}
       />
-      {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">{suffix}</span>}
+      {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-600">{suffix}</span>}
     </div>
   );
 }
 
 export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: { id: NoInfer<T>; label: string; badge?: number | string }[]; value: T; onChange: (t: T) => void }) {
   return (
-    <div className="flex gap-1 overflow-x-auto border-b border-gray-200 mb-5 -mx-1 px-1">
+    <div className="admin-scroll-x flex gap-1 border-b border-gray-200 mb-5 -mx-1 px-1">
       {tabs.map((t) => (
         <button
           key={t.id}
@@ -192,29 +199,10 @@ export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: { id: 
 }
 
 // ---------- Badges ----------
-const TONES: Record<string, string> = {
-  gray: 'bg-gray-100 text-gray-700', blue: 'bg-blue-100 text-blue-800', indigo: 'bg-indigo-100 text-indigo-800',
-  amber: 'bg-amber-100 text-amber-800', orange: 'bg-orange-100 text-orange-800', green: 'bg-blue-100 text-blue-800',
-  red: 'bg-red-100 text-red-700', purple: 'bg-purple-100 text-purple-800', navy: 'bg-navy-900 text-white', gold: 'bg-gold-400 text-navy-950',
-};
-const STATUS_TONE: Record<string, keyof typeof TONES> = {
-  // demandes d'achat
-  Nouvelle: 'blue', 'À contacter': 'orange', Contacté: 'indigo', 'En étude': 'purple', 'Proposition envoyée': 'indigo',
-  'Visite programmée': 'amber', Négociation: 'amber', Validée: 'green', 'Achat finalisé': 'navy', Refusée: 'red', Archivée: 'gray',
-  // dossiers terrains
-  Brouillon: 'gray', Nouveau: 'blue', 'Dossier incomplet': 'orange', 'À vérifier': 'amber', 'Vérification terrain programmée': 'purple',
-  'Vérification juridique': 'purple', Validé: 'green', Publié: 'gold', 'En négociation': 'amber', Réservé: 'indigo', Vendu: 'navy',
-  Rejeté: 'red', Archivé: 'gray',
-  // documents
-  Vérifié: 'green', Incomplet: 'orange',
-  // priorités
-  Faible: 'gray', Normale: 'blue', Haute: 'orange', Urgente: 'red',
-};
-
 export function Badge({ value, dot }: { value: string; dot?: boolean }) {
-  const tone = TONES[STATUS_TONE[value] ?? 'gray'];
+  const tone = ADMIN_STATUS_TONES[value] ?? 'gray';
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${tone}`}>
+    <span className={`${ADMIN_BADGE_BASE} font-medium ${adminToneClass(tone)}`}>
       {dot && <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />}
       {value}
     </span>
@@ -234,7 +222,7 @@ export function Stepper({ steps, current, failed }: { steps: string[]; current: 
               <div className="flex flex-col items-center">
                 <span
                   className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
-                    done ? 'bg-gold-500 border-gold-500 text-navy-950' : active ? 'bg-navy-900 border-navy-900 text-white' : 'bg-white border-gray-300 text-gray-400'
+                    done ? 'bg-gold-500 border-gold-500 text-navy-950' : active ? 'bg-navy-900 border-navy-900 text-white' : 'bg-white border-gray-300 text-gray-600'
                   }`}
                 >
                   {i + 1}
@@ -247,7 +235,7 @@ export function Stepper({ steps, current, failed }: { steps: string[]; current: 
       </ol>
       <div className="hidden md:flex mt-2">
         {steps.map((s, i) => (
-          <span key={s} className={`flex-1 last:flex-none last:text-right text-[11px] ${i === current ? 'text-navy-900 font-semibold' : 'text-gray-400'}`}>
+          <span key={s} className={`flex-1 last:flex-none last:text-right text-[11px] ${i === current ? 'text-navy-900 font-semibold' : 'text-gray-600'}`}>
             {s}
           </span>
         ))}
@@ -277,6 +265,7 @@ export function DataTable<T extends { id: string }>({ rows, columns, onOpen, sel
   const [sortKey, setSortKey] = useState<string>('');
   const [dir, setDir] = useState<1 | -1>(1);
   const [page, setPage] = useState(1);
+  useEffect(() => setPage(1), [rows]);
 
   const sorted = useMemo(() => {
     const col = columns.find((c) => c.key === sortKey);
@@ -300,14 +289,20 @@ export function DataTable<T extends { id: string }>({ rows, columns, onOpen, sel
     onSelect(allShown ? selected.filter((id) => !shown.some((r) => r.id === id)) : [...new Set([...selected, ...shown.map((r) => r.id)])]);
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+    <div className={`${ADMIN_SURFACE} overflow-hidden`}>
+      <div
+        className="admin-scroll-x"
+        role="region"
+        aria-label="Tableau de résultats, défilement horizontal possible"
+        tabIndex={0}
+      >
+        <table className="w-full min-w-max text-sm">
           <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
             <tr>
-              <th className="p-3 w-10"><input type="checkbox" checked={allShown} onChange={toggleAll} aria-label="Tout sélectionner" /></th>
+              <th scope="col" className="p-3 w-10"><input type="checkbox" checked={allShown} onChange={toggleAll} aria-label="Tout sélectionner sur cette page" /></th>
+              <th scope="col" className="p-2 w-10"><span className="sr-only">Ouvrir la fiche</span></th>
               {columns.map((c) => (
-                <th key={c.key} className={`p-3 font-medium whitespace-nowrap ${c.className ?? ''}`}>
+                <th scope="col" key={c.key} className={`p-3 font-medium whitespace-nowrap ${c.className ?? ''}`}>
                   {c.sort ? (
                     <button type="button" onClick={() => toggleSort(c.key)} className="inline-flex items-center gap-1 hover:text-navy-900">
                       {c.label}
@@ -323,24 +318,32 @@ export function DataTable<T extends { id: string }>({ rows, columns, onOpen, sel
             {shown.map((r) => (
               <tr key={r.id} className={`hover:bg-gold-400/5 cursor-pointer ${selected.includes(r.id) ? 'bg-gold-400/10' : rowClass?.(r) ?? ''}`} onClick={() => onOpen(r)}>
                 {/* h-16 : hauteur de ligne identique sur toutes les listes du back office */}
-                <td className="p-3 h-16" onClick={(e) => e.stopPropagation()}>
+                <td className="p-3 h-16" onClick={(event) => event.stopPropagation()}>
                   <input
                     type="checkbox"
                     checked={selected.includes(r.id)}
                     onChange={() => onSelect(selected.includes(r.id) ? selected.filter((id) => id !== r.id) : [...selected, r.id])}
-                    aria-label="Sélectionner"
+                    aria-label={`Sélectionner le dossier ${r.id}`}
                   />
+                </td>
+                <td className="p-2" onClick={(event) => event.stopPropagation()}>
+                  <button type="button" className={btnIcon} aria-label={`Ouvrir la fiche ${r.id}`} title="Ouvrir la fiche" onClick={() => onOpen(r)}>
+                    <Eye className="w-4 h-4" aria-hidden="true" />
+                  </button>
                 </td>
                 {columns.map((c) => <td key={c.key} className={`p-3 ${c.className ?? ''}`}>{c.render(r)}</td>)}
                 {rowActions && <td className="p-3 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>{rowActions(r)}</td>}
               </tr>
             ))}
             {shown.length === 0 && (
-              <tr><td colSpan={columns.length + 2} className="p-10 text-center text-gray-400">Aucun dossier ne correspond aux filtres.</td></tr>
+              <tr><td colSpan={columns.length + 2 + (rowActions ? 1 : 0)} className="p-10 text-center text-gray-600">Aucun dossier ne correspond aux filtres.</td></tr>
             )}
           </tbody>
         </table>
       </div>
+      <p className="border-t border-gray-100 bg-gray-50/60 px-4 py-1.5 text-[11px] text-gray-500 sm:hidden">
+        Faites glisser le tableau horizontalement pour voir toutes les colonnes.
+      </p>
       <footer className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-gray-100 text-sm text-gray-500">
         <span>{sorted.length} dossier(s){selected.length > 0 && ` · ${selected.length} sélectionné(s)`}</span>
         <div className="flex items-center gap-1">
@@ -366,10 +369,16 @@ export function exportCsv<T>(rows: T[], columns: Column<T>[], filename: string) 
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
+/** Échappe les valeurs dynamiques avant de les insérer dans un document HTML imprimable. */
+export function escapeHtml(value: unknown): string {
+  const entities: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  return String(value ?? '').replace(/[&<>"']/g, (character) => entities[character]!);
+}
+
 /** Impression / export PDF d'un tableau : ouvre une page imprimable (choisir « Enregistrer en PDF »). */
 export function printTable<T>(rows: T[], columns: Column<T>[], title: string) {
   const cols = columns.filter((c) => c.csv);
-  const esc = (v: unknown) => String(v ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
+  const esc = escapeHtml;
   printHtml(
     title,
     `<table><thead><tr>${cols.map((c) => `<th>${esc(c.label)}</th>`).join('')}</tr></thead><tbody>${rows
@@ -381,13 +390,16 @@ export function printTable<T>(rows: T[], columns: Column<T>[], title: string) {
 export function printHtml(title: string, body: string) {
   const w = window.open('', '_blank');
   if (!w) { void notice('Autorisez les fenêtres pop-up pour imprimer.'); return; }
-  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${title}</title><style>
+  const safeTitle = escapeHtml(title);
+  // `body` peut contenir du HTML de présentation : ses valeurs dynamiques
+  // doivent toujours passer par escapeHtml() avant l'appel.
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safeTitle}</title><style>
     body{font-family:system-ui,sans-serif;color:#0b1e42;margin:24px;font-size:12px}
     h1{font-size:18px;margin:0 0 4px} .muted{color:#6b7280} h2{font-size:14px;margin:20px 0 8px;border-bottom:2px solid #f7c325;padding-bottom:4px}
     table{width:100%;border-collapse:collapse;margin-top:12px} th,td{border:1px solid #e5e7eb;padding:6px;text-align:left;vertical-align:top}
     th{background:#f3f6fb} dl{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;margin:0} dt{color:#6b7280} dd{margin:0 0 6px;font-weight:600}
     img{max-width:32%;margin:4px;border-radius:6px}
-  </style></head><body><h1>CA IMMO — ${title}</h1><p class="muted">Généré le ${new Date().toLocaleString('fr-FR')}</p>${body}</body></html>`);
+  </style></head><body><h1>CA IMMO — ${safeTitle}</h1><p class="muted">Généré le ${formatDateTime(new Date().toISOString())}</p>${body}</body></html>`);
   w.document.close();
   setTimeout(() => w.print(), 800); // laisse le temps aux images de se charger
 }
@@ -439,9 +451,9 @@ export function FileDrop({ accept, maxMb, multiple, onFiles, label, hint, visibi
           over ? 'border-gold-500 bg-gold-400/10' : 'border-gray-300 hover:border-navy-900 bg-gray-50'
         }`}
       >
-        <Upload className="w-6 h-6 text-gray-400" />
+        <Upload className="w-6 h-6 text-gray-600" />
         <span className="text-sm font-medium text-navy-900">{busy ? 'Enregistrement…' : label}</span>
-        <span className="text-xs text-gray-400">Glisser-déposer ou cliquer · {hint}</span>
+        <span className="text-xs text-gray-600">Glisser-déposer ou cliquer · {hint}</span>
         <input ref={ref} type="file" accept={accept} multiple={multiple} className="hidden" onChange={(e) => handle(e.target.files)} />
       </div>
       {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
@@ -455,9 +467,9 @@ export function Thumb({ file, className = '' }: { file: StoredFile; className?: 
   // libellés texte migrés sans type MIME connu) : on sécurise avec `?? ''`
   // pour ne jamais planter sur `.startsWith(...)`.
   const type = file.type ?? '';
-  if (type.startsWith('image/')) return url ? <img src={url} alt={file.name} className={`object-cover ${className}`} referrerPolicy="no-referrer" /> : <div className={`bg-gray-100 ${className}`} />;
+  if (type.startsWith('image/')) return url ? <img src={url} alt={file.name} className={`object-cover ${className}`} referrerPolicy="no-referrer" loading="lazy" decoding="async" /> : <div className={`bg-gray-100 ${className}`} />;
   const Icon = type.startsWith('video/') ? Film : FileText;
-  return <div className={`flex items-center justify-center bg-gray-100 text-gray-400 ${className}`}><Icon className="w-6 h-6" /></div>;
+  return <div className={`flex items-center justify-center bg-gray-100 text-gray-600 ${className}`}><Icon className="w-6 h-6" /></div>;
 }
 
 export function FileChip({ file, onPreview, onRemove }: { file: StoredFile; onPreview: () => void; onRemove?: () => void }) {
@@ -466,7 +478,7 @@ export function FileChip({ file, onPreview, onRemove }: { file: StoredFile; onPr
       <Thumb file={file} className="w-10 h-10 rounded" />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{file.name}</p>
-        <p className="text-xs text-gray-400">{formatSize(file.size)}</p>
+        <p className="text-xs text-gray-600">{formatSize(file.size)}</p>
       </div>
       <button type="button" className={btnIcon} onClick={onPreview} aria-label="Aperçu"><Eye className="w-4 h-4" /></button>
       <button type="button" className={btnIcon} onClick={() => downloadFile(file)} aria-label="Télécharger"><Download className="w-4 h-4" /></button>
@@ -494,7 +506,7 @@ export function Preview({ file, onClose }: { file: StoredFile | null; onClose: (
             if (!resolved) return <p className="text-white/60">Chargement…</p>;
             return <p className="text-white/70">Aucun fichier déposé pour cette pièce (document historique sans fichier joint).</p>;
           }
-          if (type.startsWith('image/')) return <img src={url} alt={file.name} className="max-h-full max-w-full rounded-lg" referrerPolicy="no-referrer" />;
+          if (type.startsWith('image/')) return <img src={url} alt={file.name} className="max-h-full max-w-full rounded-lg" referrerPolicy="no-referrer" loading="eager" decoding="async" />;
           if (type.startsWith('video/')) return <video src={url} controls className="max-h-full max-w-full rounded-lg" />;
           if (type === 'application/pdf') return <iframe src={url} title={file.name} className="w-full h-full bg-white rounded-lg" />;
           return <p className="text-white/70">Aperçu indisponible pour ce format. Utilisez « Télécharger ».</p>;
@@ -570,7 +582,7 @@ export function MapPicker({ lat, lng, onChange, readOnly, height = 'h-80', radiu
           {!readOnly && <button type="button" onClick={locate} className={`${btn} bg-white shadow text-navy-900 hover:bg-gray-50`}>Ma position</button>}
         </div>
       </div>
-      {!readOnly && <p className="text-xs text-gray-400 mt-1.5">Cliquez sur la carte ou déplacez le marqueur pour enregistrer la position exacte.</p>}
+      {!readOnly && <p className="text-xs text-gray-600 mt-1.5">Cliquez sur la carte ou déplacez le marqueur pour enregistrer la position exacte.</p>}
       {geoError && <p className="text-xs text-red-600 mt-1">{geoError}</p>}
     </div>
   );
@@ -579,14 +591,14 @@ export function MapPicker({ lat, lng, onChange, readOnly, height = 'h-80', radiu
 // ---------- Historique et notes ----------
 export function Timeline({ items }: { items: HistoryEntry[] }) {
   const sorted = [...items].sort((a, b) => b.at.localeCompare(a.at));
-  if (!sorted.length) return <p className="text-sm text-gray-400">Aucun historique.</p>;
+  if (!sorted.length) return <p className="text-sm text-gray-600">Aucun historique.</p>;
   return (
     <ol className="relative border-l-2 border-gray-100 ml-2 space-y-4">
       {sorted.map((h) => (
         <li key={h.id} className="pl-4 relative">
           <span className="absolute -left-[7px] top-1.5 w-3 h-3 rounded-full bg-gold-500 ring-4 ring-white" />
           <p className="text-sm text-navy-900">{h.text}</p>
-          <p className="text-xs text-gray-400">{fmtDateTime(h.at)} · {h.author}</p>
+          <p className="text-xs text-gray-600">{fmtDateTime(h.at)} · {h.author}</p>
         </li>
       ))}
     </ol>
@@ -612,7 +624,7 @@ export function NotesPanel({ notes, onAdd }: { notes: Note[]; onAdd: (n: Note) =
           <p className="text-xs text-gray-500 mt-1">{fmtDateTime(n.at)} · {n.author}</p>
         </div>
       ))}
-      {!notes.length && <p className="text-sm text-gray-400">Aucune note interne.</p>}
+      {!notes.length && <p className="text-sm text-gray-600">Aucune note interne.</p>}
     </div>
   );
 }
@@ -622,36 +634,40 @@ export function NotesPanel({ notes, onAdd }: { notes: Note[]; onAdd: (n: Note) =
    arrondis, en-tête titre + fermeture ronde, pied de modale), et le contenu
    déroule DANS la modale comme les longs formulaires de l'admin. */
 export function Modal({ title, children, onClose, footer, wide }: { title: string; children: ReactNode; onClose: () => void; footer?: ReactNode; wide?: boolean }) {
+  const titleId = useId();
+  const panelRef = useDialogFocus(true, onClose);
+  useBodyScrollLock(true);
+
   return (
-    <div
-      className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-navy-950/40 backdrop-blur-sm"
-      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
-    >
+    <div className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-navy-950/40 backdrop-blur-sm">
       {/* L'overlay défile (pas la carte) : barre de défilement au bord droit de l'écran. */}
       <div
         className="flex min-h-full w-full items-end justify-center p-0 sm:items-center sm:p-6"
-        onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+        onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
       >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        className={`w-full rounded-t-[2rem] bg-white shadow-2xl outline-none sm:rounded-[2rem] ${wide ? 'max-w-3xl' : 'max-w-xl'}`}
-      >
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-6 border-b border-navy-900/10 bg-white px-7 pt-6 pb-5">
-          <h3 className="text-xl font-bold tracking-tight text-navy-900">{title}</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fermer"
-            className="rounded-full border border-navy-900/20 p-2.5 text-navy-900/75 transition hover:bg-brand-50 hover:text-navy-900"
-          >
-            <X className="h-4 w-4" />
-          </button>
+        <div
+          ref={panelRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          tabIndex={-1}
+          className={`w-full rounded-t-[2rem] bg-white shadow-2xl outline-none sm:rounded-[2rem] ${wide ? 'max-w-3xl' : 'max-w-xl'}`}
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          <div className="sticky top-0 z-10 flex items-start justify-between gap-6 border-b border-navy-900/10 bg-white px-7 pt-6 pb-5">
+            <h2 id={titleId} className="text-xl font-bold tracking-tight text-navy-900">{title}</h2>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Fermer la fenêtre de dialogue"
+              className="rounded-full border border-navy-900/20 p-2.5 text-navy-900/75 transition hover:bg-brand-50 hover:text-navy-900"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+          <div className="px-7 pt-6 pb-7">{children}</div>
+          {footer && <div className="sticky bottom-0 flex justify-end gap-2 border-t border-navy-900/10 bg-white px-7 py-4">{footer}</div>}
         </div>
-        <div className="px-7 pt-6 pb-7">{children}</div>
-        {footer && <div className="sticky bottom-0 flex justify-end gap-2 border-t border-navy-900/10 bg-white px-7 py-4">{footer}</div>}
-      </div>
       </div>
     </div>
   );
@@ -679,7 +695,7 @@ export function Info({ label, value }: { label: string; value: ReactNode }) {
 export function DateFilter({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div className="relative min-w-0">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">{label}</span>
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-600 pointer-events-none">{label}</span>
       <input type="date" value={value} onChange={(e) => onChange(e.target.value)} className={`${input} pl-9 min-w-0`} aria-label={label} />
     </div>
   );
@@ -720,7 +736,7 @@ export function ListToolbar<T>({
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4 space-y-3">
       <div className="relative">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
         <input value={q} onChange={(e) => onQ(e.target.value)} placeholder={placeholder ?? 'Rechercher…'} className={`${input} pl-9 ${filters ? 'pr-28' : ''}`} />
         {filters && (
           <button

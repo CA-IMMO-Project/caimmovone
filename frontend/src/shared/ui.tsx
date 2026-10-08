@@ -209,37 +209,52 @@ export function useBodyScrollLock(active: boolean) {
 
 export function useDialogFocus(open: boolean, onClose: () => void) {
   const ref = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return;
-    const previous = document.activeElement as HTMLElement | null;
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const panel = ref.current;
     const focusable = () =>
       panel
         ? Array.from(
             panel.querySelectorAll<HTMLElement>(
-              'button:not([disabled]), [href], input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])',
+              'a[href], button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
             ),
+          ).filter((element) =>
+            element.tabIndex >= 0 &&
+            element.getClientRects().length > 0 &&
+            !element.closest('[hidden], [inert], [aria-hidden="true"]'),
           )
         : [];
+
     const t = window.setTimeout(() => {
-      (focusable()[0] ?? panel)?.focus();
+      (focusable()[0] ?? panel)?.focus({ preventScroll: true });
     }, 40);
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onClose();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
         return;
       }
-      if (e.key !== "Tab") return;
+      if (event.key !== "Tab") return;
       const items = focusable();
-      if (items.length === 0) return;
+      if (items.length === 0) {
+        event.preventDefault();
+        panel?.focus();
+        return;
+      }
       const first = items[0];
       const last = items[items.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || !panel?.contains(active))) {
+        event.preventDefault();
         last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
+      } else if (!event.shiftKey && (active === last || !panel?.contains(active))) {
+        event.preventDefault();
         first.focus();
       }
     };
@@ -247,9 +262,9 @@ export function useDialogFocus(open: boolean, onClose: () => void) {
     return () => {
       window.clearTimeout(t);
       document.removeEventListener("keydown", onKey);
-      previous?.focus();
+      if (previous?.isConnected) previous.focus({ preventScroll: true });
     };
-  }, [open, onClose]);
+  }, [open]);
   return ref;
 }
 
@@ -340,6 +355,8 @@ export function UploadZone({
   text,
   accept = "image/*",
   multiple = false,
+  maxFiles,
+  maxMb = 5,
   onFiles,
   onPick,
   files = [],
@@ -348,38 +365,53 @@ export function UploadZone({
   text: string;
   accept?: string;
   multiple?: boolean;
+  maxFiles?: number;
+  maxMb?: number;
   onFiles: (names: string[]) => void;
   /** Reçoit les objets File retenus : ils sont réellement envoyés au backend. */
   onPick?: (picked: File[]) => void;
   files: string[];
 }) {
-  const inputId = `upload-${title.replace(/\s/g, "-")}`;
+  const inputId = `upload-${useId()}`;
   const hintId = `${inputId}-hint`;
+  const fileLimit = maxFiles ?? (multiple ? 12 : 1);
+  const allowedTypes = accept.split(",").map((rule) => rule.trim().toLowerCase()).filter(Boolean);
+  const acceptedLabel = allowedTypes
+    .map((rule) => rule.startsWith(".") ? rule.slice(1).toUpperCase() : rule.split("/").pop()?.replace("*", "tous formats").toUpperCase() ?? rule)
+    .join(", ");
   const [error, setError] = useState<string | null>(null);
 
   const handleFiles = (list: FileList | null) => {
     if (!list) return;
     const picked = Array.from(list);
+    if (picked.length > fileLimit) {
+      setError(`${fileLimit} fichier${fileLimit > 1 ? "s" : ""} maximum par envoi.`);
+      return;
+    }
+
     const valid: File[] = [];
     let problem: string | null = null;
-    for (const f of picked) {
-      if (accept.startsWith("image/") && !f.type.startsWith("image/")) {
-        problem = `« ${f.name} » n’est pas une image (JPG, PNG ou WebP acceptés).`;
+    for (const file of picked) {
+      const name = file.name.toLowerCase();
+      const mime = file.type.toLowerCase();
+      const typeAllowed = allowedTypes.some((rule) => {
+        if (rule.startsWith(".")) return name.endsWith(rule);
+        if (rule.endsWith("/*")) return mime.startsWith(rule.slice(0, -1));
+        return mime === rule;
+      });
+      if (!typeAllowed) {
+        problem = `« ${file.name} » n’est pas dans les formats acceptés (${acceptedLabel}).`;
         continue;
       }
-      if (f.size > 5 * 1024 * 1024) {
-        problem = `« ${f.name} » dépasse 5 Mo.`;
+      if (file.size > maxMb * 1024 * 1024) {
+        problem = `« ${file.name} » dépasse la limite de ${maxMb} Mo par fichier.`;
         continue;
       }
-      valid.push(f);
-    }
-    if (multiple && valid.length > 12) {
-      setError("12 fichiers maximum par envoi.");
-      return;
+      valid.push(file);
     }
     setError(problem);
     if (valid.length > 0) {
-      onFiles(valid.map((f) => f.name));
+      onFiles(valid.map((file) => file.name));
       onPick?.(valid);
     }
   };
@@ -388,7 +420,7 @@ export function UploadZone({
     <div>
       <label
         htmlFor={inputId}
-        className="flex cursor-pointer flex-col items-center rounded-2xl border border-dashed border-navy-900/40 bg-white px-6 py-9 text-center transition hover:border-gold-500 hover:bg-white"
+        className="flex cursor-pointer flex-col items-center rounded-2xl border border-dashed border-navy-900/40 bg-white px-6 py-9 text-center transition hover:border-gold-500 hover:bg-white focus-within:ring-2 focus-within:ring-navy-900 focus-within:ring-offset-2"
       >
         <UploadCloud
           className="h-7 w-7 text-navy-900/60"
@@ -407,21 +439,25 @@ export function UploadZone({
           type="file"
           accept={accept}
           multiple={multiple}
-          className="hidden"
+          className="sr-only"
           aria-describedby={hintId}
-          onChange={(e) => handleFiles(e.target.files)}
+          onChange={(event) => {
+            handleFiles(event.currentTarget.files);
+            event.currentTarget.value = "";
+          }}
         />
       </label>
       <small id={hintId} className="mt-2 block text-xs text-navy-900/75">
-        JPG, PNG ou WebP · 5 Mo max{multiple ? " · 12 fichiers" : ""}
+        Formats autorisés : {acceptedLabel} · {maxMb} Mo maximum par fichier
+        {multiple ? ` · ${fileLimit} fichiers maximum` : ""}.
       </small>
       {error && <ErrorBanner className="mt-3">{error}</ErrorBanner>}
       {files.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
-          {files.map((f) => (
-            <span key={f} className="chip-off !cursor-default !bg-white">
+          {files.map((file) => (
+            <span key={file} className="chip-off !cursor-default !bg-white">
               <FileCheck2 className="h-3.5 w-3.5 text-green-700" aria-hidden />
-              {f}
+              {file}
             </span>
           ))}
         </div>

@@ -1,14 +1,16 @@
 /* Formulaire d'intérêt (achat) — extrait de LandDetail pour lisibilité. */
 
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Banknote, ChevronLeft, ChevronRight, LandPlot, Navigation, ShieldCheck, WalletCards } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Banknote, ChevronLeft, ChevronRight, LandPlot, Navigation, Info, WalletCards } from 'lucide-react';
 import { ChoiceCards, ErrorBanner, FormField, Input, ProgressSteps, Select, Textarea } from '../../../shared/ui';
 import { createReservation } from '../../../services/requestService';
 import type { SubmitResult } from '../../../services/requestService';
 import { AnimatePresence, motion } from 'motion/react';
 import { formatAriary } from '../../../lib/format';
 import { landReference } from '../../../lib/land';
-import { phoneError, emailError } from '../../../lib/validate';
+import { phoneError, emailError, sanitizePhone } from '../../../lib/validate';
+import { PHONE_PLACEHOLDER } from '../../../lib/phone';
 import type { Land, Lot, ReservationPayload } from '../../../types';
 
 export default function InterestForm({ land, lot, onDone }: { land: Land; lot?: Lot; onDone: (result: SubmitResult) => void }) {
@@ -142,15 +144,15 @@ export default function InterestForm({ land, lot, onDone }: { land: Land; lot?: 
                     <Input placeholder="Ex. Rakoto" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} />
                   </FormField>
                   <FormField label="Téléphone" required>
-                    <Input type="tel" placeholder="+261 34 00 000 00" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
+                    <Input type="tel" inputMode="tel" placeholder={PHONE_PLACEHOLDER} value={form.phone} onChange={(e) => set('phone', sanitizePhone(e.target.value))} />
                   </FormField>
                   <FormField label="Adresse email" hint="Si vous préférez être contacté par écrit.">
                     <Input type="email" placeholder="vous@exemple.com" value={form.email} onChange={(e) => set('email', e.target.value)} />
                   </FormField>
                 </div>
                 <p className="mt-6 flex items-start gap-2.5 text-xs font-normal leading-relaxed text-navy-900/80">
-                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-green-700" />
-                  Vos informations restent confidentielles. Aucune donnée bancaire sensible ne vous sera jamais demandée.
+                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-navy-900/70" />
+                  Ces renseignements servent au suivi de votre demande. N’inscrivez pas de données bancaires sensibles dans un message. <Link to="/confidentialite" className="font-semibold text-navy-900 underline decoration-gold-500 underline-offset-2">Informations sur vos données</Link>.
                 </p>
               </div>
             )}

@@ -1,6 +1,7 @@
 // Base clients, recherches de terrain spécifiques et réalisations.
 // Persistance : cache hydraté depuis l'API Laravel (voir crm/sync.ts).
 import { newId } from '../../lib/store';
+import { normalizePhone } from '../../lib/phone';
 import { HistoryEntry, StoredFile, historyEntry } from './model';
 
 // ======================= CLIENTS =======================
@@ -106,7 +107,7 @@ export function getClients(): Client[] {
 export const getClient = (id: string) => getClients().find((c) => c.id === id);
 
 export async function createClient(fields: ClientFields, source: Client['source']): Promise<Client> {
-  const temp: Client = { ...fields, id: `tmp-${newId()}`, ref: '', createdAt: new Date().toISOString(), source };
+  const temp: Client = { ...fields, phone: normalizePhone(fields.phone), id: `tmp-${newId()}`, ref: '', createdAt: new Date().toISOString(), source };
   upsertSync('clients', temp);
   try {
     const server = await saveClientApi({ ...temp, source });
@@ -119,14 +120,15 @@ export async function createClient(fields: ClientFields, source: Client['source'
 }
 
 export async function saveClient(c: Client): Promise<Client> {
-  upsertSync('clients', c);
+  const item = { ...c, phone: normalizePhone(c.phone) };
+  upsertSync('clients', item);
   try {
-    const server = await saveClientApi(c);
-    replaceSync('clients', c.id, server as Client);
+    const server = await saveClientApi(item);
+    replaceSync('clients', item.id, server as Client);
     return server as Client;
   } catch {
-    warnSyncFailed(`Client ${c.fullName}`);
-    return c;
+    warnSyncFailed(`Client ${item.fullName}`);
+    return item;
   }
 }
 
@@ -137,13 +139,13 @@ export async function deleteClient(id: string): Promise<void> {
 
 /** Rapproche une fiche client par téléphone/email, la crée sinon. */
 export async function findOrCreateClient(fields: Partial<ClientFields>, source: Client['source']): Promise<Client> {
-  const phone = (fields.phone ?? '').trim();
+  const phone = normalizePhone(fields.phone);
   const email = (fields.email ?? '').trim().toLowerCase();
   const found = getClients().find(
-    (c) => (email && c.email.toLowerCase() === email) || (phone && c.phone === phone),
+    (c) => (email && c.email.toLowerCase() === email) || (phone && normalizePhone(c.phone) === phone),
   );
   if (found) return found;
-  return createClient({ ...emptyClientFields(), ...fields } as ClientFields, source);
+  return createClient({ ...emptyClientFields(), ...fields, phone } as ClientFields, source);
 }
 
 export function splitName(fullName: string) {
@@ -157,14 +159,15 @@ export function getSearches(): SpecificSearch[] {
 export const getSearch = (id: string) => getSearches().find((s) => s.id === id);
 
 export async function saveSearch(s: SpecificSearch): Promise<SpecificSearch> {
-  upsertSync('searches', s);
+  const item = { ...s, phone: normalizePhone(s.phone) };
+  upsertSync('searches', item);
   try {
-    const server = await saveSearchApi(s);
-    replaceSync('searches', s.id, server as SpecificSearch);
+    const server = await saveSearchApi(item);
+    replaceSync('searches', item.id, server as SpecificSearch);
     return server as SpecificSearch;
   } catch {
-    warnSyncFailed(`Recherche de ${s.fullName}`);
-    return s;
+    warnSyncFailed(`Recherche de ${item.fullName}`);
+    return item;
   }
 }
 
@@ -179,12 +182,13 @@ export async function createSearch(
   source: SpecificSearch['source'],
   clientFields?: Partial<ClientFields>,
 ): Promise<SpecificSearch> {
+  const normalizedFields = { ...fields, phone: normalizePhone(fields.phone) };
   const client = await findOrCreateClient(
-    { fullName: fields.fullName, phone: fields.phone, email: fields.email, ...clientFields },
+    { fullName: normalizedFields.fullName, phone: normalizedFields.phone, email: normalizedFields.email, ...clientFields },
     source,
   );
   const temp: SpecificSearch = {
-    ...fields,
+    ...normalizedFields,
     id: `tmp-${newId()}`,
     ref: '',
     createdAt: new Date().toISOString(),

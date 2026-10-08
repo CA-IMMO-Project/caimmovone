@@ -5,8 +5,10 @@ import {
   Phone, PhoneCall, Plus, Printer, Save, Search, SlidersHorizontal, User, Wallet, MapPin, Target, ShieldCheck, Eye, Landmark,
 } from 'lucide-react';
 import { getLands } from '../lib/store';
+import { formatPhone, normalizePhone, phoneHref, PHONE_PLACEHOLDER } from '../lib/phone';
+import { phoneError, sanitizePhone } from '../lib/validate';
 import {
-  AGENTS, BUY_GOALS, BUY_PAYMENT, BUY_STATUSES, BuyRequest, BuyStatus, COUNTRIES, DIAL_CODES, PlannedAction, PRIORITIES,
+  AGENTS, BUY_GOALS, BUY_PAYMENT, BUY_STATUSES, BuyRequest, BuyStatus, COUNTRIES, PlannedAction, PRIORITIES,
   PROPERTY_TYPES, REGIONS, SOURCES, StoredFile, fullName, getBuyRequest, getBuyRequests,
   historyEntry, newBuyRequest, phoneOf, saveBuyRequest,
 } from './crm/model';
@@ -157,7 +159,7 @@ export function BuyRequestList() {
           <>
             <Link to={`${BASE}/${r.id}`} className={btnIcon} title="Consulter"><Eye className="w-4 h-4" /></Link>
             <Link to={`${BASE}/${r.id}/modifier`} className={btnIcon} title="Modifier"><Pencil className="w-4 h-4" /></Link>
-            <a href={`tel:${phoneOf(r).replace(/\s/g, '')}`} className={btnIcon} title="Appeler"><Phone className="w-4 h-4" /></a>
+            <a href={phoneHref(r.phone, r.dialCode)} className={btnIcon} title="Appeler"><Phone className="w-4 h-4" /></a>
             <a href={`mailto:${r.email}`} className={btnIcon} title="Envoyer un email"><Mail className="w-4 h-4" /></a>
           </>
         )}
@@ -173,6 +175,7 @@ function validate(r: BuyRequest): Errors {
   const e: Errors = {};
   const req = (k: keyof BuyRequest, label = 'Champ obligatoire') => { if (!String(r[k] ?? '').trim()) e[k] = label; };
   req('firstName'); req('lastName'); req('phone'); req('birthDate'); req('profession'); req('country'); req('hasBankAccount'); req('paymentMode');
+  if (r.phone.trim() && phoneError(r.phone)) e.phone = phoneError(r.phone) ?? undefined;
   if (!r.email.trim()) e.email = 'Champ obligatoire';
   else if (!/^\S+@\S+\.\S+$/.test(r.email)) e.email = 'Adresse email invalide';
   if (r.country === 'Autre' && !r.countryOther.trim()) e.countryOther = 'Précisez le pays';
@@ -189,12 +192,12 @@ export function BuyRequestForm() {
   const original = id ? getBuyRequest(id) : undefined;
   const [params] = useSearchParams();
   const [r, setR] = useState<BuyRequest>(() => {
-    if (original) return original;
+    if (original) return { ...original, phone: formatPhone(original.phone, original.dialCode), dialCode: '' };
     const r = newBuyRequest();
     const c = params.get('client') ? getClient(params.get('client')!) : undefined;
     if (!c) return r;
     return {
-      ...r, ...splitName(c.fullName), clientId: c.id, phone: c.phone, email: c.email, profession: c.profession,
+      ...r, ...splitName(c.fullName), clientId: c.id, phone: formatPhone(c.phone), email: c.email, profession: c.profession,
       budgetMax: Number(c.budget) || 0, source: c.source === 'Site web' ? 'Site web' : 'Agence',
       country: !c.nationality || /malgache|madagascar/i.test(c.nationality) ? 'Madagascar' : 'Autre',
       countryOther: c.nationality && !/malgache|madagascar/i.test(c.nationality) ? c.nationality : '',
@@ -227,7 +230,7 @@ export function BuyRequestForm() {
     const client = r.clientId
       ? undefined
       : await findOrCreateClient({
-          ...emptyClientFields(), fullName: fullName(r), phone: phoneOf(r), email: r.email, profession: r.profession,
+          ...emptyClientFields(), fullName: fullName(r), phone: normalizePhone(r.phone, r.dialCode), email: r.email, profession: r.profession,
           budget: r.budgetMax ? String(r.budgetMax) : '', nationality: r.country === 'Autre' ? r.countryOther : r.country,
           bankAccount: r.hasBankAccount === 'Oui' ? r.bank || 'Oui' : r.hasBankAccount,
         }, 'Backoffice');
@@ -270,12 +273,14 @@ export function BuyRequestForm() {
             <Field label="Prénom" required error={errors.firstName}><input className={input} value={r.firstName} onChange={(e) => set('firstName', e.target.value)} /></Field>
             <Field label="Nom" required error={errors.lastName}><input className={input} value={r.lastName} onChange={(e) => set('lastName', e.target.value)} /></Field>
             <Field label="Téléphone" required error={errors.phone}>
-              <div className="flex gap-2">
-                <select value={r.dialCode} onChange={(e) => set('dialCode', e.target.value)} className={`${input} w-24`} aria-label="Indicatif">
-                  {DIAL_CODES.map((d) => <option key={d}>{d}</option>)}
-                </select>
-                <input type="tel" className={input} value={r.phone} onChange={(e) => set('phone', e.target.value)} placeholder="34 00 000 00" />
-              </div>
+              <input
+                type="tel"
+                inputMode="tel"
+                className={input}
+                value={r.phone}
+                onChange={(e) => setR((x) => ({ ...x, phone: sanitizePhone(e.target.value), dialCode: '' }))}
+                placeholder={PHONE_PLACEHOLDER}
+              />
             </Field>
             <Field label="Adresse email" required error={errors.email}><input type="email" className={input} value={r.email} onChange={(e) => set('email', e.target.value)} /></Field>
             <Field label="Date de naissance" required error={errors.birthDate}><input type="date" className={input} value={r.birthDate} onChange={(e) => set('birthDate', e.target.value)} /></Field>
@@ -415,8 +420,8 @@ export function BuyRequestDetail() {
               <span className="text-xs text-gray-500">Agent : <strong>{r.agent}</strong></span>
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm">
-              <a href={`tel:${phoneOf(r).replace(/\s/g, '')}`} className="inline-flex items-center gap-1 text-navy-900 hover:text-gold-600"><Phone className="w-3.5 h-3.5" /> {phoneOf(r)}</a>
-              {r.email && <a href={`mailto:${r.email}`} className="inline-flex items-center gap-1 text-navy-900 hover:text-gold-600"><Mail className="w-3.5 h-3.5" /> {r.email}</a>}
+              <a href={phoneHref(r.phone, r.dialCode)} className="inline-flex items-center gap-1 text-navy-900 hover:text-gold-700"><Phone className="w-3.5 h-3.5" /> {phoneOf(r)}</a>
+              {r.email && <a href={`mailto:${r.email}`} className="inline-flex items-center gap-1 text-navy-900 hover:text-gold-700"><Mail className="w-3.5 h-3.5" /> {r.email}</a>}
             </div>
           </div>
         </div>
@@ -432,7 +437,7 @@ export function BuyRequestDetail() {
       <button type="button" onClick={() => setTab('terrain')} className="w-full text-left bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-5 flex gap-4 items-center hover:border-gold-500 transition-colors">
         {land ? (
           <>
-            <img src={lot?.imageUrl || land.imageUrl} alt="" className="w-24 h-20 rounded-lg object-cover shrink-0" referrerPolicy="no-referrer" />
+            <img src={lot?.imageUrl || land.imageUrl} alt="" className="w-24 h-20 rounded-lg object-cover shrink-0" referrerPolicy="no-referrer" loading="lazy" decoding="async" />
             <div className="flex-1 min-w-0">
               <p className="text-xs uppercase tracking-wide text-gray-500">Terrain souhaité</p>
               <p className="font-semibold text-navy-900 truncate">{land.title}{lot && ` — ${lot.number}`}</p>

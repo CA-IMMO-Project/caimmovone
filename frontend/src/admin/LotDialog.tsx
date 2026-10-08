@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { HandCoins, History, MessageSquarePlus, Phone, Plus, Receipt, UserPlus, Users, X } from 'lucide-react';
 import { Land, Lot } from '../types';
 import { getLands, saveLand } from '../lib/store';
+import { formatPhone, phoneHref } from '../lib/phone';
 import { BuyRequest, fullName, getBuyRequests, historyEntry, newBuyRequest, phoneOf, saveBuyRequest } from './crm/model';
 import { Client, createClient, getClients, splitName } from './crm/people';
 import { ActionLabel, nextAction } from './crm/client';
@@ -63,7 +64,7 @@ export function InterestDialog({ land, lotId, onClose, onDone }: { land: Land; l
         <div className="flex gap-2">
           <select value={clientId} onChange={(e) => setClientId(e.target.value)} className={input}>
             <option value="">— Choisir un client —</option>
-            {clients.map((c) => <option key={c.id} value={c.id} disabled={already.has(c.id)}>{c.fullName} · {c.phone}{already.has(c.id) ? ' (déjà intéressé)' : ''}</option>)}
+            {clients.map((c) => <option key={c.id} value={c.id} disabled={already.has(c.id)}>{c.fullName} · {formatPhone(c.phone)}{already.has(c.id) ? ' (déjà intéressé)' : ''}</option>)}
           </select>
           <button type="button" className={btnOutline} onClick={() => setCreating(true)} title="Créer un client"><UserPlus className="w-4 h-4" /></button>
         </div>
@@ -105,7 +106,7 @@ export function LotDialog({ land: initial, lotId, onClose, onSell, onChanged }: 
       <div className="flex min-h-full w-full items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-3xl rounded-[2rem] bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start gap-4 border-b border-navy-900/10 px-7 pt-6 pb-5">
-          {lot.imageUrl && <img src={lot.imageUrl} alt="" className="w-24 h-20 rounded-lg object-cover shrink-0" referrerPolicy="no-referrer" />}
+          {lot.imageUrl && <img src={lot.imageUrl} alt="" className="w-24 h-20 rounded-lg object-cover shrink-0" referrerPolicy="no-referrer" loading="lazy" decoding="async" />}
           <div className="flex-1 min-w-0">
             <p className="text-xs text-gray-500 truncate">{land.title}</p>
             <h2 className="text-xl font-bold text-navy-900">{lot.number}</h2>
@@ -119,14 +120,14 @@ export function LotDialog({ land: initial, lotId, onClose, onSell, onChanged }: 
 
           {/* Acheteur */}
           <section>
-            <h3 className="flex items-center gap-2 font-semibold text-navy-900 mb-2"><Receipt className="w-4 h-4 text-gold-600" /> Acheteur</h3>
+            <h3 className="flex items-center gap-2 font-semibold text-navy-900 mb-2"><Receipt className="w-4 h-4 text-gold-700" /> Acheteur</h3>
             {sale ? (
               <div className="p-3 rounded-xl border border-blue-200 bg-blue-50 text-sm">
                 <p className="font-semibold">{sale.buyer.firstName} {sale.buyer.lastName}</p>
-                <p className="text-gray-600">{sale.buyer.phone}{sale.buyer.email && ` · ${sale.buyer.email}`}</p>
+                <p className="text-gray-600">{formatPhone(sale.buyer.phone)}{sale.buyer.email && ` · ${sale.buyer.email}`}</p>
                 <p className="text-gray-600">Vendue le {fmtDate(sale.date)} · {fmtAr(sale.price)} · {sale.paymentMode.split(' –')[0]}</p>
                 {sale.notes && <p className="mt-1">{sale.notes}</p>}
-                <Link to={`/admin/achats/${sale.buyRequestId}`} className="text-gold-600 hover:underline text-xs">Voir le dossier de l’acheteur</Link>
+                <Link to={`/admin/achats/${sale.buyRequestId}`} className="text-gold-700 hover:underline text-xs">Voir le dossier de l’acheteur</Link>
               </div>
             ) : (
               <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-gray-50 text-sm">
@@ -139,10 +140,10 @@ export function LotDialog({ land: initial, lotId, onClose, onSell, onChanged }: 
           {/* Clients intéressés */}
           <section>
             <div className="flex items-center justify-between gap-2 mb-2">
-              <h3 className="flex items-center gap-2 font-semibold text-navy-900"><Users className="w-4 h-4 text-gold-600" /> Clients intéressés ({interested.length})</h3>
+              <h3 className="flex items-center gap-2 font-semibold text-navy-900"><Users className="w-4 h-4 text-gold-700" /> Clients intéressés ({interested.length})</h3>
               {!sale && <button className={btnOutline} onClick={() => setAdding(true)}><Plus className="w-4 h-4" /> Ajouter</button>}
             </div>
-            {!interested.length && <p className="text-sm text-gray-400">Aucun client intéressé par cette parcelle.</p>}
+            {!interested.length && <p className="text-sm text-gray-600">Aucun client intéressé par cette parcelle.</p>}
             <ClientRows rows={interested} />
             {landLevel.length > 0 && (
               <p className="text-xs text-gray-500 mt-2">+ {landLevel.length} client(s) intéressé(s) par le terrain sans parcelle précise : {landLevel.map((r) => fullName(r)).join(', ')}.</p>
@@ -151,7 +152,7 @@ export function LotDialog({ land: initial, lotId, onClose, onSell, onChanged }: 
 
           {/* Historique */}
           <section>
-            <h3 className="flex items-center gap-2 font-semibold text-navy-900 mb-2"><History className="w-4 h-4 text-gold-600" /> Historique de la parcelle</h3>
+            <h3 className="flex items-center gap-2 font-semibold text-navy-900 mb-2"><History className="w-4 h-4 text-gold-700" /> Historique de la parcelle</h3>
             <div className="flex gap-2 mb-4">
               <input className={input} value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addNote()} placeholder="Ajouter une note à l’historique…" />
               <button className={btnPrimary} onClick={addNote}><MessageSquarePlus className="w-4 h-4" /></button>
@@ -189,9 +190,9 @@ export function ClientRows({ rows }: { rows: BuyRequest[] }) {
       {rows.map((r) => (
         <li key={r.id} className="p-3 flex flex-wrap items-center justify-between gap-2 text-sm">
           <div className="min-w-0">
-            <Link to={`/admin/achats/${r.id}`} className="font-medium hover:text-gold-600">{fullName(r)}</Link>
+            <Link to={`/admin/achats/${r.id}`} className="font-medium hover:text-gold-700">{fullName(r)}</Link>
             <p className="text-xs text-gray-500 flex flex-wrap gap-x-3">
-              <a href={`tel:${phoneOf(r).replace(/\s/g, '')}`} className="inline-flex items-center gap-1 hover:text-navy-900"><Phone className="w-3 h-3" /> {phoneOf(r)}</a>
+              <a href={phoneHref(r.phone, r.dialCode)} className="inline-flex items-center gap-1 hover:text-navy-900"><Phone className="w-3 h-3" /> {phoneOf(r)}</a>
               <span>Prochaine action : <ActionLabel a={nextAction(r.actions)} /></span>
             </p>
           </div>

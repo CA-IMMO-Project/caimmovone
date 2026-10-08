@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Mail, MapPin, Phone, Plus, Search, Send, Target, Trash2, User, History, X } from 'lucide-react';
 import { getLands } from '../lib/store';
+import { formatPhone, phoneHref, PHONE_PLACEHOLDER } from '../lib/phone';
+import { phoneError, sanitizePhone } from '../lib/validate';
 import { newId } from '../lib/store';
 import { Land } from '../types';
 import {
@@ -27,7 +29,7 @@ export function SearchFormFields({ f, set, errors = {} }: {
     <div className="space-y-5">
       <div className="grid sm:grid-cols-3 gap-4">
         <Field label="Nom complet" required error={errors.fullName}><input className={input} value={f.fullName} onChange={(e) => set('fullName', e.target.value)} /></Field>
-        <Field label="Téléphone" required error={errors.phone}><input type="tel" className={input} value={f.phone} onChange={(e) => set('phone', e.target.value)} placeholder="034 XX XXX XX" /></Field>
+        <Field label="Téléphone" required error={errors.phone}><input type="tel" inputMode="tel" className={input} value={f.phone} onChange={(e) => set('phone', sanitizePhone(e.target.value))} placeholder={PHONE_PLACEHOLDER} /></Field>
         <Field label="Email"><input type="email" className={input} value={f.email} onChange={(e) => set('email', e.target.value)} /></Field>
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -58,6 +60,7 @@ export function validateSearch(f: SearchFields) {
   const e: Partial<Record<keyof SearchFields, string>> = {};
   if (!f.fullName.trim()) e.fullName = 'Champ obligatoire';
   if (!f.phone.trim()) e.phone = 'Champ obligatoire';
+  else if (phoneError(f.phone)) e.phone = phoneError(f.phone) ?? undefined;
   if (!f.mainZone.trim()) e.mainZone = 'Champ obligatoire';
   return e;
 }
@@ -194,9 +197,9 @@ export function SearchDetail() {
             <p className="font-mono text-xs text-gray-500">{s.ref} · {s.source} · reçue le {fmtDateTime(s.createdAt)}</p>
             <h1 className="text-2xl font-bold text-navy-900">{s.fullName}</h1>
             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm">
-              <a href={`tel:${s.phone.replace(/\s/g, '')}`} className="inline-flex items-center gap-1 hover:text-gold-600"><Phone className="w-3.5 h-3.5" /> {s.phone}</a>
-              {s.email && <a href={`mailto:${s.email}`} className="inline-flex items-center gap-1 hover:text-gold-600"><Mail className="w-3.5 h-3.5" /> {s.email}</a>}
-              {s.clientId && <Link to={`/admin/clients/${s.clientId}`} className="inline-flex items-center gap-1 text-gold-600 hover:underline"><User className="w-3.5 h-3.5" /> Fiche client</Link>}
+              <a href={phoneHref(s.phone)} className="inline-flex items-center gap-1 hover:text-gold-700"><Phone className="w-3.5 h-3.5" /> {formatPhone(s.phone)}</a>
+              {s.email && <a href={`mailto:${s.email}`} className="inline-flex items-center gap-1 hover:text-gold-700"><Mail className="w-3.5 h-3.5" /> {s.email}</a>}
+              {s.clientId && <Link to={`/admin/clients/${s.clientId}`} className="inline-flex items-center gap-1 text-gold-700 hover:underline"><User className="w-3.5 h-3.5" /> Fiche client</Link>}
             </div>
           </div>
         </div>
@@ -219,7 +222,7 @@ export function SearchDetail() {
             </dl>
             {s.lat != null && s.lng != null
               ? <MapPicker lat={s.lat} lng={s.lng} radiusKm={s.radiusKm} readOnly />
-              : <p className="text-sm text-gray-400">Pas de point placé sur la carte.</p>}
+              : <p className="text-sm text-gray-600">Pas de point placé sur la carte.</p>}
           </Section>
 
           <Section
@@ -227,18 +230,18 @@ export function SearchDetail() {
             icon={<Send className="w-4 h-4" />}
             action={<button className={btnGold} onClick={() => setProposing(true)}><Plus className="w-4 h-4" /> Proposer un terrain</button>}
           >
-            {!s.proposals.length && <p className="text-sm text-gray-400">Aucun terrain proposé pour l’instant.</p>}
+            {!s.proposals.length && <p className="text-sm text-gray-600">Aucun terrain proposé pour l’instant.</p>}
             <ul className="space-y-3">
               {s.proposals.map((p) => {
                 const land = landOf(p);
                 const lot = land?.lots?.find((l) => l.id === p.lotId);
                 return (
                   <li key={p.id} className="flex flex-col sm:flex-row gap-3 p-3 rounded-xl border border-gray-200">
-                    {land && <img src={lot?.imageUrl || land.imageUrl} alt="" className="sm:w-32 h-24 rounded-lg object-cover" referrerPolicy="no-referrer" />}
+                    {land && <img src={lot?.imageUrl || land.imageUrl} alt="" className="sm:w-32 h-24 rounded-lg object-cover" referrerPolicy="no-referrer" loading="lazy" decoding="async" />}
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-navy-900">{land ? land.title : 'Terrain supprimé'}{lot && ` — ${lot.number}`}</p>
                       {land && <p className="text-sm text-gray-500">{land.location} · {fmtM2(lot?.area ?? land.area)} · {fmtAr(lot?.price ?? land.price)}</p>}
-                      <p className="text-xs text-gray-400 mt-1">Proposé le {fmtDateTime(p.at)}{p.note && ` · ${p.note}`}</p>
+                      <p className="text-xs text-gray-600 mt-1">Proposé le {fmtDateTime(p.at)}{p.note && ` · ${p.note}`}</p>
                     </div>
                     <div className="flex sm:flex-col items-end gap-2">
                       <select
@@ -308,7 +311,7 @@ function ProposeDialog({ search, onClose, onSave }: { search: SpecificSearch; on
             <option key={l.id} value={l.id}>{score >= 6 ? '★★ ' : score >= 4 ? '★ ' : ''}{l.title} · {l.location} · {fmtAr(l.price)}</option>
           ))}
         </select>
-        <span className="block text-xs text-gray-400 mt-1">★ = correspond à la zone, au rayon et au budget du client.</span>
+        <span className="block text-xs text-gray-600 mt-1">★ = correspond à la zone, au rayon et au budget du client.</span>
       </Field>
       {land?.lots?.length ? (
         <Field label="Parcelle">

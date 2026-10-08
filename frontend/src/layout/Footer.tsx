@@ -153,8 +153,9 @@ export default function Footer() {
           <p>
             &copy; {new Date().getFullYear()} CA IMMO. Tous droits réservés.
           </p>
-          <p className="mt-4 md:mt-0">
-            Chargé d'Affaire Immobilier — Madagascar
+          <p className="mt-4 md:mt-0 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span>Chargé d'Affaire Immobilier — Madagascar</span>
+            <Link to="/confidentialite" className="underline underline-offset-4 hover:text-white">Informations sur vos données</Link>
           </p>
         </div>
       </div>

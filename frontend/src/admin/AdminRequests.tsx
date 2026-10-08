@@ -5,6 +5,7 @@ import {
   deleteMessage, getMessages, updateMessage,
 } from '../lib/store';
 import { Card, PageHeader, REQUEST_STATUSES, btnGhost, formatDate, inputClass } from './ui';
+import { formatPhone, phoneHref } from '../lib/phone';
 import { ListToolbar, Select } from './crm/kit';
 import { refreshCache, subscribeCache } from './crm/sync';
 import { askConfirm } from './crm/dialog';
@@ -20,7 +21,7 @@ function StatusSelect({ value, onChange }: { value: RequestStatus; onChange: (v:
 function Contact({ phone, email }: { phone: string; email?: string }) {
   return (
     <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
-      <a href={`tel:${phone.replace(/\s/g, '')}`} className="flex items-center gap-1 hover:text-navy-900"><Phone className="w-3.5 h-3.5" /> {phone}</a>
+      <a href={phoneHref(phone)} className="flex items-center gap-1 hover:text-navy-900"><Phone className="w-3.5 h-3.5" /> {formatPhone(phone)}</a>
       {email && <a href={`mailto:${email}`} className="flex items-center gap-1 hover:text-navy-900"><MailIcon className="w-3.5 h-3.5" /> {email}</a>}
     </div>
   );
@@ -69,7 +70,7 @@ export function AdminMessages() {
                 <Contact phone={m.phone} email={m.email} />
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400">{formatDate(m.createdAt)}</span>
+                <span className="text-xs text-gray-600">{formatDate(m.createdAt)}</span>
                 <StatusSelect value={m.status} onChange={(status) => update(m.id, { status })} />
                 <button onClick={() => remove(m.id)} className={`${btnGhost} hover:text-red-600`} aria-label="Supprimer"><Trash2 className="w-4 h-4" /></button>
               </div>

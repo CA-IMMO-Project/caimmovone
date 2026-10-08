@@ -8,10 +8,12 @@
 import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 import { CheckCircle2, Mail, MessageSquare, Phone, Send } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { ErrorBanner, FormField, Input, Modal, Textarea } from '../../shared/ui';
 import { createContactMessage } from '../../services/requestService';
 import { PHONE_1, PHONE_1_TEL, PHONE_2, PHONE_2_TEL, WHATSAPP_URL } from '../../lib/contact';
-import { phoneError } from '../../lib/validate';
+import { phoneError, sanitizePhone } from '../../lib/validate';
+import { PHONE_PLACEHOLDER } from '../../lib/phone';
 
 const ContactContext = createContext<{ open: () => void }>({ open: () => {} });
 
@@ -37,13 +39,14 @@ function ContactModal({ open, onClose }: { open: boolean; onClose: () => void })
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
 
   const set = <K extends keyof typeof EMPTY>(k: K, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const close = () => {
     onClose();
     // réinitialise doucement après la fermeture (pas de flash visuel)
-    window.setTimeout(() => { setSent(false); setError(null); setBusy(false); setForm(EMPTY); }, 250);
+    window.setTimeout(() => { setSent(false); setError(null); setBusy(false); setForm(EMPTY); setPrivacyConsent(false); }, 250);
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -52,6 +55,10 @@ function ContactModal({ open, onClose }: { open: boolean; onClose: () => void })
     setError(null);
     if (!form.firstName.trim() || !form.lastName.trim() || !form.message.trim()) {
       setError('Merci de renseigner au minimum votre nom et votre message.');
+      return;
+    }
+    if (!privacyConsent) {
+      setError('Merci de prendre connaissance des informations sur le traitement de vos données.');
       return;
     }
     const phone = phoneError(form.phone);
@@ -105,7 +112,7 @@ function ContactModal({ open, onClose }: { open: boolean; onClose: () => void })
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField label="Téléphone" required>
-              <Input type="tel" icon={Phone} placeholder="034 12 345 67" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
+              <Input type="tel" inputMode="tel" icon={Phone} placeholder={PHONE_PLACEHOLDER} value={form.phone} onChange={(e) => set('phone', sanitizePhone(e.target.value))} />
             </FormField>
             <FormField label="Adresse email">
               <Input type="email" icon={Mail} placeholder="vous@exemple.com" value={form.email} onChange={(e) => set('email', e.target.value)} />
@@ -118,7 +125,12 @@ function ContactModal({ open, onClose }: { open: boolean; onClose: () => void })
             <Textarea rows={5} placeholder="Écrivez votre message ici…" value={form.message} onChange={(e) => set('message', e.target.value)} />
           </FormField>
 
-          <button type="submit" disabled={busy || !form.firstName.trim() || !form.lastName.trim() || !form.phone.trim() || !form.message.trim()} className="btn-gold w-full justify-center disabled:cursor-not-allowed disabled:opacity-40">
+          <label className="flex cursor-pointer items-start gap-3 text-xs leading-relaxed text-navy-900/85">
+            <input type="checkbox" checked={privacyConsent} onChange={(event) => setPrivacyConsent(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-navy-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy-900" />
+            <span>J’accepte d’être recontacté(e) à propos de mon message et j’ai pris connaissance des <Link to="/confidentialite" onClick={(event) => event.stopPropagation()} className="font-semibold underline decoration-gold-500 underline-offset-2">informations sur mes données personnelles</Link>.</span>
+          </label>
+
+          <button type="submit" disabled={busy || !privacyConsent || !form.firstName.trim() || !form.lastName.trim() || !form.phone.trim() || !form.message.trim()} className="btn-gold w-full justify-center disabled:cursor-not-allowed disabled:opacity-40">
             <Send className="h-4 w-4" />
             {busy ? 'Envoi en cours…' : 'Envoyer le message'}
           </button>

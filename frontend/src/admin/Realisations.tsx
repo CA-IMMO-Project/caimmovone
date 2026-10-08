@@ -4,11 +4,12 @@ import {
   REALISATION_CATEGORIES, Realisation, deleteRealisation, getRealisations, newRealisation, saveRealisation,
 } from './crm/people';
 import { removeFile } from './crm/files';
+import { formatMonthYear } from '../lib/format';
 import { Field, FileDrop, NumberInput, Select, Stat, Thumb, btnGold, btnIcon, btnOutline, btnPrimary, fmtM2, input } from './crm/kit';
 import { refreshCache, subscribeCache } from './crm/sync';
 import { askConfirm } from './crm/dialog';
 
-const monthLabel = (ym: string) => (ym ? new Date(`${ym}-01`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : '');
+const monthLabel = (ym: string) => (ym ? formatMonthYear(`${ym}-01`) : '');
 
 export default function Realisations() {
   const [rows, setRows] = useState(getRealisations);
@@ -52,7 +53,7 @@ export default function Realisations() {
               {r.featured && <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-semibold bg-gold-500 text-navy-950">★ À la une</span>}
             </div>
             <div className="p-4 flex-1 flex flex-col">
-              <p className="text-xs uppercase tracking-wide text-gold-600">{r.category}</p>
+              <p className="text-xs uppercase tracking-wide text-gold-700">{r.category}</p>
               <h3 className="font-semibold text-navy-900 mt-1">{r.title || 'Sans titre'}</h3>
               <p className="text-sm text-gray-500">{[r.location, monthLabel(r.completedAt)].filter(Boolean).join(' · ')}</p>
               <p className="text-sm text-gray-600 mt-2 line-clamp-3 flex-1">{r.description}</p>
@@ -61,7 +62,7 @@ export default function Realisations() {
                   {r.published ? <><EyeOff className="w-4 h-4" /> Dépublier</> : <><Globe className="w-4 h-4" /> Publier</>}
                 </button>
                 <div className="flex">
-                  <button className={`${btnIcon} ${r.featured ? 'text-gold-600' : ''}`} onClick={() => toggle(r, { featured: !r.featured })} title="Mettre à la une"><Star className="w-4 h-4" /></button>
+                  <button className={`${btnIcon} ${r.featured ? 'text-gold-700' : ''}`} onClick={() => toggle(r, { featured: !r.featured })} title="Mettre à la une"><Star className="w-4 h-4" /></button>
                   <button className={btnIcon} onClick={() => setEditing({ ...r })} aria-label="Modifier"><Pencil className="w-4 h-4" /></button>
                   <button className={`${btnIcon} hover:text-red-600`} onClick={async () => { if (await askConfirm(`Supprimer « ${r.title} » ?`)) { r.photos.forEach(removeFile); deleteRealisation(r.id); refresh(); } }} aria-label="Supprimer"><Trash2 className="w-4 h-4" /></button>
                 </div>
@@ -69,7 +70,7 @@ export default function Realisations() {
             </div>
           </article>
         ))}
-        {!shown.length && <p className="text-gray-400 col-span-full text-center py-10">Aucune réalisation.</p>}
+        {!shown.length && <p className="text-gray-600 col-span-full text-center py-10">Aucune réalisation.</p>}
       </div>
 
       {editing && <RealisationForm initial={editing} onClose={() => setEditing(null)} onSave={(r) => { saveRealisation(r); refresh(); setEditing(null); }} />}
@@ -115,7 +116,7 @@ function RealisationForm({ initial, onClose, onSave }: { initial: Realisation; o
           </div>
 
           <div>
-            <p className="text-xs font-medium text-gray-600 mb-1.5">Photos <span className="text-red-500">*</span> <span className="text-gray-400">(la première sert de couverture)</span></p>
+            <p className="text-xs font-medium text-gray-600 mb-1.5">Photos <span className="text-red-500">*</span> <span className="text-gray-600">(la première sert de couverture)</span></p>
             <FileDrop visibility="public" accept="image/jpeg,image/png,image/webp" maxMb={15} multiple label="Ajouter des photos" hint="JPG, PNG, WEBP · 15 Mo max" onFiles={(files) => set('photos', [...r.photos, ...files])} />
             {tried && !r.photos.length && <p className="text-xs text-red-600 mt-1">Ajoutez au moins une photo.</p>}
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-3">

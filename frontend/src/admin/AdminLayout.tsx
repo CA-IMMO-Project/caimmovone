@@ -134,6 +134,7 @@ export default function AdminLayout() {
           <a
             href="/"
             target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-3 px-4 py-2 rounded-lg text-sm text-white/75 hover:bg-white/10"
           >
             <ExternalLink className="w-4 h-4" /> Voir le site
@@ -154,14 +155,14 @@ export default function AdminLayout() {
         />
       )}
 
-      <div className="min-w-0 lg:ml-64">
+      <div className="admin-content min-w-0 lg:ml-64">
         <header className="lg:hidden sticky top-0 z-30 h-16 bg-navy-900 text-white flex items-center px-4">
           <button onClick={() => setOpen(!open)} aria-label="Menu">
             {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
           <span className="ml-4 font-bold">CA IMMO — Backoffice</span>
         </header>
-        <main className="p-4 sm:p-8 max-w-full mx-auto">
+        <main className="min-w-0 w-full max-w-full p-4 sm:p-8 mx-auto">
           <Outlet />
         </main>
       </div>
@@ -220,11 +221,15 @@ export function AdminLogin() {
             Accès réservé à l'administration
           </p>
         </div>
-        <label className="block text-sm font-medium text-navy-900 mb-1">
+        <label htmlFor="admin-login-email" className="block text-sm font-medium text-navy-900 mb-1">
           Adresse e-mail
         </label>
         <input
+          id="admin-login-email"
+          name="email"
           type="email"
+          autoComplete="username"
+          required
           autoFocus
           value={email}
           onChange={(e) => {
@@ -233,13 +238,17 @@ export function AdminLogin() {
           }}
           className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-500"
         />
-        <label className="block text-sm font-medium text-navy-900 mb-1 mt-4">
+        <label htmlFor="admin-login-password" className="block text-sm font-medium text-navy-900 mb-1 mt-4">
           Mot de passe
         </label>
         <div className="relative">
-          <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
           <input
+            id="admin-login-password"
+            name="password"
             type="password"
+            autoComplete="current-password"
+            required
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);

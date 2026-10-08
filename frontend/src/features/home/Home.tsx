@@ -32,6 +32,7 @@ import { PHONE_1_TEL } from "../../lib/contact";
 import LandCard from "../catalog/LandCard";
 import { fetchLands } from "../../services/landService";
 import type { Land } from "../../types";
+import { Eyebrow } from "../../shared/ui";
 
 /* Visuels signature de la charte de référence (villa moderne + lotissement). */
 const IMG_HERO =
@@ -47,23 +48,6 @@ const fadeUp = {
   viewport: { once: true, margin: "-60px" },
   transition: { duration: 0.6, ease: "easeOut" as const },
 };
-
-function Eyebrow({
-  children,
-  light = false,
-}: {
-  children: ReactNode;
-  light?: boolean;
-}) {
-  return (
-    <p
-      className={`flex items-center gap-3 text-sm font-semibold mb-3 ${light ? "text-gold-500" : "text-navy-900"}`}
-    >
-      <span className="h-[3px] w-7 rounded-full bg-gold-500" />
-      {children}
-    </p>
-  );
-}
 
 function DroneIcon({
   className = "",
@@ -181,6 +165,9 @@ export default function Home() {
             src={IMG_HERO}
             alt="Villa avec piscine à Madagascar"
             className="h-full w-full object-cover"
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
             referrerPolicy="no-referrer"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-navy-900 via-navy-900/70 to-transparent" />
@@ -287,6 +274,8 @@ export default function Home() {
               src={IMG_LOTS}
               alt="Lotissement vu du ciel"
               className="relative h-72 w-full rounded-[2rem] object-cover shadow-2xl -rotate-3 border-4 border-white"
+              loading="lazy"
+              decoding="async"
               referrerPolicy="no-referrer"
             />
           </motion.div>
@@ -321,7 +310,7 @@ export default function Home() {
             className="lg:col-span-3 rounded-3xl bg-mist p-7 shadow-sm"
           >
             <h3 className="font-bold text-navy-900 mb-5">
-              <span className="text-gold-500">N</span>os solutions
+              <span className="text-gold-700">N</span>os solutions
             </h3>
             <ul className="space-y-4">
               {[
@@ -335,7 +324,7 @@ export default function Home() {
                   key={label}
                   className="flex items-center gap-4 text-sm text-navy-900"
                 >
-                  <Icon className="w-5 h-5 text-gold-600" /> {label}
+                  <Icon className="w-5 h-5 text-gold-700" /> {label}
                 </li>
               ))}
             </ul>
@@ -351,7 +340,7 @@ export default function Home() {
               <div>
                 <Eyebrow>Nos sélections</Eyebrow>
                 <h2 className="text-2xl md:text-3xl font-bold text-navy-900 leading-tight">
-                  Terrains <span className="text-gold-500">en vedette</span>
+                  Terrains <span className="text-gold-700">en vedette</span>
                 </h2>
                 <p className="mt-3 max-w-xl text-sm text-slate-600 leading-relaxed">
                   Un aperçu de nos parcelles disponibles actuellement — titrées,
@@ -591,6 +580,8 @@ export default function Home() {
               src={IMG_AERIAL}
               alt="Vue aérienne par drone"
               className="absolute inset-0 h-full w-full object-cover"
+              loading="lazy"
+              decoding="async"
               referrerPolicy="no-referrer"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-white via-white/20 to-transparent" />
@@ -689,6 +680,8 @@ export default function Home() {
           src={IMG_SUNSET}
           alt="Paysage de Madagascar"
           className="absolute inset-0 h-full w-full object-cover"
+          loading="lazy"
+          decoding="async"
           referrerPolicy="no-referrer"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-navy-950 via-navy-900/85 to-navy-900/30" />

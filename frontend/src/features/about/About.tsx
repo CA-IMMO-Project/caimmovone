@@ -95,6 +95,9 @@ export default function About() {
             src={IMG_VILLA}
             alt="Villa moderne avec piscine"
             className="h-full w-full object-cover [clip-path:ellipse(95%_100%_at_100%_40%)]"
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
             referrerPolicy="no-referrer"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-navy-900/60 via-transparent to-navy-900/40 [clip-path:ellipse(95%_100%_at_100%_40%)]" />
@@ -260,12 +263,16 @@ export default function About() {
               src={IMG_BAY}
               alt="Baie de Madagascar"
               className="absolute left-0 top-0 h-44 w-[88%] rounded-3xl rounded-tl-[4rem] object-cover shadow-lg"
+              loading="lazy"
+              decoding="async"
               referrerPolicy="no-referrer"
             />
             <img
               src={IMG_HOUSE}
               alt="Maison clé en main"
               className="absolute right-0 bottom-0 h-48 w-[62%] rounded-3xl rounded-br-[3rem] object-cover shadow-xl border-4 border-white"
+              loading="lazy"
+              decoding="async"
               referrerPolicy="no-referrer"
             />
             <div className="absolute left-2 bottom-2 w-44 sm:w-48 rounded-3xl bg-navy-900 p-5 text-white shadow-2xl ring-4 ring-white">
@@ -427,6 +434,8 @@ export default function About() {
               src={IMG_BUILDING}
               alt="Résidence moderne"
               className="hidden sm:block w-32 md:w-36 object-cover [clip-path:ellipse(100%_75%_at_100%_50%)]"
+              loading="lazy"
+              decoding="async"
               referrerPolicy="no-referrer"
             />
           </motion.div>
@@ -483,6 +492,8 @@ export default function About() {
               src={IMG_LANDSCAPE}
               alt="Paysage de Madagascar"
               className="absolute inset-0 h-full w-full object-cover lg:[clip-path:polygon(22%_0,100%_0,100%_100%,0_100%)]"
+              loading="lazy"
+              decoding="async"
               referrerPolicy="no-referrer"
             />
             <div className="absolute inset-0 bg-navy-900/25 lg:[clip-path:polygon(22%_0,100%_0,100%_100%,0_100%)]" />
@@ -502,6 +513,8 @@ export default function About() {
           src={IMG_LANDSCAPE}
           alt=""
           className="absolute inset-0 h-full w-full object-cover opacity-15"
+          loading="lazy"
+          decoding="async"
           referrerPolicy="no-referrer"
         />
         <svg

@@ -1,9 +1,11 @@
 /* Formulaire de visite — extrait de LandDetail pour lisibilité. */
 
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { CalendarDays, Clock3 } from 'lucide-react';
 import { ErrorBanner, FormField, Input, Select, Textarea } from '../../../shared/ui';
-import { phoneError } from '../../../lib/validate';
+import { phoneError, sanitizePhone } from '../../../lib/validate';
+import { PHONE_PLACEHOLDER } from '../../../lib/phone';
 import { createReservation } from '../../../services/requestService';
 import type { SubmitResult } from '../../../services/requestService';
 import type { Land, Lot, ReservationPayload } from '../../../types';
@@ -78,13 +80,17 @@ export default function VisitForm({ land, lot, onDone }: { land: Land; lot?: Lot
         <FormField label="Nom" required>
           <Input placeholder="Ex. Rakoto" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} />
         </FormField>
-        <FormField label="Numéro de téléphone" required className="sm:col-span-2" hint="Format : 034 12 345 67 ou +261 34 12 345 67">
-          <Input type="tel" placeholder="034 12 345 67" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
+        <FormField label="Numéro de téléphone" required className="sm:col-span-2" hint={`Format : ${PHONE_PLACEHOLDER}`}>
+          <Input type="tel" inputMode="tel" placeholder={PHONE_PLACEHOLDER} value={form.phone} onChange={(e) => set('phone', sanitizePhone(e.target.value))} />
         </FormField>
         <FormField label="Commentaire" className="sm:col-span-2">
           <Textarea rows={3} placeholder="Une question ou une précision pour la visite ?" value={form.message} onChange={(e) => set('message', e.target.value)} />
         </FormField>
       </div>
+
+      <p className="mt-4 text-xs leading-relaxed text-navy-900/75">
+        Les coordonnées et le créneau indiqués servent à traiter la demande de visite. <Link to="/confidentialite" className="font-semibold text-navy-900 underline decoration-gold-500 underline-offset-2">Informations sur vos données</Link>.
+      </p>
 
       <p className="mt-5 flex items-center gap-2.5 text-xs font-normal text-navy-900/80">
         <Clock3 className="h-4 w-4 shrink-0 text-gold-700" />

@@ -1,6 +1,6 @@
 # ST-IMMOBILIER
 
-Site d'agence immobilière moderne pour la vente de terrains, maisons et réservation d'hôtels.
+Site CA IMMO consacré au catalogue de terrains, aux demandes d'achat, de visite et de recherche, aux dossiers de vente déposés par les propriétaires, au contact et aux réalisations de l'agence. Le dépôt comprend aussi un back office Laravel/React. Il ne présente pas de parcours dédié à la réservation d'hôtels ; la route `/reservation` redirige actuellement vers `/vendre`.
 
 ## Run Locally
 

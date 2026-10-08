@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowLeft, CheckCircle2, Eye, FileText, ImagePlus, Layers3, MapPinned, Plus, Save, Sparkles, Trash2, Upload, WalletCards } from 'lucide-react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import LandCard from '../features/catalog/LandCard';
@@ -6,13 +6,11 @@ import { formatArea, formatAriary } from '../lib/format';
 import { getLands, saveLand } from '../lib/store';
 import { Land, LandDocument, Lot } from '../types';
 import { Badge, Card, PageHeader, btnGhost, btnPrimary, inputClass } from './ui';
-import { FileChip, FileDrop, Preview, Tabs } from './crm/kit';
+import { Field, FileChip, FileDrop, Preview, Section, Tabs, btnOutline } from './crm/kit';
 import type { StoredFile } from './crm/model';
 import { removeFile } from './crm/files';
-import { createEmptyLand, LAND_STATUSES, landFrontMissing, landFrontScore, landPublishIssues, PAYMENT_MODES, PUBLICATION_STATUSES, RELIEF_OPTIONS, TITLE_STATUSES } from './landCatalog';
+import { createEmptyLand, LAND_STATUSES, landFrontMissing, landFrontScore, landPublishIssues, PAYMENT_MODES, PUBLICATION_STATUSES, RELIEF_OPTIONS, TITLE_STATUSES, publicationLabel, publicationTone } from './landCatalog';
 import LandFrontPreview from './LandFrontPreview';
-
-const OUTLINE_BTN = 'inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-navy-900 transition hover:bg-gray-50';
 
 // Mêmes sous-sections (onglets) que les fiches « Demandes de vente » / « Demandes
 // d'achat » : un seul schéma d'affichage pour toutes les fiches terrain.
@@ -36,69 +34,17 @@ function scoreTone(score: number) {
   return 'bg-red-100 text-red-700';
 }
 
-function publicationTone(status: Land['publicationStatus']) {
-  switch (status) {
-    case 'publie':
-      return 'bg-green-100 text-green-800';
-    case 'archive':
-      return 'bg-gray-200 text-gray-700';
-    default:
-      return 'bg-amber-100 text-amber-800';
-  }
-}
-
-function publicationLabel(status: Land['publicationStatus']) {
-  switch (status) {
-    case 'publie':
-      return 'Publié';
-    case 'archive':
-      return 'Archivé';
-    default:
-      return 'Brouillon';
-  }
-}
-
-// Même habillage que crm/kit.tsx (Section/Field) utilisé par les écrans
-// « Dossiers de vente » et la fiche de détail du catalogue (AdminLandDetail) :
-// un seul style de carte/section dans tout le back office « terrain ».
-function Section({ title, hint, icon, children }: { title: string; hint?: string; icon: ReactNode; children: ReactNode }) {
-  return (
-    <section className="bg-white rounded-2xl border border-gray-200 shadow-sm">
-      <header className="flex items-start justify-between gap-3 px-5 py-4 border-b border-gray-100">
-        <h2 className="flex items-center gap-2 font-semibold text-navy-900">
-          <span className="text-gold-600">{icon}</span>
-          {title}
-        </h2>
-      </header>
-      <div className="p-5">
-        {hint && <p className="mb-4 -mt-1 text-sm text-gray-500">{hint}</p>}
-        {children}
-      </div>
-    </section>
-  );
-}
-
-function Field({ label, children, hint, full = false }: { label: string; children: ReactNode; hint?: string; full?: boolean }) {
-  return (
-    <label className={`block ${full ? 'sm:col-span-2' : ''}`}>
-      <span className="block text-xs font-medium text-gray-600 mb-1.5">{label}</span>
-      {children}
-      {hint && <span className="block text-xs text-gray-400 mt-1">{hint}</span>}
-    </label>
-  );
-}
-
 function MediaThumb({ src, label, onRemove, onPromote, cover = false }: { src: string; label?: string; onRemove: () => void; onPromote?: () => void; cover?: boolean }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
       <div className="relative aspect-[4/3] bg-gray-100">
-        <img src={src} alt={label ?? ''} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+        <img src={src} alt={label ?? ''} className="h-full w-full object-cover" referrerPolicy="no-referrer" loading="lazy" decoding="async" />
         {cover && <span className="absolute left-3 top-3 rounded-full bg-navy-900 px-2.5 py-1 text-[11px] font-semibold text-white">Couverture</span>}
       </div>
       <div className="space-y-2 p-3">
         <p className="truncate text-xs text-gray-500">{label ?? src}</p>
         <div className="flex flex-wrap gap-2">
-          {onPromote && <button type="button" onClick={onPromote} className={OUTLINE_BTN}>Mettre en couverture</button>}
+          {onPromote && <button type="button" onClick={onPromote} className={btnOutline}>Mettre en couverture</button>}
           <button type="button" onClick={onRemove} className={`${btnGhost} hover:text-red-600`}><Trash2 className="h-4 w-4" /> Retirer</button>
         </div>
       </div>
@@ -236,8 +182,8 @@ export default function LandEditor() {
         subtitle="Fiche catalogue repensée : édition complète, médias uploadés côté serveur, workflow brouillon / publié / archivé."
         action={
           <div className="flex flex-wrap gap-2">
-            <Link to="/admin/terrains" className={OUTLINE_BTN}><ArrowLeft className="h-4 w-4" /> Retour au catalogue</Link>
-            {!isNew && isPublished && <Link to={`/terrains/${previewLand.id}`} target="_blank" className={OUTLINE_BTN}><Eye className="h-4 w-4" /> Voir sur le site</Link>}
+            <Link to="/admin/terrains" className={btnOutline}><ArrowLeft className="h-4 w-4" /> Retour au catalogue</Link>
+            {!isNew && isPublished && <Link to={`/terrains/${previewLand.id}`} target="_blank" rel="noopener noreferrer" className={btnOutline}><Eye className="h-4 w-4" /> Voir sur le site</Link>}
             <button type="submit" className={btnPrimary} disabled={!canSave || saving}><Save className="h-4 w-4" /> {saving ? 'Enregistrement…' : 'Enregistrer'}</button>
           </div>
         }
@@ -472,7 +418,7 @@ export default function LandEditor() {
                 <p className="font-medium text-navy-900">{lots.length ? `${lots.length} lot(s) — ${formatArea(lotArea)} cumulés` : 'Aucun lot défini'}</p>
                 <p className="text-gray-500">Si aucun lot n’est saisi, le terrain est présenté comme vendu en un seul bloc.</p>
               </div>
-              <button type="button" onClick={addLot} className={OUTLINE_BTN}><Plus className="h-4 w-4" /> Ajouter un lot</button>
+              <button type="button" onClick={addLot} className={btnOutline}><Plus className="h-4 w-4" /> Ajouter un lot</button>
             </div>
             {lotArea > (previewLand.area || 0) && (
               <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -520,7 +466,7 @@ export default function LandEditor() {
           )}
 
           <div className="flex flex-wrap justify-end gap-2">
-            <Link to="/admin/terrains" className={OUTLINE_BTN}>Annuler</Link>
+            <Link to="/admin/terrains" className={btnOutline}>Annuler</Link>
             <button type="submit" className={btnPrimary} disabled={!canSave || saving}><Save className="h-4 w-4" /> {saving ? 'Enregistrement…' : 'Enregistrer la fiche'}</button>
           </div>
         </div>
@@ -530,7 +476,7 @@ export default function LandEditor() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-navy-900">Cohérence front office</p>
-                <p className="mt-1 text-xs text-gray-500">Score de complétude de la fiche par rapport à ce qui est affiché côté public.</p>
+                <p className="mt-1 text-xs text-gray-600">Indicateur éditorial indicatif : il mesure la présence de contenus publics, mais ne constitue pas une règle de publication.</p>
               </div>
               <span className={`rounded-full px-3 py-1 text-sm font-semibold ${scoreTone(score)}`}>{score}%</span>
             </div>
@@ -552,6 +498,7 @@ export default function LandEditor() {
                 </ul>
               </div>
             )}
+            <p className="mt-4 text-xs leading-relaxed text-gray-600">Les blocages ci-dessous sont les contrôles techniques actuels du logiciel ; la règle de validation et de publication de CA IMMO reste à confirmer.</p>
             {publishBlocked ? (
               <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
                 <div className="flex items-center gap-2 font-medium"><AlertTriangle className="h-4 w-4" /> Publication impossible en l’état.</div>
@@ -605,9 +552,9 @@ export default function LandEditor() {
           <Card className="p-5 text-sm text-gray-600">
             <p className="font-semibold text-navy-900">Contrôles rapides</p>
             <ul className="mt-3 space-y-2">
-              <li className="flex items-center gap-2"><FileText className="h-4 w-4 text-gold-600" /> Prix : <strong className="text-navy-900">{previewLand.price ? formatAriary(previewLand.price) : 'non renseigné'}</strong></li>
-              <li className="flex items-center gap-2"><MapPinned className="h-4 w-4 text-gold-600" /> Localisation : <strong className="text-navy-900">{previewLand.location || 'non renseignée'}</strong></li>
-              <li className="flex items-center gap-2"><WalletCards className="h-4 w-4 text-gold-600" /> Surface : <strong className="text-navy-900">{previewLand.area ? formatArea(previewLand.area) : 'non renseignée'}</strong></li>
+              <li className="flex items-center gap-2"><FileText className="h-4 w-4 text-gold-700" /> Prix : <strong className="text-navy-900">{previewLand.price ? formatAriary(previewLand.price) : 'non renseigné'}</strong></li>
+              <li className="flex items-center gap-2"><MapPinned className="h-4 w-4 text-gold-700" /> Localisation : <strong className="text-navy-900">{previewLand.location || 'non renseignée'}</strong></li>
+              <li className="flex items-center gap-2"><WalletCards className="h-4 w-4 text-gold-700" /> Surface : <strong className="text-navy-900">{previewLand.area ? formatArea(previewLand.area) : 'non renseignée'}</strong></li>
             </ul>
           </Card>
         </div>

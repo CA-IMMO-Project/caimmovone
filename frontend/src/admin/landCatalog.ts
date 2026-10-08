@@ -1,4 +1,5 @@
-import { Land } from '../types';
+import type { Land } from '../types';
+import { adminStatusClass } from './status';
 
 export const TITLE_STATUSES: Land['titleStatus'][] = ['Titre Foncier', 'Titre en cours', 'Cadastré'];
 export const LAND_STATUSES: Land['status'][] = ['disponible', 'réservé', 'vendu'];
@@ -38,22 +39,51 @@ export function createEmptyLand(): Land {
   };
 }
 
+export function landFrontSummary(land: Land) {
+  const gallery = [...new Set([land.imageUrl, ...(land.gallery ?? [])].filter((src): src is string => Boolean(src)))];
+  return {
+    gallery,
+    galleryCount: gallery.length,
+    documentsCount: land.documents?.length ?? 0,
+    payment: land.payment?.trim() || 'À préciser',
+    access: land.access?.trim() || 'À préciser',
+  };
+}
+
+export function publicationLabel(status: Land['publicationStatus']): string {
+  switch (status) {
+    case 'publie': return 'Publié';
+    case 'archive': return 'Archivé';
+    default: return 'Brouillon';
+  }
+}
+
+export function publicationTone(status: Land['publicationStatus']): string {
+  return adminStatusClass(publicationLabel(status));
+}
+
+function requiresInstallmentDetails(mode: Land['paymentMode']): boolean {
+  return mode === 'facilite' || mode === 'comptant-ou-facilite';
+}
+
 export function landFrontMissing(land: Land): string[] {
   const missing: string[] = [];
-  const galleryCount = new Set([land.imageUrl, ...(land.gallery ?? [])].filter(Boolean)).size;
+  const galleryCount = landFrontSummary(land).galleryCount;
 
   if (!land.title.trim()) missing.push('titre');
   if (!land.description.trim()) missing.push('description');
   if (!land.imageUrl.trim()) missing.push('photo de couverture');
   if (galleryCount < 2) missing.push('galerie photos');
   if (!(land.features?.length ?? 0)) missing.push('atouts');
+  if (!land.region?.trim()) missing.push('région');
   if (!land.zone?.trim()) missing.push('zone / commune');
+  if (!land.location?.trim()) missing.push('localisation');
   if (!land.access?.trim()) missing.push('accès');
   if (!(land.documents?.length ?? 0)) missing.push('documents');
   if (!land.payment?.trim()) missing.push('texte de paiement');
   if (!land.coordinates?.length) missing.push('coordonnées GPS');
 
-  if (land.paymentMode !== 'comptant') {
+  if (requiresInstallmentDetails(land.paymentMode)) {
     if (!land.downPayment?.trim()) missing.push('acompte');
     if (!land.installments?.trim()) missing.push('durée de facilité');
   }
@@ -62,9 +92,9 @@ export function landFrontMissing(land: Land): string[] {
 }
 
 export function landFrontScore(land: Land): number {
-  const totalChecks = 11;
-  const done = totalChecks - Math.min(landFrontMissing(land).length, totalChecks);
-  return Math.max(0, Math.round((done / totalChecks) * 100));
+  const totalChecks = 12 + (requiresInstallmentDetails(land.paymentMode) ? 2 : 0);
+  const done = Math.max(0, totalChecks - landFrontMissing(land).length);
+  return Math.round((done / totalChecks) * 100);
 }
 
 /** Champs indispensables avant publication publique. */

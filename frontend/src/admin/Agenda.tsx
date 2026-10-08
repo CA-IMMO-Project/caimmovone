@@ -6,6 +6,8 @@ import {
   CalendarDays, Check, ChevronLeft, ChevronRight, Clock, LayoutList, Move, Plus, Eye, Mail, MessageCircle, MoreHorizontal, PenLine, Phone, Repeat, Search, User,
 } from 'lucide-react';
 import { getLands } from '../lib/store';
+import { formatTime } from '../lib/format';
+import { phoneHref } from '../lib/phone';
 import { refreshCache, subscribeCache } from './crm/sync';
 import {
   ACTION_TYPES, ActionType, BuyRequest, LandFile, PlannedAction, fullName, getBuyRequests, getLandFiles, historyEntry,
@@ -172,7 +174,7 @@ export default function Agenda() {
         </div>
         <div className="grid sm:grid-cols-3 gap-2">
           <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Client, téléphone, terrain…" className={`${input} pl-9`} />
           </div>
           <Select value={type} onChange={setType} options={ACTION_TYPES} placeholder="Tous les types" />
@@ -184,7 +186,7 @@ export default function Agenda() {
 
       {mode === 'list' && <>
       {!shown.length && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-10 text-center text-gray-400">
+        <div className="bg-white rounded-2xl border border-gray-200 p-10 text-center text-gray-600">
           {view === 'late' ? 'Aucune action en retard. 👍' : view === 'done' ? 'Aucune action effectuée.' : 'Aucune action à venir. Planifiez-en depuis un dossier (demande d’achat ou terrain à vendre).'}
         </div>
       )}
@@ -193,7 +195,7 @@ export default function Agenda() {
         {Object.entries(groups).map(([key, list]) => (
           <section key={key}>
             <h2 className={`text-sm font-semibold mb-2 ${key === today ? 'text-amber-600' : view === 'late' ? 'text-red-600' : 'text-navy-900'}`}>
-              {dayLabel(key)} <span className="text-gray-400 font-normal">· {list.length}</span>
+              {dayLabel(key)} <span className="text-gray-600 font-normal">· {list.length}</span>
             </h2>
             <ul className="bg-white rounded-2xl border border-gray-200 shadow-sm divide-y divide-gray-100">
               {list.map((i) => {
@@ -207,7 +209,7 @@ export default function Agenda() {
                       </span>
                       <div>
                         <p className={`text-sm font-semibold flex items-center gap-1 ${late ? 'text-red-600' : 'text-navy-900'}`}>
-                          <Clock className="w-3.5 h-3.5" /> {new Date(i.action.done ? i.action.doneAt ?? i.action.at : i.action.at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          <Clock className="w-3.5 h-3.5" /> {formatTime(i.action.done ? i.action.doneAt ?? i.action.at : i.action.at)}
                         </p>
                         <p className="text-xs text-gray-500">{i.action.type}</p>
                       </div>
@@ -225,10 +227,10 @@ export default function Agenda() {
                       {late && <p className="text-xs text-red-600 font-semibold mt-0.5">Prévue le {fmtDateTime(i.action.at)}</p>}
                     </div>
                     <div className="flex items-center gap-1 sm:justify-end">
-                      {i.phone && <a href={`tel:${i.phone.replace(/\s/g, '')}`} className={btnIcon} title={`Appeler ${i.phone}`}><Phone className="w-4 h-4" /></a>}
+                      {i.phone && <a href={phoneHref(i.phone)} className={btnIcon} title={`Appeler ${i.phone}`}><Phone className="w-4 h-4" /></a>}
                       <Link to={i.link} className={btnIcon} title={`Ouvrir le dossier ${i.ref}`}><User className="w-4 h-4" /></Link>
                       {!i.action.done && <button className={`${btnPrimary} py-1.5`} onClick={() => setCompleting(i)}><Check className="w-4 h-4" /> Fait</button>}
-                      {i.action.done && <Link to={i.link} className="text-xs text-gold-600 inline-flex items-center">Dossier <ChevronRight className="w-3 h-3" /></Link>}
+                      {i.action.done && <Link to={i.link} className="text-xs text-gold-700 inline-flex items-center">Dossier <ChevronRight className="w-3 h-3" /></Link>}
                     </div>
                   </li>
                 );
@@ -352,7 +354,7 @@ function CalendarView({ items, isLate, onComplete, onPlan, onMove }: {
                       title={i.action.done ? `${i.action.type} · ${i.who}` : 'Glissez pour déplacer'}
                       className={`block truncate rounded px-1 py-0.5 text-[11px] leading-tight ${chipClass(i)} ${i.action.done ? '' : 'cursor-grab active:cursor-grabbing'} ${dragId === i.action.id ? 'opacity-40' : ''}`}
                     >
-                      {new Date(i.action.at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} {i.action.type === 'Visite du terrain' ? 'Visite' : i.action.type} · {i.who}
+                      {formatTime(i.action.at)} {i.action.type === 'Visite du terrain' ? 'Visite' : i.action.type} · {i.who}
                     </span>
                   ))}
                   {list.length > 3 && <span className="block text-[11px] text-gray-500 px-1">+ {list.length - 3} autre(s)</span>}
@@ -374,11 +376,11 @@ function CalendarView({ items, isLate, onComplete, onPlan, onMove }: {
       <aside className="bg-white rounded-2xl border border-gray-200 shadow-sm h-fit xl:sticky xl:top-4">
         <div className="flex items-center justify-between gap-2 px-4 py-3 border-b">
           <h3 className={`font-semibold ${selected === today ? 'text-amber-600' : 'text-navy-900'}`}>
-            {dayLabel(selected)} <span className="text-gray-400 font-normal">· {dayItems.length}</span>
+            {dayLabel(selected)} <span className="text-gray-600 font-normal">· {dayItems.length}</span>
           </h3>
           <button className={`${btnPrimary} bg-gold-500 text-navy-900 hover:bg-gold-400 py-1.5 shrink-0`} onClick={() => setPlanning(selected)}><Plus className="w-4 h-4" /> Planifier</button>
         </div>
-        {!dayItems.length && <p className="p-4 text-sm text-gray-400">Rien de prévu ce jour-là.</p>}
+        {!dayItems.length && <p className="p-4 text-sm text-gray-600">Rien de prévu ce jour-là.</p>}
         <ul className="divide-y divide-gray-100">
           {dayItems.map((i) => {
             const Icon = ICONS[i.action.type];
@@ -389,7 +391,7 @@ function CalendarView({ items, isLate, onComplete, onPlan, onMove }: {
                   <span className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${i.action.done ? 'bg-blue-100 text-blue-700' : late ? 'bg-red-600 text-white' : 'bg-navy-900 text-white'}`}><Icon className="w-4 h-4" /></span>
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm font-semibold ${late ? 'text-red-600' : 'text-navy-900'}`}>
-                      {new Date(i.action.at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} · {i.action.type}
+                      {formatTime(i.action.at)} · {i.action.type}
                     </p>
                     <p className="text-sm">
                       {i.who}
@@ -401,7 +403,7 @@ function CalendarView({ items, isLate, onComplete, onPlan, onMove }: {
                   </div>
                 </div>
                 <div className="flex items-center justify-end gap-1 mt-2">
-                  {i.phone && <a href={`tel:${i.phone.replace(/\s/g, '')}`} className={btnIcon} title={`Appeler ${i.phone}`}><Phone className="w-4 h-4" /></a>}
+                  {i.phone && <a href={phoneHref(i.phone)} className={btnIcon} title={`Appeler ${i.phone}`}><Phone className="w-4 h-4" /></a>}
                   <Link to={i.link} className={btnIcon} title={`Ouvrir le dossier ${i.ref}`}><User className="w-4 h-4" /></Link>
                   {!i.action.done && <button className={btnIcon} onClick={() => setMoving(i)} title="Déplacer (changer la date ou l’heure)"><Move className="w-4 h-4" /></button>}
                   {!i.action.done && <button className={`${btnPrimary} py-1.5`} onClick={() => onComplete(i)}><Check className="w-4 h-4" /> Fait</button>}

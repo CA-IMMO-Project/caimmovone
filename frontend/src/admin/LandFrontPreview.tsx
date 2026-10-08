@@ -16,9 +16,9 @@ export default function LandFrontPreview({ land }: { land: Land }) {
           <div>
             <div className="overflow-hidden rounded-3xl bg-navy-900/5">
               {gallery[0] ? (
-                <img src={gallery[0]} alt={land.title} className="h-[22rem] w-full object-cover" referrerPolicy="no-referrer" />
+                <img src={gallery[0]} alt={land.title} className="h-[22rem] w-full object-cover" referrerPolicy="no-referrer" loading="lazy" decoding="async" />
               ) : (
-                <div className="grid h-[22rem] place-items-center text-sm text-gray-400">Aucune image de couverture</div>
+                <div className="grid h-[22rem] place-items-center text-sm text-gray-600">Aucune image de couverture</div>
               )}
             </div>
 
@@ -26,7 +26,7 @@ export default function LandFrontPreview({ land }: { land: Land }) {
               <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
                 {gallery.map((src, index) => (
                   <div key={`${src}-${index}`} className={`overflow-hidden rounded-2xl bg-navy-900/5 ${index === 0 ? 'ring-2 ring-gold-500 ring-offset-2 ring-offset-brand-50' : ''}`}>
-                    <img src={src} alt={`${land.title} — photo ${index + 1}`} className="h-24 w-full object-cover sm:h-28" referrerPolicy="no-referrer" />
+                    <img src={src} alt={`${land.title} — photo ${index + 1}`} className="h-24 w-full object-cover sm:h-28" referrerPolicy="no-referrer" loading="lazy" decoding="async" />
                   </div>
                 ))}
               </div>
@@ -142,9 +142,9 @@ export default function LandFrontPreview({ land }: { land: Land }) {
                   {land.lots.map((lot) => (
                     <article key={lot.id} className="overflow-hidden rounded-2xl border border-navy-900/8 bg-white">
                       {lot.imageUrl ? (
-                        <img src={lot.imageUrl} alt={lot.number} className="h-40 w-full object-cover" referrerPolicy="no-referrer" />
+                        <img src={lot.imageUrl} alt={lot.number} className="h-40 w-full object-cover" referrerPolicy="no-referrer" loading="lazy" decoding="async" />
                       ) : (
-                        <div className="grid h-40 place-items-center bg-gray-100 text-xs text-gray-400">Photo du lot non fournie</div>
+                        <div className="grid h-40 place-items-center bg-gray-100 text-xs text-gray-600">Photo du lot non fournie</div>
                       )}
                       <div className="p-4">
                         <div className="flex items-center justify-between gap-2">

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowRight,
@@ -39,6 +39,7 @@ import {
   sanitizePhone,
 } from "../../lib/validate";
 import { createLandFileRequest } from "../../services/requestService";
+import { PHONE_PLACEHOLDER } from "../../lib/phone";
 import type {
   LandFileSubmission,
   SubmitResult,
@@ -125,7 +126,7 @@ export default function Sell() {
   const [videoObjs, setVideoObjs] = useState<File[]>([]);
   const [docObjs, setDocObjs] = useState<File[]>([]);
   const [docTypes, setDocTypes] = useState<string[]>([]);
-  const [consents, setConsents] = useState({ c1: true, c2: true, c3: true });
+  const [consents, setConsents] = useState({ c1: false, c2: false, c3: false, c4: false });
   const toggleDocType = (d: string) =>
     setDocTypes((p) => (p.includes(d) ? p.filter((x) => x !== d) : [...p, d]));
 
@@ -217,7 +218,7 @@ export default function Sell() {
           ? !form.commune.trim() || !form.district.trim() || !coords
           : step === 3
             ? photos.length === 0
-            : !consents.c1 || !consents.c2 || !consents.c3;
+            : !consents.c1 || !consents.c2 || !consents.c3 || !consents.c4;
 
   const composeMessage = () => {
     const lines = [
@@ -305,9 +306,9 @@ export default function Sell() {
       setError("Indiquez le prix souhaité en Ariary (ex. 120000000).");
       return;
     }
-    if (!consents.c1 || !consents.c2 || !consents.c3) {
+    if (!consents.c1 || !consents.c2 || !consents.c3 || !consents.c4) {
       setError(
-        "Merci d’accepter les trois confirmations avant d’envoyer votre dossier.",
+        "Merci de confirmer les trois points du dossier et de prendre connaissance des informations sur les données personnelles.",
       );
       return;
     }
@@ -535,7 +536,7 @@ export default function Sell() {
                           <FormField label="Téléphone" required>
                             <Input
                               type="tel"
-                              placeholder="+261 34 00 000 00"
+                              placeholder={PHONE_PLACEHOLDER}
                               inputMode="tel"
                               value={form.phone}
                               onChange={(e) =>
@@ -623,9 +624,11 @@ export default function Sell() {
                           <div className="mt-5">
                             <UploadZone
                               title="Ajouter le justificatif d’identité"
-                              text="CIN recto/verso ou passeport • PDF, JPG ou PNG • 10 Mo max."
-                              accept="image/*,.pdf"
+                              text="CIN recto/verso ou passeport • PDF, JPG, PNG ou WebP • jusqu’à 4 fichiers"
+                              accept=".pdf,.jpg,.jpeg,.png,.webp"
                               multiple
+                              maxFiles={4}
+                              maxMb={10}
                               onFiles={setIdFiles}
                               onPick={setIdFileObjs}
                               files={idFiles}
@@ -633,8 +636,7 @@ export default function Sell() {
                           </div>
                           <p className="mt-5 flex items-start gap-2.5 text-xs font-normal leading-relaxed text-navy-900/80">
                             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-green-700" />
-                            Les justificatifs sont traités de manière
-                            confidentielle et ne sont jamais publiés.
+                            Les pièces servent à étudier votre dossier vendeur. Consultez les <Link to="/confidentialite" className="font-semibold underline decoration-gold-500 underline-offset-2">informations sur le traitement de vos données</Link>.
                           </p>
                         </div>
                       </div>
@@ -844,8 +846,11 @@ export default function Sell() {
                           <div className="mt-4">
                             <UploadZone
                               title="Ajouter les photos"
-                              text="JPG, PNG ou WEBP • 15 Mo max. par photo • jusqu’à 12 photos"
+                              text="JPG, PNG ou WebP • jusqu’à 12 photos"
+                              accept=".jpg,.jpeg,.png,.webp"
                               multiple
+                              maxFiles={12}
+                              maxMb={5}
                               onFiles={setPhotos}
                               onPick={setPhotoObjs}
                               files={photos}
@@ -865,8 +870,11 @@ export default function Sell() {
                           <div className="mt-4">
                             <UploadZone
                               title="Ajouter une vidéo"
-                              text="MP4 ou MOV • 100 Mo max."
-                              accept="video/*"
+                              text="MP4, MOV ou WebM • jusqu’à 2 vidéos"
+                              accept=".mp4,.mov,.webm"
+                              multiple
+                              maxFiles={2}
+                              maxMb={100}
                               onFiles={setVideo}
                               onPick={setVideoObjs}
                               files={video}
@@ -881,8 +889,7 @@ export default function Sell() {
                             <em className="not-italic text-gold-700">*</em>
                           </h3>
                           <p className="mt-1.5 text-xs font-normal text-navy-900/80">
-                            Sélectionnez les documents dont vous disposez. Ils
-                            resteront confidentiels.
+                            Sélectionnez les documents dont vous disposez. Les formats et limites de dépôt sont indiqués ci-dessous.
                           </p>
                           <div className="mt-4 flex flex-wrap gap-2">
                             {DOC_TYPES.map((d) => (
@@ -907,9 +914,11 @@ export default function Sell() {
                           <div className="mt-4">
                             <UploadZone
                               title="Téléverser les documents"
-                              text="PDF, JPG ou PNG • 20 Mo max. par fichier"
-                              accept=".pdf,image/*"
+                              text="PDF, JPG, PNG, WebP, DOC ou DOCX • jusqu’à 12 fichiers"
+                              accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"
                               multiple
+                              maxFiles={12}
+                              maxMb={10}
                               onFiles={setDocs}
                               onPick={setDocObjs}
                               files={docs}
@@ -919,8 +928,7 @@ export default function Sell() {
 
                         <p className="flex items-start gap-2.5 text-xs font-normal leading-relaxed text-navy-900/80">
                           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-green-700" />
-                          Seule l’équipe de vérification accède aux documents.
-                          Ils ne seront jamais visibles publiquement.
+                          Les fichiers déposés sont associés à votre dossier vendeur. Consultez les <Link to="/confidentialite" className="font-semibold underline decoration-gold-500 underline-offset-2">informations sur leur traitement</Link>.
                         </p>
                       </div>
                     )}
@@ -1058,6 +1066,10 @@ export default function Sell() {
                               key: "c3" as const,
                               text: "Vous comprenez que le terrain ne sera publié qu’après validation du dossier.",
                             },
+                            {
+                              key: "c4" as const,
+                              text: <>J’ai pris connaissance des <Link to="/confidentialite" onClick={(event) => event.stopPropagation()} className="font-semibold underline decoration-gold-500 underline-offset-2">informations sur les données personnelles</Link>.</>,
+                            },
                           ].map(({ key, text }) => (
                             <label
                               key={key}
@@ -1074,7 +1086,7 @@ export default function Sell() {
                                   }))
                                 }
                               />
-                              <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border border-navy-900/25 transition peer-checked:border-gold-500 peer-checked:bg-gold-500">
+                              <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border border-navy-900/25 transition peer-checked:border-gold-500 peer-checked:bg-gold-500 peer-focus-visible:ring-2 peer-focus-visible:ring-navy-900/60 peer-focus-visible:ring-offset-2">
                                 <Check
                                   className={`h-3.5 w-3.5 ${consents[key] ? "text-navy-900" : "text-transparent"}`}
                                 />

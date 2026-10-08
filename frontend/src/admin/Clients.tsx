@@ -8,10 +8,11 @@ import { refreshCache, subscribeCache } from './crm/sync';
 import { askConfirm } from './crm/dialog';
 import { Badge, Column, DataTable, Field, Info, ListToolbar, Modal, PageHeader, RelDate, Section, Select, Stat, TelLink, btnDanger, btnGold, btnIcon, btnOutline, btnPrimary, fmtAr, fmtDate, input } from './crm/kit';
 import { phoneError, sanitizePhone } from '../lib/validate';
+import { formatPhone, normalizePhone, phoneHref, PHONE_PLACEHOLDER } from '../lib/phone';
 import { visitStatusOf } from './Visits';
 
 /** Compare deux numéros en ignorant la mise en forme (espaces, indicatif…). */
-const digitsOnly = (p?: string) => String(p ?? '').replace(/\D/g, '');
+const digitsOnly = (p?: string) => normalizePhone(p).replace(/\D/g, '');
 
 
 const BASE = '/admin/clients';
@@ -20,7 +21,10 @@ const BASE = '/admin/clients';
 export function ClientForm({ initial, title, onClose, onSave }: {
   initial?: ClientFields; title: string; onClose: () => void; onSave: (f: ClientFields) => void;
 }) {
-  const [f, setF] = useState<ClientFields>(initial ?? emptyClientFields());
+  const [f, setF] = useState<ClientFields>(() => {
+    const fields = initial ?? emptyClientFields();
+    return { ...fields, phone: formatPhone(fields.phone) };
+  });
   const [tried, setTried] = useState(false);
   const set = (k: keyof ClientFields, v: string) => setF((x) => ({ ...x, [k]: v }));
   const missing = !f.fullName.trim() || !f.phone.trim();
@@ -30,7 +34,7 @@ export function ClientForm({ initial, title, onClose, onSave }: {
   const submit = () => {
     setTried(true);
     if (missing || badPhone || badEmail) return;
-    onSave({ ...f, fullName: f.fullName.trim(), phone: f.phone.trim(), email: f.email.trim() });
+    onSave({ ...f, fullName: f.fullName.trim(), phone: normalizePhone(f.phone), email: f.email.trim() });
   };
 
   return (
@@ -44,7 +48,7 @@ export function ClientForm({ initial, title, onClose, onSave }: {
           <input className={input} value={f.fullName} onChange={(e) => set('fullName', e.target.value)} placeholder="Rakoto Andrianina" />
         </Field>
         <Field label="Téléphone" required error={tried ? (phoneError(f.phone) ?? undefined) : undefined}>
-          <input type="tel" inputMode="tel" className={input} value={f.phone} onChange={(e) => set('phone', sanitizePhone(e.target.value))} placeholder="034 XX XXX XX" />
+          <input type="tel" inputMode="tel" className={input} value={f.phone} onChange={(e) => set('phone', sanitizePhone(e.target.value))} placeholder={PHONE_PLACEHOLDER} />
         </Field>
         <Field label="Email" error={tried && badEmail ? 'Adresse email invalide' : undefined}>
           <input type="email" className={input} value={f.email} onChange={(e) => set('email', e.target.value)} placeholder="vous@exemple.com" />
@@ -78,14 +82,14 @@ function landFilesOfClient(c: Client) {
 const columns: Column<Client>[] = [
   { key: 'ref', label: 'Référence', render: (c) => <span className="font-mono text-xs font-semibold whitespace-nowrap">{c.ref}</span>, sort: (c) => c.ref, csv: (c) => c.ref },
   { key: 'name', label: 'Client', render: (c) => <span className="font-medium text-navy-900">{c.fullName}</span>, sort: (c) => c.fullName.toLowerCase(), csv: (c) => c.fullName },
-  { key: 'phone', label: 'Téléphone', render: (c) => <TelLink phone={c.phone} />, csv: (c) => c.phone },
+  { key: 'phone', label: 'Téléphone', render: (c) => <TelLink phone={c.phone} />, csv: (c) => formatPhone(c.phone) },
   { key: 'email', label: 'Email', render: (c) => c.email || '—', csv: (c) => c.email },
   { key: 'budget', label: 'Budget', render: (c) => <span className="whitespace-nowrap">{c.budget ? (Number(c.budget) ? fmtAr(Number(c.budget)) : c.budget) : '—'}</span>, csv: (c) => c.budget },
   {
     key: 'sales', label: 'Achats', sort: (c) => salesOfClient(c).length, csv: (c) => salesOfClient(c).length,
     render: (c) => {
       const sales = salesOfClient(c);
-      if (!sales.length) return <span className="text-gray-400">—</span>;
+      if (!sales.length) return <span className="text-gray-600">—</span>;
       return (
         <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
           <Receipt className="w-3.5 h-3.5" /> {sales.length} · {fmtAr(sales.reduce((t, x) => t + x.sale.price, 0))}
@@ -188,8 +192,8 @@ export function ClientDetail() {
             <p className="font-mono text-xs text-gray-500">{c.ref} · {c.source} · inscrit le {fmtDate(c.createdAt)}</p>
             <h1 className="text-2xl font-bold text-navy-900">{c.fullName}</h1>
             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm">
-              <a href={`tel:${c.phone.replace(/\s/g, '')}`} className="inline-flex items-center gap-1 hover:text-gold-600"><Phone className="w-3.5 h-3.5" /> {c.phone}</a>
-              {c.email && <a href={`mailto:${c.email}`} className="inline-flex items-center gap-1 hover:text-gold-600"><Mail className="w-3.5 h-3.5" /> {c.email}</a>}
+              <a href={phoneHref(c.phone)} className="inline-flex items-center gap-1 hover:text-gold-700"><Phone className="w-3.5 h-3.5" /> {formatPhone(c.phone)}</a>
+              {c.email && <a href={`mailto:${c.email}`} className="inline-flex items-center gap-1 hover:text-gold-700"><Mail className="w-3.5 h-3.5" /> {c.email}</a>}
             </div>
           </div>
         </div>
@@ -208,14 +212,14 @@ export function ClientDetail() {
       <div className="grid lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2 space-y-5">
           <Section title={`Demandes d’achat (${requests.length})`} icon={<ShoppingBag className="w-4 h-4" />}>
-            {!requests.length && <p className="text-sm text-gray-400">Aucune demande d’achat.</p>}
+            {!requests.length && <p className="text-sm text-gray-600">Aucune demande d’achat.</p>}
             <ul className="divide-y divide-gray-100">
               {requests.map((r) => {
                 const land = lands.find((l) => l.id === r.landId);
                 const lot = land?.lots?.find((l) => l.id === r.lotId);
                 return (
                   <li key={r.id}>
-                    <Link to={`/admin/achats/${r.id}`} className="flex flex-wrap items-center justify-between gap-2 py-3 hover:text-gold-600">
+                    <Link to={`/admin/achats/${r.id}`} className="flex flex-wrap items-center justify-between gap-2 py-3 hover:text-gold-700">
                       <span>
                         <span className="font-mono text-xs text-gray-500">{r.ref}</span>{' '}
                         <span className="font-medium">{land ? `${land.title}${lot ? ` — ${lot.number}` : ''}` : requestName(r)}</span>
@@ -228,14 +232,14 @@ export function ClientDetail() {
             </ul>
           </Section>
           <Section title={`Demandes de visite (${visits.length})`} icon={<CalendarDays className="w-4 h-4" />}>
-            {!visits.length && <p className="text-sm text-gray-400">Aucune demande de visite.</p>}
+            {!visits.length && <p className="text-sm text-gray-600">Aucune demande de visite.</p>}
             <ul className="divide-y divide-gray-100">
               {visits.map((r) => {
                 const land = lands.find((l) => l.id === r.landId);
                 const lot = land?.lots?.find((l) => l.id === r.lotId);
                 return (
                   <li key={r.id}>
-                    <Link to={`/admin/visites/${r.id}`} className="flex flex-wrap items-center justify-between gap-2 py-3 hover:text-gold-600">
+                    <Link to={`/admin/visites/${r.id}`} className="flex flex-wrap items-center justify-between gap-2 py-3 hover:text-gold-700">
                       <span>
                         <span className="font-mono text-xs text-gray-500">{r.ref}</span>{' '}
                         <span className="font-medium">{land ? `${land.title}${lot ? ` — ${lot.number}` : ''}` : requestName(r)}</span>
@@ -249,7 +253,7 @@ export function ClientDetail() {
             </ul>
           </Section>
           <Section title={`Achats réalisés (${purchases.length})`} icon={<Receipt className="w-4 h-4" />}>
-            {!purchases.length && <p className="text-sm text-gray-400">Aucun achat finalisé.</p>}
+            {!purchases.length && <p className="text-sm text-gray-600">Aucun achat finalisé.</p>}
             <ul className="divide-y divide-gray-100 text-sm">
               {purchases.map(({ land, sale }) => (
                 <li key={sale.id} className="py-3 flex flex-wrap justify-between gap-2">
@@ -260,11 +264,11 @@ export function ClientDetail() {
             </ul>
           </Section>
           <Section title={`Demandes de vente (${landFiles.length})`} icon={<Landmark className="w-4 h-4" />}>
-            {!landFiles.length && <p className="text-sm text-gray-400">Aucun terrain déposé à la vente par ce client.</p>}
+            {!landFiles.length && <p className="text-sm text-gray-600">Aucun terrain déposé à la vente par ce client.</p>}
             <ul className="divide-y divide-gray-100">
               {landFiles.map((f) => (
                 <li key={f.id}>
-                  <Link to={`/admin/dossiers-terrains/${f.id}`} className="flex flex-wrap items-center justify-between gap-2 py-3 hover:text-gold-600">
+                  <Link to={`/admin/dossiers-terrains/${f.id}`} className="flex flex-wrap items-center justify-between gap-2 py-3 hover:text-gold-700">
                     <span>
                       <span className="font-mono text-xs text-gray-500">{f.ref}</span>{' '}
                       <span className="font-medium">{f.title || 'Sans titre'}</span>
@@ -276,11 +280,11 @@ export function ClientDetail() {
             </ul>
           </Section>
           <Section title={`Recherches de terrain spécifique (${searches.length})`} icon={<Compass className="w-4 h-4" />}>
-            {!searches.length && <p className="text-sm text-gray-400">Aucune recherche spécifique.</p>}
+            {!searches.length && <p className="text-sm text-gray-600">Aucune recherche spécifique.</p>}
             <ul className="divide-y divide-gray-100">
               {searches.map((s) => (
                 <li key={s.id}>
-                  <Link to={`/admin/recherches/${s.id}`} className="flex flex-wrap items-center justify-between gap-2 py-3 hover:text-gold-600">
+                  <Link to={`/admin/recherches/${s.id}`} className="flex flex-wrap items-center justify-between gap-2 py-3 hover:text-gold-700">
                     <span><span className="font-mono text-xs text-gray-500">{s.ref}</span> <span className="font-medium">{s.mainZone}</span></span>
                     <Badge value={s.status} />
                   </Link>

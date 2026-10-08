@@ -229,6 +229,9 @@ export default function LandDetail() {
             src={full.gallery[0]}
             alt={land.title}
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
             referrerPolicy="no-referrer"
           />
           <span className="absolute bottom-5 left-5 rounded-full bg-white/92 px-4 py-2 text-xs font-semibold text-navy-900 backdrop-blur-md transition group-hover:bg-white">
@@ -257,6 +260,8 @@ export default function LandDetail() {
                   src={src}
                   alt={`${land.title} — photo ${i + 1}`}
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+                  loading="lazy"
+                  decoding="async"
                   referrerPolicy="no-referrer"
                 />
               </button>
@@ -434,6 +439,8 @@ export default function LandDetail() {
                               src={lot.imageUrl}
                               alt={lot.number}
                               className="h-full w-full object-cover"
+                              loading="lazy"
+                              decoding="async"
                               referrerPolicy="no-referrer"
                             />
                           ) : (
