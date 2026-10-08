@@ -84,26 +84,34 @@ export default function Dashboard() {
   return (
     <>
       {/* — Bandeau d'accueil — */}
-      <div className="rounded-2xl bg-gradient-to-br from-navy-900 via-navy-900 to-navy-800 text-white p-6 sm:p-7 mb-4 relative overflow-hidden">
+      <div className="rounded-2xl bg-gradient-to-br from-navy-900 via-navy-900 to-navy-800 text-white p-5 sm:p-6 mb-4 relative overflow-hidden">
         <div className="absolute -right-10 -top-16 w-56 h-56 rounded-full bg-gold-500/10 blur-2xl" aria-hidden />
         <div className="absolute right-16 -bottom-20 w-44 h-44 rounded-full bg-gold-500/5 blur-xl" aria-hidden />
-        <div className="relative">
-          <h1 className="text-xs font-semibold uppercase tracking-[0.22em] text-gold-400">Tableau de bord</h1>
-          <p className="mt-2 text-2xl sm:text-3xl font-bold font-display">
-            {greeting} <span className="text-gold-400">👋</span>
-          </p>
-          <p className="mt-1 text-sm text-white/70 first-letter:uppercase">{todayLabel}</p>
-          <p className="mt-4 text-sm text-white/85">
-            {activePurchases} achat(s) en cours, {visits.length} visite(s) et {files.length} dossier(s) de vente.
-            {late.length > 0 && <span className="text-red-300 font-medium"> {late.length} action(s) en retard — commencez par là.</span>}
-          </p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Link to="/admin/agenda" className="inline-flex items-center gap-2 rounded-lg bg-gold-500 px-4 py-2 text-sm font-semibold text-navy-950 hover:bg-gold-400 transition-colors">
-              <CalendarDays className="h-4 w-4" /> Ouvrir l'agenda
-            </Link>
-            <Link to="/admin/achats/nouveau" className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20 transition-colors">
-              <ShoppingBag className="h-4 w-4" /> Nouvelle demande
-            </Link>
+        <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.9fr)] lg:items-stretch">
+          <div className="flex flex-col justify-center">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <h1 className="text-xs font-semibold uppercase tracking-[0.22em] text-gold-400">Tableau de bord</h1>
+              <span className="hidden sm:block h-4 w-px bg-white/20" aria-hidden />
+              <p className="text-xs text-white/60 first-letter:uppercase">{todayLabel}</p>
+            </div>
+            <p className="mt-2 text-2xl sm:text-3xl font-bold font-display">
+              {greeting} <span className="text-gold-400">👋</span>
+            </p>
+          </div>
+
+          <div className="flex flex-col justify-end gap-4">
+            <p className="text-sm text-white/75 lg:text-right">
+              {activePurchases} achat(s) en cours, {visits.length} visite(s) et {files.length} dossier(s) de vente.
+              {late.length > 0 && <span className="text-red-300 font-medium"> {late.length} action(s) en retard — commencez par là.</span>}
+            </p>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Link to="/admin/agenda" className="inline-flex items-center gap-2 rounded-lg bg-gold-500 px-4 py-2 text-sm font-semibold text-navy-950 hover:bg-gold-400 transition-colors">
+                <CalendarDays className="h-4 w-4" /> Ouvrir l'agenda
+              </Link>
+              <Link to="/admin/achats/nouveau" className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20 transition-colors">
+                <ShoppingBag className="h-4 w-4" /> Nouvelle demande
+              </Link>
+            </div>
           </div>
         </div>
       </div>
