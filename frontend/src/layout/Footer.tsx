@@ -118,7 +118,7 @@ export default function Footer() {
             <ul className="space-y-3 text-sm font-light">
               <li className="text-white/70">Vente de terrains</li>
               <li className="text-white/70">Recherche sur mesure</li>
-              <li className="text-white/70">Vérification de titres fonciers</li>
+              <li className="text-white/70">Accompagnement documentaire</li>
               <li className="text-white/70">Accompagnement juridique</li>
             </ul>
           </div>

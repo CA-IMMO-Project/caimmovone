@@ -148,7 +148,7 @@ export function LandDetails({ landId, lotId }: { landId: string; lotId?: string 
 
       {(land.documents?.length ?? 0) > 0 && (
         <Section title="Documents du terrain" icon={<FileText className="w-4 h-4" />}>
-          <p className="mb-3 text-xs text-gray-500">Pièces officielles déposées sur la fiche catalogue (titre foncier, plan, certificat…) — consultables ici sans quitter le dossier.</p>
+          <p className="mb-3 text-xs text-gray-500">Pièces déposées sur la fiche catalogue (titre foncier, plan, certificat…) — consultables ici sans quitter le dossier.</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {land.documents!.map((doc) => (
               <FileChip key={doc.id} file={doc} onPreview={() => setDocPreview(doc)} />

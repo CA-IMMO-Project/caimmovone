@@ -30,7 +30,6 @@ export interface LandFilters {
   maxPricePerSqm?: number;
   relief?: string;
   payment?: 'comptant' | 'facilite';
-  verifiedOnly?: boolean;
   availableOnly?: boolean;
   usage?: string;
   titleStatus?: string;
@@ -69,7 +68,6 @@ export async function fetchLands(filters: LandFilters = {}): Promise<Land[]> {
     if (filters.maxPricePerSqm && pricePerSqm(land) > filters.maxPricePerSqm) return false;
     if (filters.relief && land.relief !== filters.relief) return false;
     if (filters.payment && !paymentAllows(land.paymentMode, filters.payment)) return false;
-    if (filters.verifiedOnly && !land.verified) return false;
     if (filters.availableOnly && land.status !== 'disponible') return false;
     if (filters.titleStatus && land.titleStatus !== filters.titleStatus) return false;
     if (keywords) {

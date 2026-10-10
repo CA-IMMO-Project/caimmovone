@@ -31,7 +31,6 @@ export function createEmptyLand(): Land {
     paymentMode: 'comptant',
     downPayment: '',
     installments: '',
-    verified: false,
     featured: false,
     publicationStatus: 'brouillon',
     lots: [],

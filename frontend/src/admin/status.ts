@@ -27,10 +27,10 @@ export const ADMIN_STATUS_TONES: Record<string, AdminTone> = {
   Demandée: 'blue', Confirmée: 'green', Reportée: 'amber', Effectuée: 'green', Annulée: 'red',
   Trouvé: 'green', Clôturée: 'gray',
   Validée: 'green', Validé: 'green', 'Achat finalisé': 'navy', Refusée: 'red',
-  Brouillon: 'gray', 'Dossier incomplet': 'orange', 'À vérifier': 'amber',
-  'Vérification terrain programmée': 'purple', 'Vérification juridique': 'purple',
+  Brouillon: 'gray', 'Dossier incomplet': 'orange', 'À examiner': 'amber',
+  'Visite terrain programmée': 'purple', 'Analyse des pièces': 'purple',
   Publié: 'green', 'En négociation': 'amber', Rejeté: 'red',
-  Vérifié: 'green', Incomplet: 'orange',
+  Reçu: 'blue', 'Prêt à publier': 'indigo', 'À compléter': 'orange', 'Écart signalé': 'red', Incomplet: 'orange',
   Faible: 'gray', Normale: 'blue', Haute: 'orange', Urgente: 'red',
 };
 

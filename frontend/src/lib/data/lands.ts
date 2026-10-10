@@ -36,7 +36,6 @@ export const LANDS: Land[] = [
     paymentMode: 'comptant-ou-facilite',
     downPayment: '30 % minimum',
     installments: 'Jusqu’à 10 mois',
-    verified: true,
     featured: true,
   },
   {
@@ -64,7 +63,6 @@ export const LANDS: Land[] = [
     paymentMode: 'comptant-ou-facilite',
     downPayment: '35 % minimum',
     installments: 'Jusqu’à 12 mois',
-    verified: true,
     featured: true,
   },
   {
@@ -92,7 +90,6 @@ export const LANDS: Land[] = [
     paymentMode: 'facilite',
     downPayment: '25 % minimum',
     installments: 'Jusqu’à 10 mois',
-    verified: true,
   },
   {
     id: '4',
@@ -119,7 +116,6 @@ export const LANDS: Land[] = [
     paymentMode: 'comptant',
     downPayment: 'Paiement comptant',
     installments: 'Non disponible',
-    verified: true,
   },
   {
     id: '5',
@@ -146,7 +142,6 @@ export const LANDS: Land[] = [
     paymentMode: 'facilite',
     downPayment: '30 % minimum',
     installments: 'Jusqu’à 12 mois',
-    verified: false,
   },
   {
     id: '6',
@@ -173,7 +168,6 @@ export const LANDS: Land[] = [
     paymentMode: 'comptant-ou-facilite',
     downPayment: '40 % minimum',
     installments: 'Jusqu’à 6 mois',
-    verified: true,
   },
   {
     id: '7',
@@ -200,7 +194,6 @@ export const LANDS: Land[] = [
     paymentMode: 'comptant',
     downPayment: 'Paiement comptant',
     installments: 'Non disponible',
-    verified: true,
     featured: true,
   },
   {
@@ -227,7 +220,6 @@ export const LANDS: Land[] = [
     paymentMode: 'facilite',
     downPayment: '25 % minimum',
     installments: 'Jusqu’à 10 mois',
-    verified: true,
   },
   {
     id: '9',
@@ -254,7 +246,6 @@ export const LANDS: Land[] = [
     paymentMode: 'comptant-ou-facilite',
     downPayment: '30 % minimum',
     installments: 'Jusqu’à 8 mois',
-    verified: false,
   },
   {
     id: '10',
@@ -281,7 +272,6 @@ export const LANDS: Land[] = [
     paymentMode: 'comptant-ou-facilite',
     downPayment: '35 % minimum',
     installments: 'Jusqu’à 12 mois',
-    verified: true,
   },
   {
     id: '11',
@@ -308,7 +298,6 @@ export const LANDS: Land[] = [
     paymentMode: 'comptant',
     downPayment: 'Paiement comptant',
     installments: 'Non disponible',
-    verified: true,
   },
   {
     id: '12',
@@ -335,6 +324,5 @@ export const LANDS: Land[] = [
     paymentMode: 'facilite',
     downPayment: '30 % minimum',
     installments: 'Jusqu’à 12 mois',
-    verified: true,
   },
 ];

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\LandFile;
+use App\Support\DossierVocabulary;
 use Illuminate\Http\Request;
 
 /** Dossiers « À vendre » (dépôts de terrain, back office). */
@@ -27,7 +28,7 @@ class LandFileController extends Controller
         $file = LandFile::create([
             'ref' => LandFile::nextRef(), // référence définitive générée par le serveur
             'client_id' => isset($data['clientId']) && is_numeric($data['clientId']) ? (int) $data['clientId'] : null,
-            'status' => $data['status'] ?? "À l'étude",
+            'status' => DossierVocabulary::status($data['status'] ?? "À l'étude"),
             'full_name' => $data['fullName'] ?? $data['ownerName'] ?? null,
             'phone' => $data['phone'] ?? null,
             'detail' => $data,
@@ -46,7 +47,7 @@ class LandFileController extends Controller
         // requête restent ceux déjà enregistrés au lieu d'être effacés.
         $file->fill([
             'client_id' => array_key_exists('clientId', $data) ? (is_numeric($data['clientId']) ? (int) $data['clientId'] : null) : $file->client_id,
-            'status' => $data['status'] ?? $file->status,
+            'status' => DossierVocabulary::status($data['status'] ?? $file->status),
             'full_name' => $data['fullName'] ?? $data['ownerName'] ?? $file->full_name,
             'phone' => array_key_exists('phone', $data) ? ($data['phone'] ?: null) : $file->phone,
             'detail' => array_merge($file->detail ?? [], $data),

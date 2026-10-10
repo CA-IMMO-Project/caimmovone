@@ -50,7 +50,6 @@ interface FilterState {
   relief: Relief | "";
   payment: "" | "comptant" | "facilite";
   titleStatus: string;
-  verifiedOnly: boolean;
   availableOnly: boolean;
 }
 
@@ -66,7 +65,6 @@ const initialFilters: FilterState = {
   relief: "",
   payment: "",
   titleStatus: "",
-  verifiedOnly: false,
   availableOnly: true,
 };
 
@@ -120,7 +118,6 @@ export default function Lands() {
     relief: (searchParams.get("relief") as Relief | "") ?? "",
     payment: (searchParams.get("paiement") as FilterState["payment"]) ?? "",
     titleStatus: searchParams.get("titre") ?? "",
-    verifiedOnly: searchParams.get("verifies") === "1",
     availableOnly: searchParams.get("dispo") !== "0",
   }));
   const [sort, setSort] = useState<LandSort>(
@@ -168,7 +165,6 @@ export default function Lands() {
     if (filters.relief) p.set("relief", filters.relief);
     if (filters.payment) p.set("paiement", filters.payment);
     if (filters.titleStatus) p.set("titre", filters.titleStatus);
-    if (filters.verifiedOnly) p.set("verifies", "1");
     if (!filters.availableOnly) p.set("dispo", "0");
     if (sort !== "recent") p.set("tri", sort);
     if (currentPage > 1) p.set("page", String(currentPage));
@@ -204,7 +200,6 @@ export default function Lands() {
         relief: filters.relief || undefined,
         payment: filters.payment || undefined,
         titleStatus: filters.titleStatus || undefined,
-        verifiedOnly: filters.verifiedOnly || undefined,
         availableOnly: filters.availableOnly || undefined,
         sort,
       };
@@ -562,7 +557,7 @@ export default function Lands() {
             <span className="text-gold-500">prochain projet</span>
           </>
         }
-        lead="Explorez les terrains sélectionnés et contrôlés par CA IMMO à Madagascar : titres vérifiés, accompagnement de confiance."
+        lead="Explorez les terrains proposés par CA IMMO à Madagascar : caractéristiques, localisation et accompagnement personnalisé."
       >
         <form
           onSubmit={(e) => e.preventDefault()}
@@ -790,7 +785,7 @@ export default function Lands() {
             </h2>
             <p className="mt-5 max-w-md text-sm font-normal leading-relaxed text-navy-900/85">
               Zone, surface, budget, environnement : décrivez-nous votre projet
-              et notre équipe repère, vérifie et négocie le terrain qui vous
+              et notre équipe recherche et négocie le terrain qui vous
               convient — même s’il n’est pas encore dans notre catalogue.
             </p>
             <Link to="/recherche" className="btn-gold mt-8">

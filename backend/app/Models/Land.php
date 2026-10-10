@@ -11,11 +11,15 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Land extends Model
 {
+    // Donnée historique conservée en base uniquement : aucun statut de confiance
+    // ne doit être déduit ou exposé depuis cet ancien champ.
+    protected $hidden = ['verified'];
+
     protected $fillable = [
         'title', 'description', 'price', 'region', 'zone', 'location', 'image_url',
         'gallery', 'features', 'documents', 'coordinates', 'area', 'title_status',
         'status', 'relief', 'access', 'water', 'electricity', 'payment',
-        'payment_mode', 'down_payment', 'installments', 'verified', 'featured',
+        'payment_mode', 'down_payment', 'installments', 'featured',
         'publication_status', 'lots', 'sales',
     ];
 
@@ -30,7 +34,6 @@ class Land extends Model
             'coordinates' => 'array',
             'water' => 'boolean',
             'electricity' => 'boolean',
-            'verified' => 'boolean',
             'featured' => 'boolean',
             'price' => 'integer',
             'area' => 'integer',
@@ -49,7 +52,7 @@ class Land extends Model
             'access' => 'access', 'water' => 'water', 'electricity' => 'electricity',
             'payment' => 'payment', 'paymentMode' => 'payment_mode',
             'downPayment' => 'down_payment', 'installments' => 'installments',
-            'verified' => 'verified', 'featured' => 'featured',
+            'featured' => 'featured',
             'publicationStatus' => 'publication_status', 'lots' => 'lots',
             'sales' => 'sales',
         ];
@@ -63,7 +66,7 @@ class Land extends Model
         return $this->fill($attributes);
     }
 
-    public function toPublicArray(): array
+    public function toPublicArray(bool $forAdmin = false): array
     {
         return [
             'id' => (string) $this->id,
@@ -84,18 +87,23 @@ class Land extends Model
             'access' => $this->access,
             'water' => (bool) $this->water,
             'electricity' => (bool) $this->electricity,
-            'documents' => $this->normalizedDocuments(),
+            'documents' => $this->normalizedDocuments($forAdmin),
             'payment' => $this->payment,
             'paymentMode' => $this->payment_mode,
             'downPayment' => $this->down_payment,
             'installments' => $this->installments,
-            'verified' => (bool) $this->verified,
             'featured' => (bool) $this->featured,
             'publicationStatus' => $this->publication_status ?? 'publie',
-            'lots' => $this->lots ?? [],
+            'lots' => $forAdmin ? ($this->lots ?? []) : array_map(function ($lot) {
+                if (is_array($lot)) {
+                    unset($lot['history']);
+                }
+
+                return $lot;
+            }, $this->lots ?? []),
             // Historique des ventes de la fiche (vente du terrain entier ou d'un lot) :
             // sans cette colonne, le backoffice perdait l'historique à chaque rechargement.
-            'sales' => $this->sales ?? [],
+            'sales' => $forAdmin ? ($this->sales ?? []) : [],
         ];
     }
 
@@ -106,11 +114,11 @@ class Land extends Model
      * on normalise ici pour que l'API renvoie toujours la même forme d'objet,
      * quelle que soit l'ancienneté de la donnée en base.
      */
-    private function normalizedDocuments(): array
+    private function normalizedDocuments(bool $forAdmin): array
     {
         $documents = $this->documents ?? [];
 
-        return array_values(array_map(function ($document, $index) {
+        return array_values(array_map(function ($document, $index) use ($forAdmin) {
             if (is_string($document)) {
                 return ['id' => "doc-{$index}", 'name' => $document, 'type' => '', 'size' => 0];
             }
@@ -125,7 +133,7 @@ class Land extends Model
                 'name' => $document['name'] ?? 'Document',
                 'type' => $document['type'] ?? '',
                 'size' => $document['size'] ?? 0,
-                'url' => $document['url'] ?? null,
+                'url' => $forAdmin ? ($document['url'] ?? null) : null,
             ];
         }, $documents, array_keys($documents)));
     }

@@ -10,6 +10,7 @@ use App\Models\LandFile;
 use App\Models\Realisation;
 use App\Models\Search;
 use App\Models\SiteRequest;
+use App\Support\PresentationData;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -22,7 +23,8 @@ class BootstrapController extends Controller
     public function index(): JsonResponse
     {
         return response()->json([
-            'lands' => Land::query()->orderByDesc('id')->get()->map(fn (Land $l) => $l->toPublicArray())->values()->all(),
+            'presentationAllowed' => PresentationData::allowed(),
+            'lands' => Land::query()->orderByDesc('id')->get()->map(fn (Land $l) => $l->toPublicArray(true))->values()->all(),
             'requests' => SiteRequest::query()->with('land')->orderByDesc('id')->get()->map(fn (SiteRequest $r) => $r->toAdminArray())->values()->all(),
             'clients' => Client::query()->orderByDesc('id')->get()->map(fn (Client $c) => $c->toAdminArray())->values()->all(),
             'searches' => Search::query()->orderByDesc('id')->get()->map(fn (Search $s) => $s->toAdminArray())->values()->all(),

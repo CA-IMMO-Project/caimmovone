@@ -72,7 +72,6 @@ export default function AdminLandDetail() {
         <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${publicationTone(land.publicationStatus)}`}>{publicationLabel(land.publicationStatus)}</span>
         <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">{land.titleStatus}</span>
         {land.featured && <span className="rounded-full bg-gold-500 px-2.5 py-1 text-xs font-semibold text-navy-950">À la une</span>}
-        {land.verified && <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-800">Vérifié</span>}
       </div>
 
       {summary.gallery.length > 0 ? (
@@ -214,7 +213,7 @@ export default function AdminLandDetail() {
         <Section title="Documents du terrain" icon={<FileText className="w-4 h-4" />}>
           {land.documents && land.documents.length > 0 ? (
             <>
-              <p className="mb-3 text-xs text-gray-500">Pièces officielles déposées sur la fiche (titre foncier, plan, certificat…) — consultables ici, modifiables depuis « Modifier ».</p>
+              <p className="mb-3 text-xs text-gray-500">Pièces déposées sur la fiche (titre foncier, plan, certificat…) — consultables ici, modifiables depuis « Modifier ».</p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {land.documents.map((doc) => (
                   <FileChip key={doc.id} file={doc} onPreview={() => setDocPreview(doc)} />

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Mail, MapPin, Phone, Plus, Search, Send, Target, Trash2, User, History, X } from 'lucide-react';
+import { ArrowLeft, FileText, Mail, MapPin, Phone, Plus, Search, Send, Target, Trash2, User, History, X } from 'lucide-react';
 import { getLands } from '../lib/store';
 import { formatPhone, phoneHref, PHONE_PLACEHOLDER } from '../lib/phone';
 import { phoneError, sanitizePhone } from '../lib/validate';
@@ -10,11 +10,11 @@ import {
   Proposal, RADIUS_OPTIONS, SEARCH_STATUSES, SEARCH_USAGES, SearchFields, SearchStatus, SpecificSearch,
   createSearch, deleteSearch, emptySearchFields, getSearch, getSearches, saveSearch,
 } from './crm/people';
-import { historyEntry } from './crm/model';
+import { StoredFile, historyEntry } from './crm/model';
 import { refreshCache, subscribeCache } from './crm/sync';
 import { askConfirm } from './crm/dialog';
 import {
-  Badge, Choice, Column, DataTable, Field, Info, MapPicker, Modal, NumberInput, Section, Select, Stat, Timeline,
+  Badge, Choice, Column, DataTable, Field, FileChip, Info, MapPicker, Modal, NumberInput, Preview, Section, Select, Stat, Timeline,
   btnDanger, btnGold, btnIcon, btnOutline, btnPrimary, fmtAr, fmtDate, fmtDateTime, fmtM2, input,
   ListToolbar, PageHeader, RelDate, TelLink,
 } from './crm/kit';
@@ -176,6 +176,7 @@ export function SearchDetail() {
   const navigate = useNavigate();
   const [s, setS] = useState(() => (id ? getSearch(id) : undefined));
   const [proposing, setProposing] = useState(false);
+  const [preview, setPreview] = useState<StoredFile | null>(null);
 
   // Resync à l'ouverture de la fiche + mise à jour auto sans F5 : sans ce bloc,
   // la fiche affiche un instantané figé du cache mémoire (potentiellement
@@ -259,6 +260,14 @@ export function SearchDetail() {
             </ul>
           </Section>
 
+          {(s.attachments?.length ?? 0) > 0 && (
+            <Section title="Cahier de recherche" icon={<FileText className="w-4 h-4" />}>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {s.attachments!.map((file) => <FileChip key={file.id} file={file} onPreview={() => setPreview(file)} />)}
+              </div>
+            </Section>
+          )}
+
           <Section title="Historique" icon={<History className="w-4 h-4" />}><Timeline items={s.history} /></Section>
         </div>
 
@@ -273,6 +282,8 @@ export function SearchDetail() {
           </Section>
         </aside>
       </div>
+
+      <Preview file={preview} onClose={() => setPreview(null)} />
 
       {proposing && (
         <ProposeDialog

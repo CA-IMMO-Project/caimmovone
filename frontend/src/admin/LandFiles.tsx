@@ -28,8 +28,8 @@ import { NotFound } from './BuyRequests';
 import { ActionPlanner, CompleteDialog, PlanDialog } from './crm/client';
 
 const BASE = '/admin/dossiers-terrains';
-const FLOW: LandFileStatus[] = ['Nouveau', "À l'étude", 'À vérifier', 'Vérification terrain programmée', 'Vérification juridique', 'Validé', 'Publié', 'En négociation', 'Réservé', 'Vendu'];
-const FLOW_LABELS = ['Nouveau', "À l'étude", 'À vérifier', 'Visite terrain', 'Juridique', 'Validé', 'Publié', 'Négociation', 'Réservé', 'Vendu'];
+const FLOW: LandFileStatus[] = ['Nouveau', "À l'étude", 'À examiner', 'Visite terrain programmée', 'Analyse des pièces', 'Prêt à publier', 'Publié', 'En négociation', 'Réservé', 'Vendu'];
+const FLOW_LABELS = ['Nouveau', "À l'étude", 'À examiner', 'Visite terrain', 'Pièces', 'Prêt à publier', 'Publié', 'Négociation', 'Réservé', 'Vendu'];
 const MIN_PHOTOS = 3;
 
 /* ---------- Fichiers reçus du site public (formulaire « Vendre ») ----------
@@ -169,7 +169,7 @@ export function LandFileList() {
     setBulkStatus('');
   };
   const chosen = () => (selected.length ? filtered.filter((r) => selected.includes(r.id)) : filtered);
-  const toCheck = rows.filter((r) => ['Nouveau', "À l'étude", 'Dossier incomplet', 'À vérifier', 'Vérification terrain programmée', 'Vérification juridique'].includes(r.status));
+  const toCheck = rows.filter((r) => ['Nouveau', "À l'étude", 'Dossier incomplet', 'À examiner', 'Visite terrain programmée', 'Analyse des pièces'].includes(r.status));
   const published = rows.filter((r) => r.status === 'Publié' || r.status === 'En négociation');
 
   return (
@@ -182,7 +182,7 @@ export function LandFileList() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         <Stat label="Dossiers" value={rows.length} />
-        <Stat label="En vérification" value={toCheck.length} tone="text-amber-600" />
+        <Stat label="En cours d’étude" value={toCheck.length} tone="text-amber-600" />
         <Stat label="Publiés / en négociation" value={published.length} tone="text-blue-700" />
         <Stat label="Valeur publiée" value={<span className="text-base">{fmtAr(published.reduce((t, r) => t + r.price, 0))}</span>} />
       </div>
@@ -530,7 +530,7 @@ export function LandFileForm() {
               multiple
               label="Ajouter des documents fonciers"
               hint="PDF, JPG, PNG, WEBP · 15 Mo max"
-              onFiles={(files) => set('documents', [...f.documents, ...files.map((x) => ({ ...x, category: 'Titre foncier', number: '', issuedAt: '', ownerName: fullName(f.owner), status: 'À vérifier' as const }))])}
+              onFiles={(files) => set('documents', [...f.documents, ...files.map((x) => ({ ...x, category: 'Titre foncier', number: '', issuedAt: '', ownerName: fullName(f.owner), status: 'À examiner' as const }))])}
             />
             <div className="space-y-3 mt-4">
               {f.documents.map((d) => (
@@ -572,14 +572,14 @@ export function LandFileForm() {
         )}
 
         {tab === 'internal' && (
-          <Section title="Vérification et suivi interne" icon={<ClipboardCheck className="w-4 h-4" />} confidential>
+          <Section title="Étude et suivi du dossier" icon={<ClipboardCheck className="w-4 h-4" />} confidential>
             <Grid cols={4}>
               <Field label="Agent responsable"><Select value={f.agent} onChange={(v) => set('agent', v)} options={AGENTS} /></Field>
               <Field label="Date de réception"><input type="date" className={input} value={f.receivedAt} onChange={(e) => set('receivedAt', e.target.value)} /></Field>
               <Field label="Priorité"><Select value={f.priority} onChange={(v) => set('priority', v as LandFile['priority'])} options={PRIORITIES} /></Field>
               <Field label="Statut général"><Select value={f.status} onChange={(v) => set('status', v as LandFileStatus)} options={LAND_STATUSES} /></Field>
-              <Field label="Résultat vérification terrain" span={2}><textarea rows={2} className={input} value={f.fieldCheck} onChange={(e) => set('fieldCheck', e.target.value)} /></Field>
-              <Field label="Résultat vérification juridique" span={2}><textarea rows={2} className={input} value={f.legalCheck} onChange={(e) => set('legalCheck', e.target.value)} /></Field>
+              <Field label="Compte rendu de visite" span={2}><textarea rows={2} className={input} value={f.fieldCheck} onChange={(e) => set('fieldCheck', e.target.value)} /></Field>
+              <Field label="Notes sur les pièces du dossier" span={2}><textarea rows={2} className={input} value={f.legalCheck} onChange={(e) => set('legalCheck', e.target.value)} /></Field>
               <Field label="Estimation interne du prix"><NumberInput value={f.internalEstimate} onChange={(v) => set('internalEstimate', v)} suffix="Ar" /></Field>
               <Field label="Prix recommandé par l’agence"><NumberInput value={f.recommendedPrice} onChange={(v) => set('recommendedPrice', v)} suffix="Ar" /></Field>
               <Field label="Commission de l’agence" hint={f.price && f.commission ? `≈ ${fmtAr(Math.round((f.price * f.commission) / 100))}` : undefined}><NumberInput value={f.commission} onChange={(v) => set('commission', v)} suffix="%" /></Field>
@@ -587,7 +587,7 @@ export function LandFileForm() {
               <Field label="Commentaires internes" span="full"><textarea rows={3} className={input} value={f.internalComments} onChange={(e) => set('internalComments', e.target.value)} /></Field>
             </Grid>
             <div className="mt-5">
-              <p className="text-xs font-medium text-gray-600 mb-2">Checklist de validation</p>
+              <p className="text-xs font-medium text-gray-600 mb-2">Suivi de complétude du dossier</p>
               <Checklist value={f.checklist} onChange={(v) => set('checklist', v)} />
             </div>
           </Section>
@@ -669,7 +669,7 @@ export function LandFileDetail() {
     status !== f.status && update({ status }, `Statut changé : ${f.status} → ${status}${extra ? ` — ${extra}` : ''}`);
   const stepIndex = FLOW.indexOf(f.status);
   const failed = ['Rejeté', 'Archivé', 'Dossier incomplet'].includes(f.status) ? f.status : undefined;
-  const docsToCheck = f.documents.filter((d) => d.status !== 'Vérifié').length;
+  const docsToCheck = f.documents.filter((d) => d.status !== 'Reçu').length;
   const cur = f.photos[Math.min(photo, f.photos.length - 1)];
 
   const printSheet = () => printHtml(`Fiche terrain ${f.ref}`, `
@@ -712,7 +712,7 @@ export function LandFileDetail() {
     );
   const reopen = async () => {
     if (!(await askConfirm('Rouvrir ce dossier et le sortir des archives ?'))) return;
-    update({ decision: undefined, decisionReason: undefined, decidedAt: undefined, status: 'À vérifier' }, 'Dossier rouvert (sorti des archives)');
+    update({ decision: undefined, decisionReason: undefined, decidedAt: undefined, status: 'À examiner' }, 'Dossier rouvert (sorti des archives)');
   };
 
   return (
@@ -880,7 +880,7 @@ export function LandFileDetail() {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2">
-                <button className={btnPrimary} onClick={() => setDialog('Validé')}><BadgeCheck className="w-4 h-4" /> Valider</button>
+                <button className={btnPrimary} onClick={() => setDialog('Validé')}><BadgeCheck className="w-4 h-4" /> Accepter le dossier</button>
                 <button className={btnDanger} onClick={() => setDialog('Refusé')}><XCircle className="w-4 h-4" /> Refuser</button>
                 <p className="col-span-2 text-xs text-gray-600">La décision est inscrite dans l’historique et le dossier passe dans les archives.</p>
               </div>
@@ -905,12 +905,12 @@ export function LandFileDetail() {
             </dl>
           </Section>
 
-          <Section title="Vérification" icon={<ClipboardCheck className="w-4 h-4" />}>
-            <Checklist value={f.checklist} onChange={(v) => update({ checklist: v }, 'Checklist de validation mise à jour')} />
+          <Section title="Étude du dossier" icon={<ClipboardCheck className="w-4 h-4" />}>
+            <Checklist value={f.checklist} onChange={(v) => update({ checklist: v }, 'Suivi de complétude du dossier mise à jour')} />
             <dl className="space-y-3 mt-4 pt-4 border-t">
               <Info label="Visite terrain" value={f.visitAt ? fmtDateTime(f.visitAt) : '—'} />
-              <Info label="Vérification terrain" value={f.fieldCheck} />
-              <Info label="Vérification juridique" value={f.legalCheck} />
+              <Info label="Compte rendu de visite" value={f.fieldCheck} />
+              <Info label="Analyse des pièces" value={f.legalCheck} />
               <Info label="Dernière modification" value={fmtDateTime(f.updatedAt)} />
             </dl>
           </Section>
@@ -930,12 +930,12 @@ function DecisionDialog({ decision, onClose, onSave }: { decision: 'Validé' | '
   const refuse = decision === 'Refusé';
   return (
     <Modal
-      title={refuse ? 'Refuser le dossier' : 'Valider le dossier'}
+      title={refuse ? 'Refuser le dossier' : 'Accepter le dossier pour commercialisation'}
       onClose={onClose}
-      footer={<><button className={btnOutline} onClick={onClose}>Annuler</button><button className={refuse ? `${btnPrimary} bg-red-600 hover:bg-red-700` : btnPrimary} disabled={refuse && !reason.trim()} onClick={() => onSave(reason.trim())}>{refuse ? 'Refuser et archiver' : 'Valider et archiver'}</button></>}
+      footer={<><button className={btnOutline} onClick={onClose}>Annuler</button><button className={refuse ? `${btnPrimary} bg-red-600 hover:bg-red-700` : btnPrimary} disabled={refuse && !reason.trim()} onClick={() => onSave(reason.trim())}>{refuse ? 'Refuser et archiver' : 'Accepter et archiver'}</button></>}
     >
       <Field label={refuse ? 'Motif du refus' : 'Commentaire'} required={refuse}>
-        <textarea rows={3} className={input} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={refuse ? 'Documents non conformes, litige foncier…' : 'Ex : terrain vérifié, prix validé'} />
+        <textarea rows={3} className={input} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={refuse ? 'Documents non conformes, litige foncier…' : 'Ex : conditions commerciales convenues, dossier prêt à être présenté'} />
       </Field>
       <p className="text-xs text-gray-500">Le dossier sera déplacé dans les archives. Il pourra être rouvert si besoin.</p>
     </Modal>

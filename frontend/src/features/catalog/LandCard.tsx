@@ -10,7 +10,7 @@ interface LandCardProps {
 }
 
 /* Carte terrain — style « PropertyCard » de la charte de référence CA IMMO :
-   badge « Vérifié » doré sur la photo, prix en bas de carte et
+   statut disponible / réservé / vendu sur la photo, prix en bas de carte et
    bouton « Voir le terrain » sur fond bleu brume. */
 export default function LandCard({ land, horizontal = false }: LandCardProps) {
   const full = normalizeLand(land);
@@ -32,13 +32,8 @@ export default function LandCard({ land, horizontal = false }: LandCardProps) {
           referrerPolicy="no-referrer"
         />
 
-        {/* Badges de confiance — comme la référence : « Vérifié » doré + statut */}
+        {/* Statut de disponibilité */}
         <div className="absolute left-4 top-4 flex items-center gap-2">
-          {full.verified && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-500 px-3 py-1.5 text-xs font-bold text-navy-900 shadow-md">
-              <ShieldCheck className="h-3.5 w-3.5" /> Vérifié
-            </span>
-          )}
           {(land.status === 'vendu' || land.status === 'réservé') && (
             <span className={`rounded-full px-3 py-1.5 text-xs font-bold text-white shadow-md ${land.status === 'vendu' ? 'bg-gray-700' : 'bg-amber-500'}`}>
               {land.status === 'vendu' ? 'Vendu' : 'Réservé'}

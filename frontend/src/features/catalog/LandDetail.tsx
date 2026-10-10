@@ -284,11 +284,6 @@ export default function LandDetail() {
                 <span className="rounded-full bg-navy-900 px-3.5 py-1.5 text-xs font-bold text-white">
                   {full.titleStatus}
                 </span>
-                {land.verified && (
-                  <span className="rounded-full bg-green-100 px-3.5 py-1.5 text-xs font-bold text-green-800">
-                    Vérifié
-                  </span>
-                )}
                 {land.status !== "disponible" && (
                   <span
                     className={`rounded-full px-3.5 py-1.5 text-xs font-bold text-white ${land.status === "vendu" ? "bg-gray-700" : "bg-amber-500"}`}
@@ -489,8 +484,8 @@ export default function LandDetail() {
                 Documents disponibles
               </h2>
               <p className="mt-3 text-sm font-normal text-navy-900/80">
-                Pièces contrôlées par notre équipe et consultables sur
-                rendez-vous.
+                Pièces du dossier consultables sur demande. Leur présence ne constitue
+                pas une validation juridique.
               </p>
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 {full.documents.map((d) => (
@@ -506,10 +501,10 @@ export default function LandDetail() {
                         {d.name}
                       </strong>
                       <small className="text-xs font-normal text-navy-900/70">
-                        Reçu et contrôlé
+                        Pièce du dossier
                       </small>
                     </div>
-                    <CheckCircle2 className="ml-auto h-4.5 w-4.5 text-green-700" />
+
                   </div>
                 ))}
               </div>

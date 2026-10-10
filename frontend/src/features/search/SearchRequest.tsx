@@ -331,7 +331,7 @@ export default function SearchRequest() {
             <span className="text-gold-500">votre terrain</span>
           </>
         }
-        lead="Décrivez votre projet en quelques étapes. Notre équipe locale cherche et vérifie les terrains pour vous."
+        lead="Décrivez votre projet en quelques étapes. Notre équipe locale recherche les terrains qui correspondent à vos critères."
       />
 
       <section className="bg-mist py-14 pb-24">
@@ -362,7 +362,7 @@ export default function SearchRequest() {
                         icon: CheckCircle2,
                         text: "Sélection selon vos critères",
                       },
-                      { icon: ShieldCheck, text: "Terrains contrôlés" },
+                      { icon: ShieldCheck, text: "Recherche personnalisée" },
                       { icon: Clock3, text: "Réponse sous 24 – 48 h ouvrées" },
                     ].map(({ icon: Icon, text }) => (
                       <p

@@ -9,7 +9,7 @@ import { formatAriary, formatArea, formatDateShort } from '../lib/format';
 import { formatPhone } from '../lib/phone';
 import { Badge, Card, PageHeader, btnGhost, btnPrimary } from './ui';
 import { ListToolbar, Select } from './crm/kit';
-import { refreshCache, subscribeCache } from './crm/sync';
+import { canLoadPresentation, refreshCache, subscribeCache } from './crm/sync';
 import { askConfirm } from './crm/dialog';
 import SaleDialog from './SaleDialog';
 import { ClientRows, InterestDialog, LotDialog } from './LotDialog';
@@ -21,6 +21,8 @@ export default function AdminLands() {
   const [lands, setLands] = useState(getLands);
   useEffect(() => { refreshCache().then(() => setLands(getLands())); return subscribeCache(() => setLands(getLands())); }, []);
   const [q, setQ] = useState('');
+  const [loadingExamples, setLoadingExamples] = useState(false);
+  const [examplesError, setExamplesError] = useState('');
   const [status, setStatus] = useState('');
   const [publicationStatus, setPublicationStatus] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -42,9 +44,18 @@ export default function AdminLands() {
   }, [lands, publicationStatus, q, status]);
 
   const reset = async () => {
-    if (!(await askConfirm('Réinitialiser la liste des terrains avec les données d\'origine ? Vos modifications seront perdues.'))) return;
-    await resetLands();
-    refresh();
+    if (!(await askConfirm('Ajouter le jeu de présentation ? Aucun terrain ne sera supprimé et les données déjà présentes seront conservées.'))) return;
+    setLoadingExamples(true);
+    setExamplesError('');
+    try {
+      await resetLands();
+      await refreshCache(true);
+      refresh();
+    } catch (error) {
+      setExamplesError(error instanceof Error ? error.message : 'Impossible de charger les exemples.');
+    } finally {
+      setLoadingExamples(false);
+    }
   };
 
   return (
@@ -54,11 +65,13 @@ export default function AdminLands() {
         subtitle={`${lands.length} terrain(s) au catalogue — cliquez sur une ligne pour dérouler le détail, ou sur « Voir » pour la fiche complète.`}
         action={
           <div className="flex gap-2">
-            <button onClick={reset} className={btnGhost}><RotateCcw className="w-4 h-4" /> Réinitialiser</button>
+            {canLoadPresentation() && <button onClick={reset} disabled={loadingExamples} className={btnGhost}><RotateCcw className="w-4 h-4" /> {loadingExamples ? 'Chargement…' : 'Charger les exemples'}</button>}
             <Link to="/admin/terrains/nouveau" className={btnPrimary}><Plus className="w-4 h-4" /> Ajouter un terrain</Link>
           </div>
         }
       />
+
+      {examplesError && <p role="alert" className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{examplesError}</p>}
 
       <ListToolbar
         q={q}

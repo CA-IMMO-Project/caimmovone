@@ -65,10 +65,11 @@ export interface SpecificSearch {
   // Suivi
   status: SearchStatus;
   proposals: Proposal[];
+  attachments?: StoredFile[];
   history: HistoryEntry[];
 }
 
-export type SearchFields = Omit<SpecificSearch, 'id' | 'ref' | 'createdAt' | 'clientId' | 'status' | 'proposals' | 'history' | 'source'>;
+export type SearchFields = Omit<SpecificSearch, 'id' | 'ref' | 'createdAt' | 'clientId' | 'status' | 'proposals' | 'attachments' | 'history' | 'source'>;
 export const emptySearchFields = (): SearchFields => ({
   fullName: '', phone: '', email: '', usage: 'Habitation', budgetMax: 0, areaMin: 0, areaMax: 0,
   mainZone: '', otherZones: '', targetZone: '', radiusKm: 5, flexible: 'Oui', suggestNearby: true, criteria: '',
@@ -154,7 +155,7 @@ export function splitName(fullName: string) {
 }
 
 export function getSearches(): SpecificSearch[] {
-  return cache.searches.map((s) => ({ ...s, proposals: s.proposals ?? [], history: s.history ?? [], radiusKm: s.radiusKm ?? 5, flexible: s.flexible ?? 'Oui', suggestNearby: s.suggestNearby ?? true }));
+  return cache.searches.map((s) => ({ ...s, proposals: s.proposals ?? [], attachments: s.attachments ?? [], history: s.history ?? [], radiusKm: s.radiusKm ?? 5, flexible: s.flexible ?? 'Oui', suggestNearby: s.suggestNearby ?? true }));
 }
 export const getSearch = (id: string) => getSearches().find((s) => s.id === id);
 

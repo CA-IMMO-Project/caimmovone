@@ -1,492 +1,601 @@
 [
   {
-    "id": "1",
-    "title": "Terrain résidentiel à Ambohidratrimo",
-    "description": "Belle parcelle plate idéale pour construction de villa, dans un quartier résidentiel calme en pleine expansion, à 15 minutes d'Antananarivo.",
-    "price": 45000000,
-    "region": "Antananarivo",
-    "location": "Ambohidratrimo, Antananarivo",
-    "coordinates": [
-      -18.8167,
-      47.4333
-    ],
-    "imageUrl": "/media/terrains/highlands.jpg",
+    "presentationKey": "laceo-special",
+    "title": "Domaine Lacéo — secteur Spécial",
+    "location": "Vontovorona, Analamanga",
+    "region": "Analamanga",
+    "zone": "Vontovorona",
+    "area": 2258,
+    "price": 270960000,
+    "imageUrl": "/media/caimmo/home-drone.jpg",
     "gallery": [
-      "/media/terrains/highlands.jpg",
-      "/media/terrains/highlands-2.jpg",
-      "/media/terrains/highlands-3.jpg"
+      "/media/caimmo/home-drone.jpg",
+      "/media/caimmo/about-collage-haut.jpg",
+      "/media/caimmo/reels/laceo-acces.jpg"
     ],
+    "description": "Ensemble résidentiel organisé en quatre parcelles, dans un environnement de lac et de verdure. Les surfaces et prix servent à présenter les parcours de réservation et de vente. Localisation indicative ; disponibilités et pièces à confirmer avant tout projet. Photographies utilisées à titre illustratif.",
     "features": [
-      "Terrain plat",
-      "Accès route bitumée",
-      "Eau et électricité à proximité",
-      "Quartier résidentiel"
+      "Résidentiel",
+      "Environnement lacustre",
+      "Quatre parcelles",
+      "Accès voiture"
     ],
-    "area": 800,
     "titleStatus": "Titre Foncier",
     "status": "disponible",
-    "zone": "Ambohidratrimo",
-    "relief": "Plat",
-    "access": "Route bitumée à 200 m",
-    "water": true,
-    "electricity": true,
-    "documents": [
-      "Titre foncier",
-      "Plan topographique",
-      "Certificat de situation juridique"
-    ],
-    "payment": "Comptant ou facilité",
-    "paymentMode": "comptant-ou-facilite",
-    "downPayment": "30 % minimum",
-    "installments": "Jusqu’à 10 mois",
-    "verified": true,
-    "featured": true
-  },
-  {
-    "id": "2",
-    "title": "Grand lot constructible à Ivato",
-    "description": "Vaste terrain proche de l'aéroport international d'Ivato, parfait pour un projet immobilier ou commercial d'envergure.",
-    "price": 120000000,
-    "region": "Antananarivo",
-    "location": "Ivato, Antananarivo",
-    "coordinates": [
-      -18.7969,
-      47.4788
-    ],
-    "imageUrl": "/media/terrains/plaine.jpg",
-    "gallery": [
-      "/media/terrains/plaine.jpg",
-      "/media/terrains/plaine-2.jpg",
-      "/media/terrains/plaine-3.jpg"
-    ],
-    "features": [
-      "Proche aéroport",
-      "Grande superficie",
-      "Idéal projet commercial",
-      "Bornage effectué"
-    ],
-    "area": 2500,
-    "titleStatus": "Titre Foncier",
-    "status": "disponible",
-    "zone": "Ivato",
-    "relief": "Plat",
-    "access": "Route goudronnée à 80 m",
-    "water": true,
-    "electricity": true,
-    "documents": [
-      "Titre foncier",
-      "Plan topographique",
-      "Certificat de situation juridique"
-    ],
-    "payment": "Comptant ou facilité",
-    "paymentMode": "comptant-ou-facilite",
-    "downPayment": "35 % minimum",
-    "installments": "Jusqu’à 12 mois",
-    "verified": true,
-    "featured": true
-  },
-  {
-    "id": "3",
-    "title": "Parcelle avec vue sur Antananarivo",
-    "description": "Terrain en hauteur offrant une vue panoramique sur la capitale, environnement calme et sécurisé à Itaosy.",
-    "price": 32000000,
-    "region": "Antananarivo",
-    "location": "Itaosy, Antananarivo",
-    "coordinates": [
-      -18.9333,
-      47.4667
-    ],
-    "imageUrl": "/media/terrains/colline.jpg",
-    "gallery": [
-      "/media/terrains/colline.jpg",
-      "/media/terrains/colline-2.jpg",
-      "/media/terrains/colline-3.jpg"
-    ],
-    "features": [
-      "Vue panoramique",
-      "Terrain en pente douce",
-      "Quartier sécurisé"
-    ],
-    "area": 600,
-    "titleStatus": "Cadastré",
-    "status": "disponible",
-    "zone": "Itaosy",
+    "publicationStatus": "publie",
     "relief": "Pente douce",
-    "access": "Piste carrossable de 250 m",
-    "water": false,
-    "electricity": true,
-    "documents": [
-      "Certificat cadastral",
-      "Plan topographique"
-    ],
-    "payment": "Facilité jusqu’à 10 mois",
-    "paymentMode": "facilite",
-    "downPayment": "25 % minimum",
-    "installments": "Jusqu’à 10 mois",
-    "verified": true
-  },
-  {
-    "id": "4",
-    "title": "Terrain bord de mer à Toamasina",
-    "description": "Rare opportunité en bord de mer, proche du port de Toamasina. Idéal pour résidence secondaire ou investissement touristique.",
-    "price": 85000000,
-    "region": "Toamasina",
-    "location": "Toamasina I, Atsinanana",
-    "coordinates": [
-      -18.1492,
-      49.4023
-    ],
-    "imageUrl": "/media/terrains/littoral.jpg",
-    "gallery": [
-      "/media/terrains/littoral.jpg",
-      "/media/terrains/littoral-2.jpg",
-      "/media/terrains/littoral-3.jpg"
-    ],
-    "features": [
-      "Bord de mer",
-      "Proche port",
-      "Potentiel touristique",
-      "Accès direct plage"
-    ],
-    "area": 1500,
-    "titleStatus": "Titre Foncier",
-    "status": "disponible",
-    "zone": "Toamasina I",
-    "relief": "Plat",
-    "access": "Accès direct plage",
+    "access": "Piste carrossable",
     "water": true,
     "electricity": true,
-    "documents": [
-      "Titre foncier",
-      "Plan de bornage"
+    "payment": "Paiement comptant ou échelonné selon accord",
+    "paymentMode": "comptant-ou-facilite",
+    "downPayment": "25 % à la réservation",
+    "installments": "Solde sur 12 mois",
+    "featured": true,
+    "lots": [
+      {
+        "id": "laceo-L01",
+        "number": "Lot L01",
+        "area": 500,
+        "price": 60000000,
+        "status": "disponible",
+        "imageUrl": "/media/caimmo/home-drone.jpg",
+        "details": "Parcelle résidentielle avec accès depuis la voie interne.",
+        "history": [
+          {
+            "id": "ex-lot-1",
+            "dayOffset": -18,
+            "author": "Hery Rakoto",
+            "text": "Parcelle créée au catalogue."
+          }
+        ]
+      },
+      {
+        "id": "laceo-L02",
+        "number": "Lot L02",
+        "area": 500,
+        "price": 60000000,
+        "status": "réservé",
+        "imageUrl": "/media/caimmo/about-collage-haut.jpg",
+        "details": "Parcelle réservée dans le scénario de réservation.",
+        "history": [
+          {
+            "id": "ex-lot-2",
+            "dayOffset": -18,
+            "author": "Hery Rakoto",
+            "text": "Parcelle créée au catalogue."
+          }
+        ]
+      },
+      {
+        "id": "laceo-L03",
+        "number": "Lot L03",
+        "area": 500,
+        "price": 60000000,
+        "status": "vendu",
+        "imageUrl": "/media/caimmo/reels/laceo-acces.jpg",
+        "details": "Parcelle vendue dans le scénario d’achat finalisé.",
+        "history": [
+          {
+            "id": "ex-lot-3",
+            "dayOffset": -18,
+            "author": "Hery Rakoto",
+            "text": "Parcelle créée au catalogue."
+          }
+        ]
+      },
+      {
+        "id": "laceo-L04",
+        "number": "Lot L04",
+        "area": 758,
+        "price": 90960000,
+        "status": "disponible",
+        "imageUrl": "/media/caimmo/page-realisations.jpg",
+        "details": "Grande parcelle pour une résidence familiale.",
+        "history": [
+          {
+            "id": "ex-lot-4",
+            "dayOffset": -18,
+            "author": "Hery Rakoto",
+            "text": "Parcelle créée au catalogue."
+          }
+        ]
+      }
     ],
-    "payment": "Comptant",
+    "sales": [],
+    "coordinates": [
+      -18.9774,
+      47.4318
+    ],
+    "documentFixtures": [
+      {
+        "path": "terrains/laceo-special/fiche-commerciale.pdf",
+        "name": "Fiche du terrain"
+      },
+      {
+        "path": "terrains/laceo-special/plan-indicatif.pdf",
+        "name": "Plan de situation indicatif"
+      },
+      {
+        "path": "terrains/laceo-special/synthese-dossier.pdf",
+        "name": "Synthèse du dossier"
+      }
+    ]
+  },
+  {
+    "presentationKey": "laceo-premium",
+    "title": "Domaine Lacéo — parcelle Premium",
+    "location": "Vontovorona, Analamanga",
+    "region": "Analamanga",
+    "zone": "Vontovorona",
+    "area": 758,
+    "price": 136440000,
+    "imageUrl": "/media/caimmo/about-collage-haut.jpg",
+    "gallery": [
+      "/media/caimmo/about-collage-haut.jpg",
+      "/media/caimmo/page-recherche.jpg",
+      "/media/caimmo/about-cta.jpg"
+    ],
+    "description": "Parcelle résidentielle de 758 m² avec vue dégagée et faible dénivelé. Un cas de projet familial avec paiement échelonné. Les données de ce dossier sont indicatives et ne constituent pas une offre de vente. Photographies utilisées à titre illustratif.",
+    "features": [
+      "Résidentiel",
+      "Vue dégagée",
+      "Paiement échelonné"
+    ],
+    "titleStatus": "Titre Foncier",
+    "status": "disponible",
+    "publicationStatus": "publie",
+    "relief": "Pente douce",
+    "access": "Piste carrossable",
+    "water": true,
+    "electricity": true,
+    "payment": "Paiement comptant ou échelonné selon accord",
+    "paymentMode": "comptant-ou-facilite",
+    "downPayment": "25 % à la réservation",
+    "installments": "Solde sur 12 mois",
+    "featured": true,
+    "lots": [],
+    "sales": [],
+    "coordinates": [
+      -18.9756,
+      47.4345
+    ],
+    "documentFixtures": [
+      {
+        "path": "terrains/laceo-premium/fiche-commerciale.pdf",
+        "name": "Fiche du terrain"
+      },
+      {
+        "path": "terrains/laceo-premium/plan-indicatif.pdf",
+        "name": "Plan de situation indicatif"
+      },
+      {
+        "path": "terrains/laceo-premium/synthese-dossier.pdf",
+        "name": "Synthèse du dossier"
+      }
+    ]
+  },
+  {
+    "presentationKey": "iavoloha",
+    "title": "Iavoloha Pagode — terrain résidentiel",
+    "location": "Iavoloha, Analamanga",
+    "region": "Analamanga",
+    "zone": "Iavoloha",
+    "area": 452,
+    "price": 90400000,
+    "imageUrl": "/media/caimmo/page-vendre.jpg",
+    "gallery": [
+      "/media/caimmo/page-vendre.jpg",
+      "/media/caimmo/reels/iavoloha-drone.jpg",
+      "/media/caimmo/iavoloha-quartier.jpg"
+    ],
+    "description": "Terrain de 452 m² pour un projet de résidence principale, avec un accès carrossable et une proximité des réseaux dans ce scénario. Prix et localisation indicatifs ; étude des pièces et des raccordements à prévoir. Photographies utilisées à titre illustratif.",
+    "features": [
+      "Résidentiel",
+      "Accès voiture",
+      "Projet de construction"
+    ],
+    "titleStatus": "Titre Foncier",
+    "status": "disponible",
+    "publicationStatus": "publie",
+    "relief": "Plat",
+    "access": "Piste carrossable",
+    "water": true,
+    "electricity": true,
+    "payment": "Paiement comptant ou échelonné selon accord",
+    "paymentMode": "comptant-ou-facilite",
+    "downPayment": "25 % à la réservation",
+    "installments": "Solde sur 12 mois",
+    "featured": true,
+    "lots": [],
+    "sales": [],
+    "coordinates": [
+      -18.9974,
+      47.5287
+    ],
+    "documentFixtures": [
+      {
+        "path": "terrains/iavoloha/fiche-commerciale.pdf",
+        "name": "Fiche du terrain"
+      },
+      {
+        "path": "terrains/iavoloha/plan-indicatif.pdf",
+        "name": "Plan de situation indicatif"
+      },
+      {
+        "path": "terrains/iavoloha/synthese-dossier.pdf",
+        "name": "Synthèse du dossier"
+      }
+    ]
+  },
+  {
+    "presentationKey": "talatamaty",
+    "title": "Talatamaty — parcelle familiale",
+    "location": "Talatamaty, Analamanga",
+    "region": "Analamanga",
+    "zone": "Talatamaty",
+    "area": 850,
+    "price": 72250000,
+    "imageUrl": "/media/caimmo/page-recherche.jpg",
+    "gallery": [
+      "/media/caimmo/page-recherche.jpg",
+      "/media/caimmo/banniere-section.jpg",
+      "/media/caimmo/page-realisations.jpg"
+    ],
+    "description": "Terrain plat de 850 m², pensé pour une maison familiale avec jardin. Le dossier illustre une vente comptant avec un budget maîtrisé. Le plan fourni est un schéma, pas un document de bornage. Photographies utilisées à titre illustratif.",
+    "features": [
+      "Accès voiture",
+      "Projet résidentiel",
+      "Visite sur rendez-vous"
+    ],
+    "titleStatus": "Titre Foncier",
+    "status": "disponible",
+    "publicationStatus": "brouillon",
+    "relief": "Plat",
+    "access": "Route goudronnée",
+    "water": true,
+    "electricity": true,
+    "payment": "Paiement comptant",
     "paymentMode": "comptant",
-    "downPayment": "Paiement comptant",
-    "installments": "Non disponible",
-    "verified": true
+    "downPayment": null,
+    "installments": null,
+    "featured": false,
+    "lots": [],
+    "sales": [],
+    "coordinates": [
+      -18.8213,
+      47.4465
+    ],
+    "documentFixtures": [
+      {
+        "path": "terrains/talatamaty/fiche-commerciale.pdf",
+        "name": "Fiche du terrain"
+      },
+      {
+        "path": "terrains/talatamaty/plan-indicatif.pdf",
+        "name": "Plan de situation indicatif"
+      },
+      {
+        "path": "terrains/talatamaty/synthese-dossier.pdf",
+        "name": "Synthèse du dossier"
+      }
+    ]
   },
   {
-    "id": "5",
-    "title": "Terrain agricole fertile à Brickaville",
-    "description": "Grande étendue de terre fertile propice à l'agriculture (litchis, girofle, vanille), route praticable toute l'année.",
-    "price": 60000000,
-    "region": "Toamasina",
-    "location": "Brickaville, Atsinanana",
-    "coordinates": [
-      -18.8167,
-      49.0667
-    ],
-    "imageUrl": "/media/terrains/agricole.jpg",
+    "presentationKey": "ivato",
+    "title": "Ivato — terrain pour projet mixte",
+    "location": "Ivato, Analamanga",
+    "region": "Analamanga",
+    "zone": "Ivato",
+    "area": 1200,
+    "price": 108000000,
+    "imageUrl": "/media/caimmo/iavoloha-quartier.jpg",
     "gallery": [
-      "/media/terrains/agricole.jpg",
-      "/media/terrains/agricole-2.jpg"
+      "/media/caimmo/iavoloha-quartier.jpg",
+      "/media/caimmo/page-vendre.jpg",
+      "/media/caimmo/reels/iavoloha-drone.jpg"
     ],
+    "description": "Parcelle de 1 200 m² pour un projet mixte résidentiel et professionnel. L’accès et les réseaux sont des hypothèses de travail à confirmer sur place. Le cas permet de présenter une négociation et une visite. Photographies utilisées à titre illustratif.",
     "features": [
-      "Sol fertile",
-      "Culture de rente",
-      "Point d'eau naturel",
-      "Accès route"
+      "Projet professionnel",
+      "Commercial",
+      "Accès voiture"
     ],
-    "area": 30000,
-    "titleStatus": "Titre en cours",
+    "titleStatus": "Titre Foncier",
     "status": "disponible",
-    "zone": "Brickaville",
-    "relief": "Pente douce",
-    "access": "Route praticable toute l’année",
+    "publicationStatus": "publie",
+    "relief": "Plat",
+    "access": "Route goudronnée",
     "water": true,
-    "electricity": false,
-    "documents": [
-      "Demande de titre en cours",
-      "Plan parcellaire"
+    "electricity": true,
+    "payment": "Paiement comptant",
+    "paymentMode": "comptant",
+    "downPayment": null,
+    "installments": null,
+    "featured": false,
+    "lots": [],
+    "sales": [],
+    "coordinates": [
+      -18.7992,
+      47.4803
     ],
-    "payment": "Facilité jusqu’à 12 mois",
-    "paymentMode": "facilite",
-    "downPayment": "30 % minimum",
-    "installments": "Jusqu’à 12 mois",
-    "verified": false
+    "documentFixtures": [
+      {
+        "path": "terrains/ivato/fiche-commerciale.pdf",
+        "name": "Fiche du terrain"
+      },
+      {
+        "path": "terrains/ivato/plan-indicatif.pdf",
+        "name": "Plan de situation indicatif"
+      },
+      {
+        "path": "terrains/ivato/synthese-dossier.pdf",
+        "name": "Synthèse du dossier"
+      }
+    ]
   },
   {
-    "id": "6",
-    "title": "Terrain constructible à Mahajanga",
-    "description": "Parcelle proche du centre-ville de Mahajanga, quartier dynamique, idéale pour construction ou commerce.",
-    "price": 55000000,
-    "region": "Mahajanga",
-    "location": "Mahajanga Be, Boeny",
-    "coordinates": [
-      -15.7167,
-      46.3167
-    ],
-    "imageUrl": "/media/terrains/ouest.jpg",
+    "presentationKey": "itaosy",
+    "title": "Itaosy — terrain de proximité",
+    "location": "Itaosy, Analamanga",
+    "region": "Analamanga",
+    "zone": "Itaosy",
+    "area": 600,
+    "price": 51000000,
+    "imageUrl": "/media/caimmo/page-realisations.jpg",
     "gallery": [
-      "/media/terrains/ouest.jpg",
-      "/media/terrains/ouest-2.jpg"
+      "/media/caimmo/page-realisations.jpg",
+      "/media/caimmo/home-drone.jpg",
+      "/media/caimmo/about-collage-haut.jpg"
     ],
+    "description": "Terrain de 600 m² pour une première acquisition résidentielle. Le scénario met en avant un projet à moyen terme, avec une visite puis une étude du financement. Toutes les valeurs sont indicatives. Photographies utilisées à titre illustratif.",
     "features": [
-      "Proche centre-ville",
-      "Terrain plat",
-      "Fort potentiel commercial"
+      "Résidentiel",
+      "Première acquisition",
+      "Accès voiture"
     ],
+    "titleStatus": "Titre Foncier",
+    "status": "disponible",
+    "publicationStatus": "publie",
+    "relief": "Plat",
+    "access": "Piste carrossable",
+    "water": true,
+    "electricity": true,
+    "payment": "Paiement comptant ou échelonné selon accord",
+    "paymentMode": "comptant-ou-facilite",
+    "downPayment": "25 % à la réservation",
+    "installments": "Solde sur 12 mois",
+    "featured": false,
+    "lots": [],
+    "sales": [],
+    "coordinates": [
+      -18.9394,
+      47.4721
+    ],
+    "documentFixtures": [
+      {
+        "path": "terrains/itaosy/fiche-commerciale.pdf",
+        "name": "Fiche du terrain"
+      },
+      {
+        "path": "terrains/itaosy/plan-indicatif.pdf",
+        "name": "Plan de situation indicatif"
+      },
+      {
+        "path": "terrains/itaosy/synthese-dossier.pdf",
+        "name": "Synthèse du dossier"
+      }
+    ]
+  },
+  {
+    "presentationKey": "ambohidratrimo",
+    "title": "Ambohidratrimo — parcelle réservée",
+    "location": "Ambohidratrimo, Analamanga",
+    "region": "Analamanga",
+    "zone": "Ambohidratrimo",
     "area": 900,
+    "price": 63000000,
+    "imageUrl": "/media/caimmo/about-carre.jpg",
+    "gallery": [
+      "/media/caimmo/about-carre.jpg",
+      "/media/caimmo/page-recherche.jpg",
+      "/media/caimmo/about-hero.jpg"
+    ],
+    "description": "Terrain de 900 m² réservé dans un parcours d’achat en cours. Le client dispose d’un budget de 70 millions d’ariary. Les conditions de réservation du jeu sont illustratives, sans engagement. Photographies utilisées à titre illustratif.",
+    "features": [
+      "Accès voiture",
+      "Projet résidentiel",
+      "Visite sur rendez-vous"
+    ],
     "titleStatus": "Titre Foncier",
     "status": "réservé",
-    "zone": "Mahajanga Be",
+    "publicationStatus": "publie",
     "relief": "Plat",
-    "access": "Route bitumée à 50 m",
+    "access": "Piste carrossable",
     "water": true,
     "electricity": true,
-    "documents": [
-      "Titre foncier",
-      "Plan topographique"
-    ],
-    "payment": "Comptant ou facilité",
-    "paymentMode": "comptant-ou-facilite",
-    "downPayment": "40 % minimum",
-    "installments": "Jusqu’à 6 mois",
-    "verified": true
-  },
-  {
-    "id": "7",
-    "title": "Terrain vue mer à Nosy Be",
-    "description": "Superbe terrain surplombant l'océan Indien à Nosy Be, emplacement recherché pour projet hôtelier ou villa de luxe.",
-    "price": 180000000,
-    "region": "Nosy Be",
-    "location": "Nosy Be, Diana",
-    "coordinates": [
-      -13.3167,
-      48.2667
-    ],
-    "imageUrl": "/media/terrains/littoral.jpg",
-    "gallery": [
-      "/media/terrains/littoral.jpg",
-      "/media/terrains/littoral-2.jpg",
-      "/media/terrains/littoral-3.jpg"
-    ],
-    "features": [
-      "Vue mer imprenable",
-      "Zone touristique",
-      "Potentiel hôtelier",
-      "Accès route"
-    ],
-    "area": 3000,
-    "titleStatus": "Titre Foncier",
-    "status": "disponible",
-    "zone": "Nosy Be",
-    "relief": "Pente forte",
-    "access": "Route goudronnée à 300 m",
-    "water": false,
-    "electricity": true,
-    "documents": [
-      "Titre foncier",
-      "Plan topographique",
-      "Étude de sol"
-    ],
-    "payment": "Comptant",
+    "payment": "Paiement comptant",
     "paymentMode": "comptant",
-    "downPayment": "Paiement comptant",
-    "installments": "Non disponible",
-    "verified": true,
-    "featured": true
+    "downPayment": null,
+    "installments": null,
+    "featured": false,
+    "lots": [],
+    "sales": [],
+    "coordinates": [
+      -18.8219,
+      47.4416
+    ],
+    "documentFixtures": [
+      {
+        "path": "terrains/ambohidratrimo/fiche-commerciale.pdf",
+        "name": "Fiche du terrain"
+      },
+      {
+        "path": "terrains/ambohidratrimo/plan-indicatif.pdf",
+        "name": "Plan de situation indicatif"
+      },
+      {
+        "path": "terrains/ambohidratrimo/synthese-dossier.pdf",
+        "name": "Synthèse du dossier"
+      }
+    ]
   },
   {
-    "id": "8",
-    "title": "Terrain résidentiel à Fianarantsoa",
-    "description": "Belle parcelle dans les hauts plateaux, climat tempéré, idéale pour construction familiale.",
-    "price": 22000000,
-    "region": "Fianarantsoa",
-    "location": "Fianarantsoa, Haute Matsiatra",
-    "coordinates": [
-      -21.4536,
-      47.0854
-    ],
-    "imageUrl": "/media/terrains/highlands.jpg",
-    "gallery": [
-      "/media/terrains/highlands.jpg",
-      "/media/terrains/highlands-2.jpg",
-      "/media/terrains/highlands-3.jpg"
-    ],
-    "features": [
-      "Climat tempéré",
-      "Terrain plat",
-      "Quartier calme"
-    ],
-    "area": 700,
-    "titleStatus": "Cadastré",
-    "status": "disponible",
-    "zone": "Fianarantsoa",
-    "relief": "Plat",
-    "access": "Route bitumée à 150 m",
-    "water": true,
-    "electricity": true,
-    "documents": [
-      "Certificat cadastral",
-      "Plan topographique"
-    ],
-    "payment": "Facilité jusqu’à 10 mois",
-    "paymentMode": "facilite",
-    "downPayment": "25 % minimum",
-    "installments": "Jusqu’à 10 mois",
-    "verified": true
-  },
-  {
-    "id": "9",
-    "title": "Terrain proche plage à Toliara",
-    "description": "Parcelle à quelques minutes des plages de Toliara, environnement paisible, idéal projet résidentiel ou touristique.",
-    "price": 40000000,
-    "region": "Toliara",
-    "location": "Toliara, Atsimo-Andrefana",
-    "coordinates": [
-      -23.35,
-      43.6667
-    ],
-    "imageUrl": "/media/terrains/littoral.jpg",
-    "gallery": [
-      "/media/terrains/littoral.jpg",
-      "/media/terrains/littoral-2.jpg",
-      "/media/terrains/littoral-3.jpg"
-    ],
-    "features": [
-      "Proche plage",
-      "Climat ensoleillé",
-      "Potentiel touristique"
-    ],
-    "area": 1000,
-    "titleStatus": "Titre en cours",
-    "status": "disponible",
-    "zone": "Toliara",
-    "relief": "Plat",
-    "access": "Piste carrossable de 400 m",
-    "water": false,
-    "electricity": false,
-    "documents": [
-      "Demande de titre en cours",
-      "Plan parcellaire"
-    ],
-    "payment": "Comptant ou facilité",
-    "paymentMode": "comptant-ou-facilite",
-    "downPayment": "30 % minimum",
-    "installments": "Jusqu’à 8 mois",
-    "verified": false
-  },
-  {
-    "id": "10",
-    "title": "Lot à Ambatobe, quartier résidentiel prisé",
-    "description": "Terrain dans un des quartiers les plus recherchés de la capitale, entouré de résidences de standing.",
-    "price": 95000000,
-    "region": "Antananarivo",
-    "location": "Ambatobe, Antananarivo",
-    "coordinates": [
-      -18.8833,
-      47.5333
-    ],
-    "imageUrl": "/media/terrains/colline.jpg",
-    "gallery": [
-      "/media/terrains/colline.jpg",
-      "/media/terrains/colline-2.jpg",
-      "/media/terrains/colline-3.jpg"
-    ],
-    "features": [
-      "Quartier de standing",
-      "Sécurisé",
-      "Proche écoles internationales"
-    ],
-    "area": 1000,
-    "titleStatus": "Titre Foncier",
-    "status": "disponible",
-    "zone": "Ambatobe",
-    "relief": "Pente douce",
-    "access": "Route bitumée à 100 m",
-    "water": true,
-    "electricity": true,
-    "documents": [
-      "Titre foncier",
-      "Plan topographique",
-      "Certificat de situation juridique"
-    ],
-    "payment": "Comptant ou facilité",
-    "paymentMode": "comptant-ou-facilite",
-    "downPayment": "35 % minimum",
-    "installments": "Jusqu’à 12 mois",
-    "verified": true
-  },
-  {
-    "id": "11",
-    "title": "Terrain à Ankadikely Ilafy",
-    "description": "Parcelle bien située à proximité des grands axes routiers, en pleine zone de développement urbain.",
-    "price": 38000000,
-    "region": "Antananarivo",
-    "location": "Ankadikely Ilafy, Antananarivo",
-    "coordinates": [
-      -18.85,
-      47.55
-    ],
-    "imageUrl": "/media/terrains/plaine.jpg",
-    "gallery": [
-      "/media/terrains/plaine.jpg",
-      "/media/terrains/plaine-2.jpg",
-      "/media/terrains/plaine-3.jpg"
-    ],
-    "features": [
-      "Zone en développement",
-      "Accès grand axe",
-      "Bornage effectué"
-    ],
+    "presentationKey": "ilafy",
+    "title": "Ilafy — acquisition finalisée",
+    "location": "Ilafy, Analamanga",
+    "region": "Analamanga",
+    "zone": "Ilafy",
     "area": 750,
+    "price": 75000000,
+    "imageUrl": "/media/caimmo/banniere-section.jpg",
+    "gallery": [
+      "/media/caimmo/banniere-section.jpg",
+      "/media/caimmo/page-realisations.jpg",
+      "/media/caimmo/home-drone.jpg"
+    ],
+    "description": "Parcelle de 750 m² utilisée pour présenter un achat finalisé, son historique et son rattachement à la fiche client. Le statut vendu appartient au scénario ; aucun acte officiel ou paiement réel n’est représenté. Photographies utilisées à titre illustratif.",
+    "features": [
+      "Accès voiture",
+      "Projet résidentiel",
+      "Visite sur rendez-vous"
+    ],
     "titleStatus": "Titre Foncier",
     "status": "vendu",
-    "zone": "Ankadikely Ilafy",
+    "publicationStatus": "publie",
     "relief": "Plat",
-    "access": "Route goudronnée à 120 m",
+    "access": "Piste carrossable",
     "water": true,
     "electricity": true,
-    "documents": [
-      "Titre foncier",
-      "Plan topographique"
-    ],
-    "payment": "Comptant",
+    "payment": "Paiement comptant",
     "paymentMode": "comptant",
-    "downPayment": "Paiement comptant",
-    "installments": "Non disponible",
-    "verified": true
+    "downPayment": null,
+    "installments": null,
+    "featured": false,
+    "lots": [],
+    "sales": [],
+    "coordinates": [
+      -18.8657,
+      47.5685
+    ],
+    "documentFixtures": [
+      {
+        "path": "terrains/ilafy/fiche-commerciale.pdf",
+        "name": "Fiche du terrain"
+      },
+      {
+        "path": "terrains/ilafy/plan-indicatif.pdf",
+        "name": "Plan de situation indicatif"
+      },
+      {
+        "path": "terrains/ilafy/synthese-dossier.pdf",
+        "name": "Synthèse du dossier"
+      }
+    ]
   },
   {
-    "id": "12",
-    "title": "Terrain à Diego Suarez (Antsiranana)",
-    "description": "Belle parcelle dans la baie de Diego Suarez, proche des plages et du centre économique du Nord.",
-    "price": 70000000,
-    "region": "Diego Suarez",
-    "location": "Antsiranana, Diana",
-    "coordinates": [
-      -12.2787,
-      49.2917
-    ],
-    "imageUrl": "/media/terrains/littoral.jpg",
+    "presentationKey": "brickaville",
+    "title": "Brickaville — projet agricole à étudier",
+    "location": "Brickaville, Atsinanana",
+    "region": "Atsinanana",
+    "zone": "Brickaville",
+    "area": 15000,
+    "price": 30000000,
+    "imageUrl": "/media/caimmo/about-colonne.jpg",
     "gallery": [
-      "/media/terrains/littoral.jpg",
-      "/media/terrains/littoral-2.jpg",
-      "/media/terrains/littoral-3.jpg"
+      "/media/caimmo/about-colonne.jpg",
+      "/media/caimmo/about-carre.jpg",
+      "/media/caimmo/page-recherche.jpg"
     ],
+    "description": "Projet agricole de 1,5 hectare, conservé en brouillon pendant l’étude des informations reçues. Le scénario prévoit une demande de pièces complémentaires. Ce dossier n’est pas publié au catalogue. Photographies utilisées à titre illustratif.",
     "features": [
-      "Proche baie",
-      "Zone économique",
-      "Potentiel touristique"
+      "Agricole",
+      "Grande superficie",
+      "Étude du dossier"
     ],
-    "area": 1200,
-    "titleStatus": "Titre Foncier",
+    "titleStatus": "Titre en cours",
     "status": "disponible",
-    "zone": "Antsiranana",
+    "publicationStatus": "brouillon",
     "relief": "Plat",
-    "access": "Route goudronnée à 250 m",
+    "access": "Piste carrossable",
+    "water": false,
+    "electricity": false,
+    "payment": "Paiement comptant",
+    "paymentMode": "comptant",
+    "downPayment": null,
+    "installments": null,
+    "featured": false,
+    "lots": [],
+    "sales": [],
+    "coordinates": [
+      -18.8282,
+      48.9477
+    ],
+    "documentFixtures": [
+      {
+        "path": "terrains/brickaville/fiche-commerciale.pdf",
+        "name": "Fiche du terrain"
+      },
+      {
+        "path": "terrains/brickaville/plan-indicatif.pdf",
+        "name": "Plan de situation indicatif"
+      },
+      {
+        "path": "terrains/brickaville/synthese-dossier.pdf",
+        "name": "Synthèse du dossier"
+      }
+    ]
+  },
+  {
+    "presentationKey": "mahajanga",
+    "title": "Mahajanga — dossier commercial archivé",
+    "location": "Mahajanga, Boeny",
+    "region": "Boeny",
+    "zone": "Mahajanga",
+    "area": 1100,
+    "price": 55000000,
+    "imageUrl": "/media/caimmo/home-cta.jpg",
+    "gallery": [
+      "/media/caimmo/home-cta.jpg",
+      "/media/caimmo/page-realisations.jpg",
+      "/media/caimmo/about-cta.jpg"
+    ],
+    "description": "Ancien projet commercial de 1 100 m², conservé aux archives. Les pièces foncières manquent dans le scénario. La fiche reste disponible pour illustrer l’archivage sans supprimer le dossier. Photographies utilisées à titre illustratif.",
+    "features": [
+      "Commercial",
+      "Dossier archivé"
+    ],
+    "titleStatus": "Titre en cours",
+    "status": "disponible",
+    "publicationStatus": "archive",
+    "relief": "Plat",
+    "access": "Piste carrossable",
     "water": true,
     "electricity": true,
-    "documents": [
-      "Titre foncier",
-      "Plan topographique"
+    "payment": "Paiement comptant",
+    "paymentMode": "comptant",
+    "downPayment": null,
+    "installments": null,
+    "featured": false,
+    "lots": [],
+    "sales": [],
+    "coordinates": [
+      -15.7112,
+      46.3256
     ],
-    "payment": "Facilité jusqu’à 12 mois",
-    "paymentMode": "facilite",
-    "downPayment": "30 % minimum",
-    "installments": "Jusqu’à 12 mois",
-    "verified": true
+    "documentFixtures": [
+      {
+        "path": "terrains/mahajanga/fiche-commerciale.pdf",
+        "name": "Fiche du terrain"
+      },
+      {
+        "path": "terrains/mahajanga/plan-indicatif.pdf",
+        "name": "Plan de situation indicatif"
+      },
+      {
+        "path": "terrains/mahajanga/synthese-dossier.pdf",
+        "name": "Synthèse du dossier"
+      }
+    ]
   }
 ]

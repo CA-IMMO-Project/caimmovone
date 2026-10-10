@@ -366,7 +366,7 @@ export default function Sell() {
             <span className="text-gold-500">confiance</span>
           </>
         }
-        lead="Déposez votre dossier en ligne. Notre équipe le vérifie avant toute publication et vous accompagne jusqu’à la vente."
+        lead="Déposez votre dossier en ligne. Notre équipe étudie les informations avant toute publication et vous accompagne jusqu’à la vente."
       />
 
       {/* Bandeau bénéfices vendeur — bande bleu brume de la référence */}
@@ -376,7 +376,7 @@ export default function Sell() {
             {[
               {
                 icon: ShieldCheck,
-                title: "Vérification sérieuse",
+                title: "Étude du dossier",
                 text: "Un dossier fiable pour les acheteurs",
               },
               {
@@ -460,7 +460,7 @@ export default function Sell() {
                       Aucune publication automatique
                     </strong>
                     <p className="mt-1 text-xs font-normal leading-relaxed text-navy-900/85">
-                      Chaque terrain passe par notre processus de contrôle avant
+                      Chaque dossier fait l’objet d’une étude de ses informations avant
                       d’être proposé aux acheteurs.
                     </p>
                   </div>
@@ -505,7 +505,7 @@ export default function Sell() {
                             "L’identité de la personne légalement habilitée à vendre le terrain.",
                             "Donnez aux acheteurs toutes les informations essentielles.",
                             "Ces informations permettent à notre équipe de retrouver le terrain.",
-                            "Des visuels clairs et des justificatifs complets accélèrent la vérification.",
+                            "Des visuels clairs et des justificatifs complets facilitent l’étude du dossier.",
                             "Précisez les modalités que vous êtes prêt(e) à accepter.",
                           ][step]
                         }
@@ -1060,7 +1060,7 @@ export default function Sell() {
                             },
                             {
                               key: "c2" as const,
-                              text: "Vous acceptez que notre équipe vous contacte pour organiser la vérification.",
+                              text: "Vous acceptez que notre équipe vous contacte pour organiser l’étude du dossier.",
                             },
                             {
                               key: "c3" as const,
@@ -1105,7 +1105,7 @@ export default function Sell() {
                               Statut après soumission
                             </small>
                             <strong className="text-sm font-medium text-navy-900">
-                              En attente de vérification
+                              En attente de prise en charge
                             </strong>
                           </div>
                         </div>

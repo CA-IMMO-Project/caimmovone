@@ -1,0 +1,452 @@
+[
+  {
+    "path": "terrains/laceo-special/fiche-commerciale.pdf",
+    "group": "terrain",
+    "case": "laceo-special",
+    "title": "Fiche du terrain",
+    "type": "application/pdf",
+    "size": 221781,
+    "sha256": "8d65d6844fe53ba95f70fb5f02f83741e55321871f1d6e3fc9e8bd8c8839875b"
+  },
+  {
+    "path": "terrains/laceo-special/plan-indicatif.pdf",
+    "group": "terrain",
+    "case": "laceo-special",
+    "title": "Plan de situation indicatif",
+    "type": "application/pdf",
+    "size": 3818,
+    "sha256": "881f7c9079db31e137e2ac4d1b5e26444a4f8e00c8dfdcfb2553887f5b0947e2"
+  },
+  {
+    "path": "terrains/laceo-special/synthese-dossier.pdf",
+    "group": "terrain",
+    "case": "laceo-special",
+    "title": "Synthèse du dossier",
+    "type": "application/pdf",
+    "size": 3319,
+    "sha256": "512f424f1e58c1029a6b97511e664eac266a3f855ffd72c6eabe95f8c0cd561d"
+  },
+  {
+    "path": "terrains/laceo-premium/fiche-commerciale.pdf",
+    "group": "terrain",
+    "case": "laceo-premium",
+    "title": "Fiche du terrain",
+    "type": "application/pdf",
+    "size": 188192,
+    "sha256": "f0c4a08198abcb224919d41f4cda7c88dc2b9a7064e38bda6815eb5fd29ef4d9"
+  },
+  {
+    "path": "terrains/laceo-premium/plan-indicatif.pdf",
+    "group": "terrain",
+    "case": "laceo-premium",
+    "title": "Plan de situation indicatif",
+    "type": "application/pdf",
+    "size": 3350,
+    "sha256": "594ad4bab9b062e59ee535dfaf7bca2f98a9b2d1640bea871522f52b146c6986"
+  },
+  {
+    "path": "terrains/laceo-premium/synthese-dossier.pdf",
+    "group": "terrain",
+    "case": "laceo-premium",
+    "title": "Synthèse du dossier",
+    "type": "application/pdf",
+    "size": 3300,
+    "sha256": "083ada1d70cae5d3007d78a11ff25f7caddebc3c42f25c73304cf0462284fe88"
+  },
+  {
+    "path": "terrains/iavoloha/fiche-commerciale.pdf",
+    "group": "terrain",
+    "case": "iavoloha",
+    "title": "Fiche du terrain",
+    "type": "application/pdf",
+    "size": 250122,
+    "sha256": "86c796b3cec4dd9518417f43672ecb0b4e4ffab8a098196e637a086b299855f9"
+  },
+  {
+    "path": "terrains/iavoloha/plan-indicatif.pdf",
+    "group": "terrain",
+    "case": "iavoloha",
+    "title": "Plan de situation indicatif",
+    "type": "application/pdf",
+    "size": 3341,
+    "sha256": "927d369ce08775f428cfb3e6ebb1d28dacd450125fd9deee7e9b42eb552d754c"
+  },
+  {
+    "path": "terrains/iavoloha/synthese-dossier.pdf",
+    "group": "terrain",
+    "case": "iavoloha",
+    "title": "Synthèse du dossier",
+    "type": "application/pdf",
+    "size": 3295,
+    "sha256": "713aa32e4c4a335744bbea3b37d0ddf2068f23bb25f75039ce9d48dee1de903d"
+  },
+  {
+    "path": "terrains/talatamaty/fiche-commerciale.pdf",
+    "group": "terrain",
+    "case": "talatamaty",
+    "title": "Fiche du terrain",
+    "type": "application/pdf",
+    "size": 258602,
+    "sha256": "bb0636ea2787ccb944da04a130f468411113e8eccf2f566a38ec3cf33b576f42"
+  },
+  {
+    "path": "terrains/talatamaty/plan-indicatif.pdf",
+    "group": "terrain",
+    "case": "talatamaty",
+    "title": "Plan de situation indicatif",
+    "type": "application/pdf",
+    "size": 3339,
+    "sha256": "2d740a9e2bbd5e904792b6912a9755035731c12bf7e974309916ba98c863ddda"
+  },
+  {
+    "path": "terrains/talatamaty/synthese-dossier.pdf",
+    "group": "terrain",
+    "case": "talatamaty",
+    "title": "Synthèse du dossier",
+    "type": "application/pdf",
+    "size": 3317,
+    "sha256": "b9a73ccd1c60be2aedc820de3b8747acf68e2f45d152da30594cd5b50f54bd5c"
+  },
+  {
+    "path": "terrains/ivato/fiche-commerciale.pdf",
+    "group": "terrain",
+    "case": "ivato",
+    "title": "Fiche du terrain",
+    "type": "application/pdf",
+    "size": 202053,
+    "sha256": "492de1f874bc62344d5cadf175a47e5f48c247e2b5bbf4146d9d5c742bc67b29"
+  },
+  {
+    "path": "terrains/ivato/plan-indicatif.pdf",
+    "group": "terrain",
+    "case": "ivato",
+    "title": "Plan de situation indicatif",
+    "type": "application/pdf",
+    "size": 3341,
+    "sha256": "7645d8e450d4fc128895477606b9098a14329b7cb20ce75474b9e6acfe205b63"
+  },
+  {
+    "path": "terrains/ivato/synthese-dossier.pdf",
+    "group": "terrain",
+    "case": "ivato",
+    "title": "Synthèse du dossier",
+    "type": "application/pdf",
+    "size": 3292,
+    "sha256": "f8f5f7f2f0dbe6ddba2ec8c0c27db76b5878e1ad6ff6b6a974b243f5c04c72ce"
+  },
+  {
+    "path": "terrains/itaosy/fiche-commerciale.pdf",
+    "group": "terrain",
+    "case": "itaosy",
+    "title": "Fiche du terrain",
+    "type": "application/pdf",
+    "size": 172279,
+    "sha256": "6d29c882cab2be58d398d445a9898ca1a1b2c3dcfb6d0c5f8784adad1d96b791"
+  },
+  {
+    "path": "terrains/itaosy/plan-indicatif.pdf",
+    "group": "terrain",
+    "case": "itaosy",
+    "title": "Plan de situation indicatif",
+    "type": "application/pdf",
+    "size": 3334,
+    "sha256": "dbdfe08e7d2a777acccc7d257a66193f776aa237a6cef3f192d2cbcd51a7ade3"
+  },
+  {
+    "path": "terrains/itaosy/synthese-dossier.pdf",
+    "group": "terrain",
+    "case": "itaosy",
+    "title": "Synthèse du dossier",
+    "type": "application/pdf",
+    "size": 3282,
+    "sha256": "6a8a00c11fe46ec855403e07c15d404f91d141f7d213fc16aeb9abe61f30a62c"
+  },
+  {
+    "path": "terrains/ambohidratrimo/fiche-commerciale.pdf",
+    "group": "terrain",
+    "case": "ambohidratrimo",
+    "title": "Fiche du terrain",
+    "type": "application/pdf",
+    "size": 95329,
+    "sha256": "09af39f6bcb1fb91ee5be7f5890d5049e956395b4f812c12b01196d4059eb2ee"
+  },
+  {
+    "path": "terrains/ambohidratrimo/plan-indicatif.pdf",
+    "group": "terrain",
+    "case": "ambohidratrimo",
+    "title": "Plan de situation indicatif",
+    "type": "application/pdf",
+    "size": 3343,
+    "sha256": "532a5c7bb52ce19b098fb0ef5f7047e356afcdb4b709f809c65bba7f8228a361"
+  },
+  {
+    "path": "terrains/ambohidratrimo/synthese-dossier.pdf",
+    "group": "terrain",
+    "case": "ambohidratrimo",
+    "title": "Synthèse du dossier",
+    "type": "application/pdf",
+    "size": 3292,
+    "sha256": "cda14cf62b8e9c599a064727bd2ad9e3ef8a930626c75b17f7a5a03ea96d4206"
+  },
+  {
+    "path": "terrains/ilafy/fiche-commerciale.pdf",
+    "group": "terrain",
+    "case": "ilafy",
+    "title": "Fiche du terrain",
+    "type": "application/pdf",
+    "size": 219730,
+    "sha256": "3f046cbc47eed5b39f6e000e54e9d70cd5e66bc0f69e4e83868febc8dcc3e491"
+  },
+  {
+    "path": "terrains/ilafy/plan-indicatif.pdf",
+    "group": "terrain",
+    "case": "ilafy",
+    "title": "Plan de situation indicatif",
+    "type": "application/pdf",
+    "size": 3339,
+    "sha256": "b46a9c8f4e3e089a4a2b2239875b8ff81aa1bcf9db19b013230ed1b84a99fcbe"
+  },
+  {
+    "path": "terrains/ilafy/synthese-dossier.pdf",
+    "group": "terrain",
+    "case": "ilafy",
+    "title": "Synthèse du dossier",
+    "type": "application/pdf",
+    "size": 3283,
+    "sha256": "4ddc1c36a72718e52c1cb42cbdac03923791c00b7155bb829f7cf35e73081730"
+  },
+  {
+    "path": "terrains/brickaville/fiche-commerciale.pdf",
+    "group": "terrain",
+    "case": "brickaville",
+    "title": "Fiche du terrain",
+    "type": "application/pdf",
+    "size": 21197,
+    "sha256": "73f6e65326768a376af08a7fd420938f0ea2b574db0a5afe4e9abf3afd958e9f"
+  },
+  {
+    "path": "terrains/brickaville/plan-indicatif.pdf",
+    "group": "terrain",
+    "case": "brickaville",
+    "title": "Plan de situation indicatif",
+    "type": "application/pdf",
+    "size": 3351,
+    "sha256": "68dfd7342aa54233825a3858184ceb62db927053ab6fdc2eeb43470be679ba54"
+  },
+  {
+    "path": "terrains/brickaville/synthese-dossier.pdf",
+    "group": "terrain",
+    "case": "brickaville",
+    "title": "Synthèse du dossier",
+    "type": "application/pdf",
+    "size": 3324,
+    "sha256": "a33404bfa7641b1acb6d214fce53bba29c05b68999cc4a06d3e0edf8a6fad453"
+  },
+  {
+    "path": "terrains/mahajanga/fiche-commerciale.pdf",
+    "group": "terrain",
+    "case": "mahajanga",
+    "title": "Fiche du terrain",
+    "type": "application/pdf",
+    "size": 133185,
+    "sha256": "9795be5d769aae40ee4943a4615159e70ce35b69a97199ca8c71647d320e9851"
+  },
+  {
+    "path": "terrains/mahajanga/plan-indicatif.pdf",
+    "group": "terrain",
+    "case": "mahajanga",
+    "title": "Plan de situation indicatif",
+    "type": "application/pdf",
+    "size": 3344,
+    "sha256": "8bab35c058fd1e52491444556d86223dd61c381fd4209b49a8330fb2575a0d64"
+  },
+  {
+    "path": "terrains/mahajanga/synthese-dossier.pdf",
+    "group": "terrain",
+    "case": "mahajanga",
+    "title": "Synthèse du dossier",
+    "type": "application/pdf",
+    "size": 3315,
+    "sha256": "6d95de2901064844186536eb73038a6747979849aefe0511361198459b09c7e4"
+  },
+  {
+    "path": "crm/demandes/achat-01.pdf",
+    "group": "demande",
+    "case": "achat-01",
+    "title": "Synthèse du projet d’achat",
+    "type": "application/pdf",
+    "size": 3285,
+    "sha256": "41460a8659661d4a39f9b79ea9d7a62303b8552b5d7f70c02d36a312f7c88288"
+  },
+  {
+    "path": "crm/demandes/achat-02.pdf",
+    "group": "demande",
+    "case": "achat-02",
+    "title": "Synthèse du projet d’achat",
+    "type": "application/pdf",
+    "size": 3269,
+    "sha256": "1f7d64c12ff64d3054eea5abf2cdb2b81fc0bdbd8a77e6f8cb8320d385788502"
+  },
+  {
+    "path": "crm/demandes/achat-03.pdf",
+    "group": "demande",
+    "case": "achat-03",
+    "title": "Synthèse du projet d’achat",
+    "type": "application/pdf",
+    "size": 3179,
+    "sha256": "930251a0e8ff3e2a74d7f7cc07ddfe3e80805f448fddea9c2c94a13ec26036dc"
+  },
+  {
+    "path": "crm/demandes/achat-04.pdf",
+    "group": "demande",
+    "case": "achat-04",
+    "title": "Synthèse du projet d’achat",
+    "type": "application/pdf",
+    "size": 3177,
+    "sha256": "2553a42c64ae17cb04c5f2a4373ffdc094fb75e1817afa982a850bb543697f26"
+  },
+  {
+    "path": "crm/demandes/achat-05.pdf",
+    "group": "demande",
+    "case": "achat-05",
+    "title": "Synthèse du projet d’achat",
+    "type": "application/pdf",
+    "size": 3158,
+    "sha256": "79d6f5c0d1ecd0a1319cc5e56303abb3b47c6b5ac83811e6fdc4883c64d18928"
+  },
+  {
+    "path": "crm/demandes/achat-06.pdf",
+    "group": "demande",
+    "case": "achat-06",
+    "title": "Synthèse du projet d’achat",
+    "type": "application/pdf",
+    "size": 3148,
+    "sha256": "91166b4c796fb1e8449595b1402efe7bd03c9c501df82ed33d7069b222111004"
+  },
+  {
+    "path": "crm/demandes/achat-07.pdf",
+    "group": "demande",
+    "case": "achat-07",
+    "title": "Synthèse du projet d’achat",
+    "type": "application/pdf",
+    "size": 3163,
+    "sha256": "eab47179e9598d0cf5374f75e4b8218577643cc5f47463f3253268fa97881ba1"
+  },
+  {
+    "path": "crm/demandes/achat-08.pdf",
+    "group": "demande",
+    "case": "achat-08",
+    "title": "Synthèse du projet d’achat",
+    "type": "application/pdf",
+    "size": 3164,
+    "sha256": "c2c30d25c8966a198b0f85073d49a93b74314523317402e55c7f6f06cfd410e9"
+  },
+  {
+    "path": "crm/demandes/visite-01.pdf",
+    "group": "demande",
+    "case": "visite-01",
+    "title": "Fiche de préparation de visite",
+    "type": "application/pdf",
+    "size": 3203,
+    "sha256": "c34a7900869281e1df798ff3549f290ec8a4cf287d7854f8683057453511d150"
+  },
+  {
+    "path": "crm/demandes/visite-02.pdf",
+    "group": "demande",
+    "case": "visite-02",
+    "title": "Fiche de préparation de visite",
+    "type": "application/pdf",
+    "size": 3196,
+    "sha256": "d7070c2919e9469adca8b7c1df10b9dca38aa0cbd2347dd43fca6fe51ad227d4"
+  },
+  {
+    "path": "crm/demandes/visite-03.pdf",
+    "group": "demande",
+    "case": "visite-03",
+    "title": "Fiche de préparation de visite",
+    "type": "application/pdf",
+    "size": 3218,
+    "sha256": "5b1ed97ae915e2dd60de689454903b489cee8811c76d9e97295716f930bd1b85"
+  },
+  {
+    "path": "crm/demandes/visite-04.pdf",
+    "group": "demande",
+    "case": "visite-04",
+    "title": "Fiche de préparation de visite",
+    "type": "application/pdf",
+    "size": 3179,
+    "sha256": "6b83d956dc99f1e4a054bd74df6d2546f43f11fdd6b926d31a625bc77d5a0d7c"
+  },
+  {
+    "path": "crm/proprietaires/vendeur-01.pdf",
+    "group": "proprietaire",
+    "case": "vendeur-01",
+    "title": "Profil du propriétaire",
+    "type": "application/pdf",
+    "size": 3248,
+    "sha256": "5721a93ad4673d70f74f0d4310406c47f1d4cf756733236954117cd165c23e9d"
+  },
+  {
+    "path": "crm/proprietaires/vendeur-02.pdf",
+    "group": "proprietaire",
+    "case": "vendeur-02",
+    "title": "Profil du propriétaire",
+    "type": "application/pdf",
+    "size": 3221,
+    "sha256": "7af9a22a6a1a83b1a66f6469c44d7d4a0e62f760f752d8045cf53891bb31ed4f"
+  },
+  {
+    "path": "crm/proprietaires/vendeur-03.pdf",
+    "group": "proprietaire",
+    "case": "vendeur-03",
+    "title": "Profil du propriétaire",
+    "type": "application/pdf",
+    "size": 3193,
+    "sha256": "12fdbebfe2032ffe1fcdd1c8877c9a4a688cf8ad2d0532cd5068acf20986c7de"
+  },
+  {
+    "path": "crm/proprietaires/vendeur-04.pdf",
+    "group": "proprietaire",
+    "case": "vendeur-04",
+    "title": "Profil du propriétaire",
+    "type": "application/pdf",
+    "size": 3270,
+    "sha256": "26a1b5f63cf22e63ccf776a2fc670a01a88a89f85d296e0f68ef578af1b9f7ff"
+  },
+  {
+    "path": "crm/recherches/recherche-01.pdf",
+    "group": "recherche",
+    "case": "recherche-01",
+    "title": "Cahier de recherche",
+    "type": "application/pdf",
+    "size": 2967,
+    "sha256": "9504999a166a037a09f22815abdf518e714a7a2cbd198b492d29a0d95cff0e9d"
+  },
+  {
+    "path": "crm/recherches/recherche-02.pdf",
+    "group": "recherche",
+    "case": "recherche-02",
+    "title": "Cahier de recherche",
+    "type": "application/pdf",
+    "size": 2942,
+    "sha256": "546c621a6068cbd10928fa24aab1f7c9074c0c2a9bf85dbb64e2d54bfa3bbc4b"
+  },
+  {
+    "path": "crm/recherches/recherche-03.pdf",
+    "group": "recherche",
+    "case": "recherche-03",
+    "title": "Cahier de recherche",
+    "type": "application/pdf",
+    "size": 2930,
+    "sha256": "2577f7ba1e01108f1b888ae39b5e244f6c1c59b63f87271448f990b929592e32"
+  },
+  {
+    "path": "crm/recherches/recherche-04.pdf",
+    "group": "recherche",
+    "case": "recherche-04",
+    "title": "Cahier de recherche",
+    "type": "application/pdf",
+    "size": 2927,
+    "sha256": "c87072b615843e60803b103f87eceec20c5cd1c0dc61047fdc49873c5f92cb82"
+  }
+]

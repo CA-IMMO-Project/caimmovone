@@ -8,14 +8,14 @@
 
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CalendarDays, CalendarPlus, Mail, MapPin, Phone, Search, User } from 'lucide-react';
+import { ArrowLeft, CalendarDays, CalendarPlus, FileText, Mail, MapPin, Phone, Search, User } from 'lucide-react';
 import { getLands } from '../lib/store';
 import { formatPhone, phoneHref } from '../lib/phone';
-import { BuyRequest, fullName, getBuyRequest, getBuyRequests, historyEntry, saveBuyRequest } from './crm/model';
+import { BuyRequest, StoredFile, fullName, getBuyRequest, getBuyRequests, historyEntry, saveBuyRequest } from './crm/model';
 import { getClient } from './crm/people';
 import { refreshCache, subscribeCache } from './crm/sync';
 import {
-  Badge, Column, DataTable, Section, Select, Stat, Timeline, btnIcon, btnOutline,
+  Badge, Column, DataTable, FileChip, Preview, Section, Select, Stat, Timeline, btnIcon, btnOutline,
   exportCsv, fmtAr, fmtDate, input,
   ListToolbar, PageHeader, RelDate, TelLink,
 } from './crm/kit';
@@ -118,6 +118,7 @@ export function VisitDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [r, setR] = useState(() => (id ? getBuyRequest(id) : undefined));
+  const [preview, setPreview] = useState<StoredFile | null>(null);
 
   // Resync à l'ouverture de la fiche + mise à jour auto sans F5 : sans ce bloc,
   // la fiche affiche un instantané figé du cache mémoire (potentiellement
@@ -204,6 +205,17 @@ export function VisitDetail() {
           </Section>
         </div>
       )}
+
+      {r.attachments.length > 0 && (
+        <div className="mt-4">
+          <Section title="Documents de la visite" icon={<FileText className="w-4 h-4" />}>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {r.attachments.map((file) => <FileChip key={file.id} file={file} onPreview={() => setPreview(file)} />)}
+            </div>
+          </Section>
+        </div>
+      )}
+      <Preview file={preview} onClose={() => setPreview(null)} />
 
       {/* Historique */}
       <div className="mt-4">

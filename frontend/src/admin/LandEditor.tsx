@@ -239,13 +239,6 @@ export default function LandEditor() {
               </Field>
               <div className="sm:col-span-2 grid gap-3 sm:grid-cols-2">
                 <label className="flex items-start gap-3 rounded-xl border border-gray-200 p-4">
-                  <input type="checkbox" className="mt-1" checked={Boolean(form.verified)} onChange={(e) => set('verified', e.target.checked)} />
-                  <span>
-                    <span className="block text-sm font-medium text-navy-900">Terrain vérifié</span>
-                    <span className="mt-1 block text-xs text-gray-500">Affiche le badge de confiance sur le front office.</span>
-                  </span>
-                </label>
-                <label className="flex items-start gap-3 rounded-xl border border-gray-200 p-4">
                   <input type="checkbox" className="mt-1" checked={Boolean(form.featured)} onChange={(e) => set('featured', e.target.checked)} />
                   <span>
                     <span className="block text-sm font-medium text-navy-900">Mettre à la une</span>
@@ -483,7 +476,6 @@ export default function LandEditor() {
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <Badge value={previewLand.status} />
               <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${publicationTone(previewLand.publicationStatus)}`}>{publicationLabel(previewLand.publicationStatus)}</span>
-              {previewLand.verified && <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-800">Vérifié</span>}
               {previewLand.featured && <span className="rounded-full bg-gold-500 px-2.5 py-1 text-xs font-semibold text-navy-950">À la une</span>}
             </div>
             {missing.length === 0 ? (

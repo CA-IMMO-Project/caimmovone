@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\DossierVocabulary;
 use App\Support\ReferenceGenerator;
 use Illuminate\Database\Eloquent\Model;
 
@@ -22,7 +23,7 @@ class LandFile extends Model
 
     public function toAdminArray(): array
     {
-        $detail = $this->detail ?? [];
+        $detail = DossierVocabulary::detail($this->detail ?? []);
 
         return array_merge([
             // champs tableaux toujours présents pour l'interface d'administration
@@ -32,7 +33,7 @@ class LandFile extends Model
             'id' => (string) $this->id,
             'ref' => $this->ref,
             'clientId' => $this->client_id ? (string) $this->client_id : null,
-            'status' => $this->status,
+            'status' => DossierVocabulary::status($this->status),
             'createdAt' => $this->created_at?->toIso8601String(),
             'updatedAt' => $this->updated_at?->toIso8601String(),
         ]);

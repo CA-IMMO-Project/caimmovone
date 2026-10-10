@@ -34,7 +34,6 @@ export default function LandFrontPreview({ land }: { land: Land }) {
 
             <div className="mt-8 flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-navy-900 px-3.5 py-1.5 text-xs font-bold text-white">{full.titleStatus}</span>
-              {land.verified && <span className="rounded-full bg-green-100 px-3.5 py-1.5 text-xs font-bold text-green-800">Vérifié</span>}
               {land.featured && <span className="rounded-full bg-gold-500 px-3.5 py-1.5 text-xs font-bold text-navy-900">À la une</span>}
               {land.status !== 'disponible' && (
                 <span className={`rounded-full px-3.5 py-1.5 text-xs font-bold text-white ${land.status === 'vendu' ? 'bg-gray-700' : 'bg-amber-500'}`}>
@@ -104,9 +103,9 @@ export default function LandFrontPreview({ land }: { land: Land }) {
                     </span>
                     <div>
                       <strong className="block text-sm font-medium text-navy-900">{document.name}</strong>
-                      <small className="text-xs text-navy-900/70">Reçu et contrôlé</small>
+                      <small className="text-xs text-navy-900/70">Pièce du dossier</small>
                     </div>
-                    <CheckCircle2 className="ml-auto h-4.5 w-4.5 text-green-700" />
+
                   </div>
                 ))}
               </div>

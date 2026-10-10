@@ -24,6 +24,9 @@ export const cache = {
   messages: [] as ContactMessage[],
 };
 
+let presentationAllowed = false;
+export const canLoadPresentation = () => presentationAllowed;
+
 let hydrated = false;
 export const isHydrated = () => hydrated;
 
@@ -39,6 +42,7 @@ const notifyCache = () => listeners.forEach((fn) => fn());
 
 /** Remplit le cache depuis la réponse de /admin/bootstrap. */
 export function hydrate(data: {
+  presentationAllowed?: boolean;
   lands?: Land[];
   requests?: BuyRequest[];
   clients?: Client[];
@@ -47,6 +51,7 @@ export function hydrate(data: {
   realisations?: Realisation[];
   messages?: ContactMessage[];
 }) {
+  presentationAllowed = data.presentationAllowed === true;
   cache.lands = data.lands ?? [];
   cache.requests = data.requests ?? [];
   cache.clients = data.clients ?? [];

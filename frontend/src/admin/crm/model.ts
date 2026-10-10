@@ -1,6 +1,6 @@
 // Modèle de données du back-office (demandes d'achat, dossiers terrains).
-// Stockage local en attendant un vrai backend : métadonnées dans localStorage,
-// fichiers (photos, vidéos, documents) dans IndexedDB (voir files.ts).
+// Cache hydraté depuis l’API Laravel ; les pièces sont servies par le stockage
+// privé après authentification (voir files.ts).
 
 import { newId } from '../../lib/store';
 import { formatPhone, normalizePhone } from '../../lib/phone';
@@ -35,7 +35,7 @@ export const DOC_CATEGORIES = [
   'Titre foncier', 'Certificat foncier', 'Plan du terrain', 'Acte de vente', 'Certificat juridique',
   'Certificat de situation juridique', 'Plan cadastral', 'Procuration', 'Autre document',
 ];
-export const DOC_STATUSES = ['À vérifier', 'Vérifié', 'Incomplet', 'Rejeté'] as const;
+export const DOC_STATUSES = ['Reçu', 'À examiner', 'À compléter', 'Écart signalé'] as const;
 export const SALE_PAYMENT = ['Comptant – paiement en une fois', 'Facilité – paiement échelonné', 'Les deux – comptant ou facilité'];
 export const MAX_DURATIONS = ['0–4 mois', '4–6 mois', '6–10 mois', '10–12 mois', 'Autre durée'];
 // [libellé, pourcentage minimum utilisé pour le calcul de l'acompte]
@@ -44,17 +44,17 @@ export const DEPOSITS: [string, number][] = [
 ];
 export const FREQUENCIES = ['Mensuelle', 'Bimestrielle', 'Trimestrielle', 'Personnalisée'];
 export const LAND_STATUSES = [
-  'Brouillon', 'Nouveau', "À l'étude", 'Dossier incomplet', 'À vérifier', 'Vérification terrain programmée', 'Vérification juridique',
-  'Validé', 'Publié', 'En négociation', 'Réservé', 'Vendu', 'Rejeté', 'Archivé',
+  'Brouillon', 'Nouveau', "À l'étude", 'Dossier incomplet', 'À examiner', 'Visite terrain programmée', 'Analyse des pièces',
+  'Prêt à publier', 'Publié', 'En négociation', 'Réservé', 'Vendu', 'Rejeté', 'Archivé',
 ] as const;
 export const CHECKLIST = [
-  'Identité du propriétaire vérifiée',
-  'Documents fonciers complets',
+  'Coordonnées du propriétaire renseignées',
+  'Pièces du dossier jointes',
   'Visite terrain effectuée',
-  'Limites et bornage confirmés',
-  'Situation juridique vérifiée',
-  'Prix validé par l’agence',
-  'Photos conformes (vue générale, accès, limites)',
+  'Plan de situation joint',
+  'Informations foncières renseignées',
+  'Prix et conditions de vente saisis',
+  'Photographies jointes (vue générale, accès, limites)',
 ];
 
 export type Priority = (typeof PRIORITIES)[number];
@@ -72,7 +72,7 @@ export interface Task { id: string; due: string; text: string; done: boolean }
 export const ACTION_TYPES = ['Appel', 'Rendez-vous', 'Visite du terrain', 'Email', 'WhatsApp / SMS', 'Relance', 'Signature', 'Autre'] as const;
 export type ActionType = (typeof ACTION_TYPES)[number];
 export interface PlannedAction { id: string; type: ActionType; at: string; note: string; done: boolean; doneAt?: string; result?: string }
-// Fichier téléversé : contenu dans IndexedDB (clé = id), ou lien externe (url) pour les données d'exemple.
+// Fichier réel : métadonnées du stockage Laravel, URL privée protégée ou URL de média.
 export interface StoredFile { id: string; name: string; type: string; size: number; url?: string }
 
 export interface Person {
@@ -259,10 +259,10 @@ import { saveRequestApi, saveLandFileApi, deleteApi } from '../../services/admin
 import { cache, upsertSync, replaceSync, removeSync, warnSyncFailed } from './sync';
 
 export function getBuyRequests(): BuyRequest[] {
-  return cache.requests.map((r, i) => ({
+  return cache.requests.map((r) => ({
     ...r,
-    clientId: r.clientId ?? `cli-${r.id}`,
-    landId: r.landId ?? String((i % 12) + 1),
+    clientId: r.clientId,
+    landId: r.landId ?? '',
     kind: r.kind ?? 'interet',
     history: r.history ?? [], notes: r.notes ?? [], contacts: r.contacts ?? [],
     attachments: r.attachments ?? [], actions: r.actions ?? [],
@@ -336,8 +336,6 @@ export async function deleteLandFile(id: string): Promise<void> {
   removeSync('landFiles', id);
   if (/^\d+$/.test(id)) await deleteApi('land-files', id).catch(() => {});
 }
-
-// ---------- Nouveaux dossiers ----------
 
 // ---------- Nouveaux dossiers ----------
 const emptyPerson = (): Person => ({

@@ -352,8 +352,8 @@ export default function Home() {
                   Terrains <span className="text-gold-700">en vedette</span>
                 </h2>
                 <p className="mt-3 max-w-xl text-sm text-slate-600 leading-relaxed">
-                  Un aperçu de nos parcelles disponibles actuellement — titrées,
-                  contrôlées et prêtes à être visitées.
+                  Un aperçu de nos parcelles proposées à la vente — découvrez leurs
+                  caractéristiques et échangez avec notre équipe pour une visite.
                 </p>
               </div>
               <Link

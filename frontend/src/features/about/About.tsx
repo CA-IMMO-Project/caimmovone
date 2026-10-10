@@ -302,10 +302,10 @@ export default function About() {
                 posséder un terrain, c’est garantir l’avenir des générations
                 futures
               </strong>
-              . Chaque parcelle que nous proposons est vérifiée — situation
-              foncière, limites, accès — avant d’être présentée, et chaque
-              dossier est suivi par un interlocuteur unique qui le connaît de
-              bout en bout.
+              . Chaque projet bénéficie d’un accompagnement personnalisé,
+              avec les informations et pièces du dossier à examiner avant toute
+              acquisition. Un interlocuteur vous suit de la première visite aux
+              démarches de vente.
             </p>
             <p className="mt-3 text-sm md:text-[15px] text-slate-600 leading-relaxed">
               Derrière chaque projet, il y a une équipe locale passionnée, des
@@ -328,7 +328,7 @@ export default function About() {
                 {
                   n: "03",
                   t: "Nous sécurisons",
-                  d: "Vérifications, notaire, géomètre : une acquisition sans souci.",
+                  d: "Démarches, notaire et géomètre : un accompagnement à chaque étape.",
                 },
               ].map(({ n, t, d }) => (
                 <div key={n} className="flex gap-5">

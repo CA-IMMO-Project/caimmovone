@@ -40,7 +40,6 @@ export interface Land {
   paymentMode?: PaymentMode;
   downPayment?: string;
   installments?: string;
-  verified?: boolean;
   featured?: boolean;
   /** Workflow éditorial : seuls les terrains « publie » remontent sur le site public. */
   publicationStatus?: PublicationStatus;

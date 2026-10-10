@@ -1,5 +1,5 @@
 // Composants partagés des modules « Demandes d'achat » et « Terrains ».
-import { ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { ReactNode, useEffect, useRef, useId, useMemo, useState } from 'react';
 import {
   ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Download, Eye, FileDown, FileSpreadsheet, FileText, Film, Printer, Search, SlidersHorizontal, Upload, X,
 } from 'lucide-react';
@@ -462,7 +462,7 @@ export function FileDrop({ accept, maxMb, multiple, onFiles, label, hint, visibi
 }
 
 export function Thumb({ file, className = '' }: { file: StoredFile; className?: string }) {
-  const url = useFileUrl(file);
+  const url = useFileUrl((file.type ?? '').startsWith('image/') ? file : undefined);
   // `type` peut être absent/null pour des documents historiques (anciens
   // libellés texte migrés sans type MIME connu) : on sécurise avec `?? ''`
   // pour ne jamais planter sur `.startsWith(...)`.
@@ -489,9 +489,23 @@ export function FileChip({ file, onPreview, onRemove }: { file: StoredFile; onPr
 
 export function Preview({ file, onClose }: { file: StoredFile | null; onClose: () => void }) {
   const { url, resolved } = useFileUrl(file ?? undefined, true);
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const element = dialog.current;
+    if (!file || !element) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    if (!element.open) element.showModal();
+    return () => {
+      if (element.open) element.close();
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus?.isConnected) previousFocus.focus();
+    };
+  }, [file?.id]);
   if (!file) return null;
   return (
-    <div className="fixed inset-0 z-[60] bg-black/80 flex flex-col" onClick={onClose}>
+    <dialog ref={dialog} aria-label={file.name} onCancel={(event) => { event.preventDefault(); onClose(); }} className="fixed inset-0 z-[60] m-0 h-dvh w-screen max-h-none max-w-none bg-black/90 p-0 text-white backdrop:bg-black/80 open:flex open:flex-col" onClick={onClose}>
       <div className="flex items-center justify-between p-4 text-white" onClick={(e) => e.stopPropagation()}>
         <span className="truncate">{file.name}</span>
         <div className="flex gap-2">
@@ -512,7 +526,7 @@ export function Preview({ file, onClose }: { file: StoredFile | null; onClose: (
           return <p className="text-white/70">Aperçu indisponible pour ce format. Utilisez « Télécharger ».</p>;
         })()}
       </div>
-    </div>
+    </dialog>
   );
 }
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\LandFile;
+use Database\Seeders\PresentationSeeder;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -47,3 +48,20 @@ Artisan::command('files:secure-legacy', function () {
 })->purpose('Déplace les anciens dépôts vendeurs publics vers le disque privé');
 
 Schedule::command('sanctum:prune-expired --hours=24')->daily();
+
+Artisan::command('presentation:install', function () {
+    try {
+        $seeder = new PresentationSeeder;
+        $seeder->setContainer(app());
+        $seeder->setCommand($this);
+        $seeder->run();
+        $this->info('Jeu CA IMMO prêt : 10 terrains, 12 clients, 8 achats, 4 visites, 4 recherches, 4 dossiers vendeurs, 6 messages et 50 PDF privés.');
+        $this->comment('Les données existantes et les modifications apportées aux exemples sont conservées. Aucun compte administrateur n’est créé ou réinitialisé par cette commande.');
+
+        return 0;
+    } catch (RuntimeException $error) {
+        $this->error($error->getMessage());
+
+        return 1;
+    }
+})->purpose('Ajoute le jeu de présentation et ses PDF sur une base isolée, sans écraser les données existantes');

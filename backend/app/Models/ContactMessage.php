@@ -23,7 +23,7 @@ class ContactMessage extends Model
         return [
             'id' => (string) $this->id,
             'firstName' => $firstName,
-            'lastName' => $lastName[0] ?? '',
+            'lastName' => $lastName,
             'phone' => $this->phone,
             'email' => $this->email,
             'subject' => $this->subject,

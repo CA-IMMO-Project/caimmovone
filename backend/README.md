@@ -9,7 +9,8 @@ Le frontend vit dans le dossier voisin `frontend/` (React + Vite).
 composer install                 # (vendor/ absent après une restauration)
 cp .env.example .env             # puis adapter DB_*, ADMIN_*
 php artisan key:generate         # si .env neuf
-php artisan migrate --seed       # crée les tables + le catalogue initial
+php artisan migrate              # crée les tables, sans données métier inventées
+php artisan db:seed              # crée le compte administrateur configuré
 php artisan serve --host 0.0.0.0 --port 8000
 ```
 
@@ -20,7 +21,37 @@ ADMIN_EMAIL=admin@votre-domaine.mg
 ADMIN_PASSWORD=un-secret-long-et-unique
 ```
 
-Aucun identifiant par défaut n'est fourni. Le seeder refuse un mot de passe de moins de 12 caractères. Ne commitez jamais le fichier `.env`.
+Aucun identifiant par défaut n'est fourni. Le seeder refuse un mot de passe de moins de 12 caractères et ne réinitialise pas un compte déjà présent. Ne commitez jamais le fichier `.env`.
+
+## Jeu facultatif pour présenter au client
+
+Sur une **base distincte**, en `APP_ENV=local`, `staging` ou `presentation` :
+
+```bash
+php artisan migrate
+php artisan presentation:install
+```
+
+10 terrains, 12 clients, 8 achats, 4 visites, 4 recherches, 4 dossiers vendeurs,
+6 messages et **50 PDF réels consultables**, portant « Exemple — sans valeur juridique ».
+Il s'agit de données fictives, pas de pièces ou transactions authentiques.
+Aucun grand bandeau n'est ajouté au site. Les projets-types de réalisations restent non publiés.
+
+Le chargement est volontaire, relançable sans doublons, additif et refusé en production.
+Les lignes existantes et les modifications apportées aux exemples sont conservées.
+L'ancien reset du catalogue ne supprime plus les terrains.
+
+Guide détaillé : [données et dossiers de présentation](../docs/presentation-backend-ca-immo.md).
+Index des fichiers : [50 pièces PDF](database/seeders/fixtures/INDEX_DES_PIECES.md).
+
+## Terrain « vérifié »
+
+Le badge, le filtre, la case d'édition, les déductions automatiques et le champ API
+sont retirés. La colonne historique `lands.verified` reste en base, inactive et masquée.
+Les anciens statuts de dossiers sont adaptés à la lecture sans effacer les pièces
+ou l'historique. La publication, la disponibilité et la présence d'un document
+ne constituent pas une certification foncière.
+
 
 ## Base de données (PostgreSQL)
 
@@ -35,13 +66,14 @@ Aucun identifiant par défaut n'est fourni. Le seeder refuse un mot de passe de 
 | `searches` | recherches immobilières personnalisées |
 | `land_files` | dossiers de terrains proposés à la vente |
 | `reference_counters` | génération atomique des références métier |
+| `presentation_records` | clés stables des seuls exemples installés volontairement |
 | `personal_access_tokens` | jetons Sanctum |
 
 ## Endpoints — site public (sans authentification)
 
 | Méthode | URL | Description |
 |---|---|---|
-| GET | `/api/v1/lands` | Catalogue complet |
+| GET | `/api/v1/lands` | Terrains publiés, sans coordonnées des acheteurs ni liens privés |
 | GET | `/api/v1/lands/{id}` | Fiche terrain |
 | GET | `/api/v1/realisations` | Réalisations publiées |
 | POST | `/api/v1/requests` | **Demande achat / visite** (throttlée 12/min) |

@@ -41,7 +41,7 @@ export async function deleteLand(id: string): Promise<void> {
   if (/^\d+$/.test(id)) await deleteApi('lands', id).catch(() => {});
 }
 
-/** Recrée le catalogue de démonstration (bouton « réinitialiser » de l'admin). */
+/** Charge volontairement les exemples ; le backend conserve les données existantes. */
 export async function resetLands(): Promise<void> {
   const res = (await resetLandsApi()) as { lands?: Land[] };
   if (res?.lands) {

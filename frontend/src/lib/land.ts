@@ -13,7 +13,6 @@ export interface LandComplete extends Land {
   paymentMode: PaymentMode;
   downPayment: string;
   installments: string;
-  verified: boolean;
 }
 
 /** Complète un terrain (utile pour les biens créés via le backoffice). */
@@ -27,12 +26,11 @@ export function normalizeLand(land: Land): LandComplete {
     access: land.access ?? 'Accès par route',
     water: land.water ?? false,
     electricity: land.electricity ?? false,
-    documents: land.documents?.length ? land.documents : [{ id: 'default-title', name: land.titleStatus, type: '', size: 0 }],
+    documents: land.documents ?? [],
     payment: land.payment ?? 'Comptant',
     paymentMode: land.paymentMode ?? 'comptant',
     downPayment: land.downPayment ?? 'Selon accord',
     installments: land.installments ?? 'Non disponible',
-    verified: land.verified ?? land.titleStatus === 'Titre Foncier',
   };
 }
 

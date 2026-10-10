@@ -24,7 +24,7 @@ class AdminUserSeeder extends Seeder
             throw new RuntimeException('ADMIN_PASSWORD doit contenir au moins 12 caractères.');
         }
 
-        User::updateOrCreate(
+        User::firstOrCreate(
             ['email' => strtolower($email)],
             [
                 'name' => 'CA IMMO (administration)',

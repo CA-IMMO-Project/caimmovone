@@ -44,3 +44,16 @@ La colonne de la page À propos utilise également une zone sans texte de la cou
 - Aperçu Vite configuré pour écouter sur `0.0.0.0:3000` et accepter le domaine d’aperçu.
 - Contrôle des photos : dimensions, bounds des crops, absence de bandes noires et inspection visuelle.
 - Test navigateur desktop/mobile : lecture des trois vidéos, fermeture, focus, message de secours et absence de chargement MP4 avant clic.
+
+
+## Photographie ajoutée aux dossiers de présentation
+
+`frontend/public/media/caimmo/iavoloha-quartier.jpg` est une frame à **30 s**
+de la vidéo réelle [Iavoloha Pagode](https://www.facebook.com/reel/1087224946508736/),
+extraite de sa copie locale `reels/iavoloha-drone.mp4`. Source 1280 × 720,
+crop `(0, 45, 1120, 675)`, résultat natif **1120 × 630 (16:9)**, sans suréchantillonnage.
+Le logo incrusté situé en haut à droite reste entièrement hors du cadre.
+
+Les nouveaux dossiers utilisent les médias existants de la société, à titre
+illustratif : les coordonnées, limites, prix et rattachements aux dossiers de
+présentation ne sont pas des relevés des parcelles réellement photographiées.
