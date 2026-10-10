@@ -324,7 +324,7 @@ export default function SearchRequest() {
       <PageHero
         flat
         pill="Recherche personnalisée"
-        image="/media/terrains/colline.jpg"
+        image="/media/caimmo/page-recherche.jpg"
         title={
           <>
             Confiez-nous la recherche de{" "}

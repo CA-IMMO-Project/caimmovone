@@ -39,7 +39,7 @@ export default function Realisations() {
     <div className="font-display overflow-hidden bg-brand-50">
       <PageHero
         pill="Nos réalisations"
-        image="/media/terrains/littoral.jpg"
+        image="/media/caimmo/page-realisations.jpg"
         title={
           <>
             Des projets concrets,{" "}

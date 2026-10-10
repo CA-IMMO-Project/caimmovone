@@ -555,7 +555,7 @@ export default function Lands() {
       <PageHero
         flat
         pill="Terrains à vendre"
-        image="/media/terrains/plaine.jpg"
+        image="/media/caimmo/page-terrains.jpg"
         title={
           <>
             Trouvez l’emplacement de votre{" "}
@@ -799,8 +799,8 @@ export default function Lands() {
           </div>
           <div className="relative hidden min-h-[16rem] md:block">
             <img
-              src="/media/terrains/colline.jpg"
-              alt="Paysage de terrain à Madagascar"
+              src="/media/caimmo/banniere-section.jpg"
+              alt="Les accès et le cadre arboré de Vontovorona vus du ciel"
               className="absolute inset-0 h-full w-full object-cover"
               loading="lazy"
               decoding="async"

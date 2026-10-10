@@ -83,7 +83,7 @@ export default function Navbar() {
                     CA <span className="text-gold-500">IMMO</span>
                   </span>
                   <span className="block text-xs text-white/60 mt-1">
-                    Trouvez. Sécurisez. Accompagnez.
+                    Votre terrain, Votre futur.
                   </span>
                 </span>
               </Link>

@@ -5,7 +5,6 @@ import type { ReactNode } from "react";
 import {
   ArrowRight,
   Phone,
-  Award,
   FileCheck,
   Home as HomeIcon,
   Users,
@@ -27,20 +26,21 @@ import {
   HeartHandshake,
   Tag,
   Ruler,
+  Play,
 } from "lucide-react";
 import { PHONE_1_TEL } from "../../lib/contact";
 import LandCard from "../catalog/LandCard";
+import HomeReels from "./HomeReels";
 import { fetchLands } from "../../services/landService";
 import type { Land } from "../../types";
 import { Eyebrow } from "../../shared/ui";
 
-/* Visuels signature de la charte de référence (villa moderne + lotissement). */
-const IMG_HERO =
-  "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=1800&q=80";
-const IMG_LOTS =
-  "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=900&q=80";
-const IMG_AERIAL = "/media/terrains/colline.jpg";
-const IMG_SUNSET = "/media/terrains/littoral.jpg";
+/* Visuels signature — photos réelles de CA IMMO, recadrées aux proportions
+   exactes de chaque emplacement (adaptées des visuels Facebook, sans texte). */
+const IMG_HERO = "/media/caimmo/home-hero.jpg";
+const IMG_PRESENTER = "/media/caimmo/home-collage.jpg";
+const IMG_DRONE_ACCESS = "/media/caimmo/home-drone.jpg";
+const IMG_LAKE = "/media/caimmo/home-cta.jpg";
 
 const fadeUp = {
   initial: { opacity: 0, y: 24 },
@@ -163,7 +163,7 @@ export default function Home() {
         <div className="absolute inset-y-0 right-0 w-full lg:w-[62%]">
           <img
             src={IMG_HERO}
-            alt="Villa avec piscine à Madagascar"
+            alt="Lotissement résidentiel vu du ciel — un projet suivi par CA IMMO"
             className="h-full w-full object-cover"
             loading="eager"
             fetchPriority="high"
@@ -201,12 +201,13 @@ export default function Home() {
               CA <span className="text-gold-500">IMMO</span>
             </h1>
             <p className="text-xl md:text-2xl font-semibold mb-6">
-              Votre projet immobilier, notre engagement.
+              Votre terrain, Votre futur.
             </p>
             <p className="text-sm md:text-base text-white/80 leading-relaxed mb-10 max-w-md">
-              Depuis plus de 12 ans, CA Immo vous accompagne dans vos projets
-              immobiliers à Madagascar : achat, vente, recherche de terrain,
-              lotissement et acquisition de maisons clé en main.
+              Expert en immobilier, CA IMMO est à vos côtés pour donner vie à
+              chaque projet à Madagascar : achat et vente de terrains,
+              lotissement au bord du lac, recherche sur mesure et accompagnement
+              garanti.
             </p>
             <div className="flex flex-wrap gap-4">
               <GoldButton to="/terrains" className="w-full sm:w-auto">
@@ -219,6 +220,14 @@ export default function Home() {
                 <Phone className="w-4 h-4" /> Parler à un conseiller
               </a>
             </div>
+            <a
+              href="#reels-ca-immo"
+              className="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-white/85 transition hover:text-gold-400 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold-500"
+            >
+              <Play className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
+              Découvrir nos projets en vidéo
+              <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </a>
           </motion.div>
 
           {/* Feature strip */}
@@ -229,10 +238,10 @@ export default function Home() {
             className="mt-14 lg:absolute lg:right-8 lg:bottom-20 lg:mt-0 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-y-6 lg:divide-x lg:divide-white/25"
           >
             {[
-              { icon: Award, label: "+12 ans\nd’expérience" },
-              { icon: FileCheck, label: "Terrains\ntitrés" },
-              { icon: HomeIcon, label: "Maisons\nclé en main" },
-              { icon: Users, label: "Accompagnement\npersonnalisé" },
+              { icon: FileCheck, label: "Titre foncier\nen main" },
+              { icon: HandCoins, label: "Facilité de paiement\n12 mois" },
+              { icon: LandPlot, label: "Lots de 300\nà 1000 m²" },
+              { icon: Users, label: "Conseil sur mesure\net accompagnement" },
               { icon: ShieldCheck, label: "Sécurité\nfoncière" },
             ].map(({ icon: Icon, label }) => (
               <div
@@ -271,8 +280,8 @@ export default function Home() {
           >
             <div className="absolute -left-4 top-6 bottom-0 right-10 rounded-[2rem] bg-gold-500 -rotate-6" />
             <img
-              src={IMG_LOTS}
-              alt="Lotissement vu du ciel"
+              src={IMG_PRESENTER}
+              alt="Un conseiller CA IMMO présente le site de Domaine Lacéo"
               className="relative h-72 w-full rounded-[2rem] object-cover shadow-2xl -rotate-3 border-4 border-white"
               loading="lazy"
               decoding="async"
@@ -281,24 +290,21 @@ export default function Home() {
           </motion.div>
 
           <motion.div {...fadeUp} className="lg:col-span-5">
-            <Eyebrow>CA Immo en quelques mots</Eyebrow>
+            <Eyebrow>CA IMMO en quelques mots</Eyebrow>
             <h2 className="text-2xl md:text-3xl font-bold text-navy-900 leading-tight mb-6">
               Une expertise immobilière au service de vos projets
             </h2>
             <p className="text-sm text-slate-600 leading-relaxed mb-4">
-              CA Immo est{" "}
-              <strong className="text-navy-900">
-                une entreprise immobilière avec plus de 12 ans d’expérience
-              </strong>
-              , spécialisée dans les projets immobiliers à Madagascar. Nous vous
-              accompagnons dans l’achat et la vente de terrains, le lotissement,
-              la recherche de biens spécifiques et les projets de maisons clé en
-              main.
+              CA IMMO — <strong className="text-navy-900">Chargé d’Affaires
+              Immobilier</strong>{" "}
+              — vous accompagne dans vos projets immobiliers à Madagascar :
+              achat et vente de terrains, lotissement, recherche de biens
+              spécifiques et projets de maisons clé en main.
             </p>
             <p className="text-sm text-slate-600 leading-relaxed mb-8">
-              Notre priorité est de vous proposer une solution adaptée à vos
-              besoins, votre budget et vos attentes, tout en garantissant la
-              qualité de nos prestations et votre satisfaction.
+              Notre priorité : vous proposer une solution adaptée à vos besoins
+              et à votre budget — des terrains titrés, un conseil sur mesure et
+              un accompagnement garanti, de la première visite à la signature.
             </p>
             <GoldButton to="/about" small>
               Découvrir notre entreprise
@@ -314,11 +320,11 @@ export default function Home() {
             </h3>
             <ul className="space-y-4">
               {[
-                { icon: FileCheck, label: "Terrain titré" },
-                { icon: LandPlot, label: "Lotissement" },
-                { icon: HomeIcon, label: "Maison clé en main" },
+                { icon: FileCheck, label: "Titre foncier en main" },
+                { icon: LandPlot, label: "Lotissement au bord du lac" },
+                { icon: HandCoins, label: "Facilité de paiement 12 mois" },
                 { icon: Search, label: "Recherche personnalisée" },
-                { icon: HandCoins, label: "Vente de terrain" },
+                { icon: HomeIcon, label: "Maison clé en main" },
               ].map(({ icon: Icon, label }) => (
                 <li
                   key={label}
@@ -332,9 +338,12 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ================= REELS FACEBOOK ================= */}
+      <HomeReels />
+
       {/* ================= TERRAINS EN VEDETTE ================= */}
       {featured.length > 0 && (
-        <section className="relative bg-white pb-16 md:pb-24">
+        <section className="relative bg-white py-16 md:py-24">
           <div className="mx-auto max-w-full px-4 sm:px-6 lg:px-8">
             <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
               <div>
@@ -478,7 +487,7 @@ export default function Home() {
         </svg>
         <div className="relative mx-auto max-w-full px-4 sm:px-6 lg:px-8 grid gap-12 lg:grid-cols-12">
           <motion.div {...fadeUp} className="lg:col-span-4">
-            <Eyebrow light>Pourquoi choisir CA Immo ?</Eyebrow>
+            <Eyebrow light>Pourquoi choisir CA IMMO ?</Eyebrow>
             <h2 className="text-2xl md:text-3xl font-bold leading-tight">
               Plus qu’un bien immobilier, un{" "}
               <span className="text-gold-500">accompagnement sécurisé</span>
@@ -577,8 +586,8 @@ export default function Home() {
             className="relative h-80 lg:h-full min-h-[380px]"
           >
             <img
-              src={IMG_AERIAL}
-              alt="Vue aérienne par drone"
+              src={IMG_DRONE_ACCESS}
+              alt="Vue aérienne des accès bordés de pins à Vontovorona"
               className="absolute inset-0 h-full w-full object-cover"
               loading="lazy"
               decoding="async"
@@ -677,8 +686,8 @@ export default function Home() {
       {/* ================= CTA ================= */}
       <section className="relative text-white">
         <img
-          src={IMG_SUNSET}
-          alt="Paysage de Madagascar"
+          src={IMG_LAKE}
+          alt="Panorama du lac de Vontovorona"
           className="absolute inset-0 h-full w-full object-cover"
           loading="lazy"
           decoding="async"
@@ -756,7 +765,7 @@ export default function Home() {
                 CA <span className="text-gold-500">IMMO</span>
               </p>
               <p className="text-xs text-white/70">
-                Trouvez. Sécurisez. Accompagnez.
+                Votre terrain, Votre futur.
               </p>
             </div>
           </div>

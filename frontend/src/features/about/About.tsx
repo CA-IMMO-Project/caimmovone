@@ -19,11 +19,14 @@ import {
 } from "lucide-react";
 import { WHATSAPP_URL } from "../../lib/contact";
 
-const IMG_VILLA = "/media/terrains/ouest.jpg";
-const IMG_BAY = "/media/terrains/littoral.jpg";
-const IMG_HOUSE = "/media/terrains/plaine.jpg";
-const IMG_BUILDING = "/media/terrains/colline.jpg";
-const IMG_LANDSCAPE = "/media/terrains/highlands.jpg";
+/* Visuels réels CA IMMO — recadrés aux proportions exactes de chaque
+   emplacement (adaptés des visuels Facebook, sans les titres incrustés). */
+const IMG_PRESENTER = "/media/caimmo/about-hero.jpg";
+const IMG_LAKE = "/media/caimmo/about-collage-haut.jpg";
+const IMG_TERRACES = "/media/caimmo/about-collage-bas.jpg";
+const IMG_ACCESS = "/media/caimmo/about-colonne.jpg";
+const IMG_LOTS = "/media/caimmo/about-carre.jpg";
+const IMG_CTA = "/media/caimmo/about-cta.jpg";
 
 const fadeUp = {
   initial: { opacity: 0, y: 24 },
@@ -89,11 +92,11 @@ export default function About() {
     <div className="font-display overflow-hidden bg-white">
       {/* ================= HERO ================= */}
       <section className="relative bg-navy-900 text-white pb-28 md:pb-32">
-        {/* image villa avec découpe courbe à gauche */}
+        {/* conseiller sur place avec découpe courbe à gauche */}
         <div className="absolute inset-y-0 right-0 hidden md:block w-[58%]">
           <img
-            src={IMG_VILLA}
-            alt="Villa moderne avec piscine"
+            src={IMG_PRESENTER}
+            alt="Un conseiller CA IMMO sur le site de Domaine Lacéo Vontovorona"
             className="h-full w-full object-cover [clip-path:ellipse(95%_100%_at_100%_40%)]"
             loading="eager"
             fetchPriority="high"
@@ -156,28 +159,28 @@ export default function About() {
             <h1 className="mt-4 text-4xl md:text-5xl font-extrabold leading-[1.08] tracking-tight">
               À propos de
               <br />
-              CA <span className="text-gold-500">Immo</span>
+              CA <span className="text-gold-500">IMMO</span>
             </h1>
             <p className="mt-6 text-lg md:text-xl font-semibold leading-snug">
-              Plus qu’une agence immobilière,
+              Expert en immobilier,
               <br />
-              un partenaire pour la vie.
+              à vos côtés pour donner vie à chaque projet.
             </p>
             <p className="mt-5 text-sm md:text-base text-white/80 leading-relaxed">
-              Depuis plus de 12 ans, nous accompagnons les particuliers, les
-              familles et les investisseurs dans la réalisation de leurs projets
-              immobiliers à Madagascar.
+              Conseil sur mesure et accompagnement garanti : nous accompagnons
+              les particuliers, les familles et les investisseurs dans la
+              réalisation de leurs projets immobiliers à Madagascar.
             </p>
             <a
               href="#histoire"
               className="mt-8 inline-flex items-center gap-3 rounded-full bg-gold-500 px-6 py-3 text-sm font-semibold text-navy-900 shadow-lg shadow-gold-500/30 transition hover:bg-gold-400"
             >
-              Notre histoire <ArrowRightCircle className="w-4 h-4" />
+              Nos repères <ArrowRightCircle className="w-4 h-4" />
             </a>
           </motion.div>
         </div>
 
-        {/* carte 500+ */}
+        {/* carte communauté */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -188,8 +191,8 @@ export default function About() {
             <Users className="w-6 h-6 text-gold-700" />
           </span>
           <div>
-            <p className="text-2xl font-extrabold leading-none">500+</p>
-            <p className="text-xs text-slate-500 mb-2">Clients satisfaits</p>
+            <p className="text-2xl font-extrabold leading-none">3,9K+</p>
+            <p className="text-xs text-slate-500 mb-2">Abonnés sur Facebook</p>
             <div className="flex -space-x-2">
               {["RA", "SM", "HN"].map((n) => (
                 <span
@@ -216,27 +219,27 @@ export default function About() {
           {[
             {
               icon: Trophy,
-              n: "12+",
-              l: "ans d’expérience",
-              d: "Une expertise solide sur le marché immobilier.",
+              n: "3",
+              l: "gammes de terrains",
+              d: "Spécial, Premium et Prestige au Domaine Lacéo.",
             },
             {
               icon: Users,
-              n: "500+",
-              l: "clients satisfaits",
-              d: "Des familles et investisseurs qui nous font confiance.",
+              n: "3,9K+",
+              l: "abonnés sur Facebook",
+              d: "Une communauté qui suit nos projets de près.",
             },
             {
               icon: MapPin,
-              n: "1000+",
-              l: "terrains proposés",
-              d: "Dans plusieurs régions de Madagascar.",
+              n: "300 – 1000 m²",
+              l: "superficies disponibles",
+              d: "Des lots au bord du lac à Vontovorona.",
             },
             {
               icon: ShieldCheck,
               n: "100%",
-              l: "biens sécurisés",
-              d: "Des démarches encadrées et transparentes.",
+              l: "titre foncier en main",
+              d: "Chaque lot est vendu avec son titre foncier.",
             },
           ].map(({ icon: Icon, n, l, d }) => (
             <div key={l} className="flex gap-4 px-4 lg:px-7">
@@ -260,16 +263,16 @@ export default function About() {
           {/* collage */}
           <motion.div {...fadeUp} className="relative h-[330px] sm:h-[320px]">
             <img
-              src={IMG_BAY}
-              alt="Baie de Madagascar"
+              src={IMG_LAKE}
+              alt="La pinède et le lac de Vontovorona vus du ciel"
               className="absolute left-0 top-0 h-44 w-[88%] rounded-3xl rounded-tl-[4rem] object-cover shadow-lg"
               loading="lazy"
               decoding="async"
               referrerPolicy="no-referrer"
             />
             <img
-              src={IMG_HOUSE}
-              alt="Maison clé en main"
+              src={IMG_TERRACES}
+              alt="Les terrasses et constructions du lotissement"
               className="absolute right-0 bottom-0 h-48 w-[62%] rounded-3xl rounded-br-[3rem] object-cover shadow-xl border-4 border-white"
               loading="lazy"
               decoding="async"
@@ -278,13 +281,13 @@ export default function About() {
             <div className="absolute left-2 bottom-2 w-44 sm:w-48 rounded-3xl bg-navy-900 p-5 text-white shadow-2xl ring-4 ring-white">
               <Quote className="w-6 h-6 fill-white mb-3" />
               <p className="text-base leading-snug">
-                Accompagner aujourd’hui pour bâtir demain.
+                Votre terrain, Votre futur.
               </p>
               <span className="mt-4 block h-[3px] w-8 rounded-full bg-gold-500" />
             </div>
             <div className="absolute left-[56%] top-[28%] hidden h-24 w-24 sm:flex flex-col items-center justify-center rounded-full bg-navy-900 text-white ring-4 ring-gold-500 ring-offset-4 ring-offset-white shadow-xl">
-              <span className="text-3xl font-bold leading-none">12+</span>
-              <span className="text-xs text-white/80">ans à vos côtés</span>
+              <span className="text-2xl font-bold leading-none">Titre</span>
+              <span className="text-xs text-white/80">en main</span>
             </div>
           </motion.div>
 
@@ -294,11 +297,15 @@ export default function About() {
               Une expertise immobilière au service de Madagascar
             </h2>
             <p className="mt-5 text-sm md:text-[15px] text-slate-600 leading-relaxed">
-              Chez CA Immo, nous partons d’un principe simple : un projet
-              immobilier ne réussit que s’il est sécurisé. Chaque parcelle que
-              nous proposons est vérifiée — situation foncière, limites, accès —
-              avant d’être présentée, et chaque dossier est suivi par un
-              interlocuteur unique qui le connaît de bout en bout.
+              Chez CA IMMO, nous partons d’un principe simple :{" "}
+              <strong className="text-navy-900">
+                posséder un terrain, c’est garantir l’avenir des générations
+                futures
+              </strong>
+              . Chaque parcelle que nous proposons est vérifiée — situation
+              foncière, limites, accès — avant d’être présentée, et chaque
+              dossier est suivi par un interlocuteur unique qui le connaît de
+              bout en bout.
             </p>
             <p className="mt-3 text-sm md:text-[15px] text-slate-600 leading-relaxed">
               Derrière chaque projet, il y a une équipe locale passionnée, des
@@ -347,35 +354,35 @@ export default function About() {
         <div className="mx-auto max-w-full px-4 sm:px-6 lg:px-8 grid gap-10 lg:grid-cols-12 items-center">
           <motion.div {...fadeUp} className="lg:col-span-7">
             <SectionTitle
-              title="Notre histoire"
-              subtitle="Un parcours construit sur la confiance, l’engagement et la passion de l’immobilier."
+              title="Nos repères"
+              subtitle="Des engagements concrets, visibles dans chacun de nos projets et de nos annonces."
             />
             <div className="relative">
               <div className="absolute left-2 right-8 top-2 hidden sm:block h-px bg-navy-900/30" />
               <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
                 {[
                   {
-                    y: "2012",
-                    t: "Création de CA Immo",
-                    d: "Une vision claire : faciliter l’accès à la propriété.",
+                    y: "Écoute",
+                    t: "Conseil sur mesure",
+                    d: "À vos côtés pour donner vie à chaque projet, selon votre budget et vos besoins.",
                     ring: false,
                   },
                   {
-                    y: "2015",
-                    t: "Expansion des services",
-                    d: "Développement du lotissement et des maisons clé en main.",
+                    y: "Sécurité",
+                    t: "Titre foncier en main",
+                    d: "Chaque lot est vendu avec son titre foncier : votre propriété est garantie.",
                     ring: true,
                   },
                   {
-                    y: "2020",
-                    t: "Digitalisation",
-                    d: "Mise en place des visites à distance et des outils numériques.",
+                    y: "Accessibilité",
+                    t: "Facilité de paiement",
+                    d: "Des modalités sur 12 mois, jusqu’à 15 mois en période de promotion.",
                     ring: true,
                   },
                   {
-                    y: "2024",
-                    t: "Toujours plus loin",
-                    d: "Plus de 500 clients satisfaits et des projets dans toute l’île.",
+                    y: "Proximité",
+                    t: "Toujours ouverts",
+                    d: "Visites privées gratuites sur rendez-vous et une communauté de 3,9K abonnés.",
                     ring: false,
                   },
                 ].map(({ y, t, d, ring }) => (
@@ -407,7 +414,7 @@ export default function About() {
                 {
                   icon: Target,
                   t: "Notre mission",
-                  d: "Vous accompagner dans tous vos projets immobiliers avec professionnalisme, transparence et innovation.",
+                  d: "Conseil sur mesure et accompagnement garanti : voilà notre façon de donner vie à chacun de vos projets immobiliers, avec professionnalisme et transparence.",
                 },
                 {
                   icon: Eye,
@@ -431,8 +438,8 @@ export default function About() {
               ))}
             </div>
             <img
-              src={IMG_BUILDING}
-              alt="Résidence moderne"
+              src={IMG_ACCESS}
+              alt="Une voie d’accès bordée de pins, vue par drone"
               className="hidden sm:block w-32 md:w-36 object-cover [clip-path:ellipse(100%_75%_at_100%_50%)]"
               loading="lazy"
               decoding="async"
@@ -489,8 +496,8 @@ export default function About() {
 
           <div className="lg:col-span-4 relative h-64 lg:h-full lg:min-h-[300px]">
             <img
-              src={IMG_LANDSCAPE}
-              alt="Paysage de Madagascar"
+              src={IMG_LOTS}
+              alt="Les lots et le lac du Domaine Lacéo"
               className="absolute inset-0 h-full w-full object-cover lg:[clip-path:polygon(22%_0,100%_0,100%_100%,0_100%)]"
               loading="lazy"
               decoding="async"
@@ -510,7 +517,7 @@ export default function About() {
       {/* ================= CTA ================= */}
       <section className="relative bg-navy-900 text-white">
         <img
-          src={IMG_LANDSCAPE}
+          src={IMG_CTA}
           alt=""
           className="absolute inset-0 h-full w-full object-cover opacity-15"
           loading="lazy"

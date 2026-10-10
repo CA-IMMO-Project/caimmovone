@@ -9,6 +9,7 @@ import {
   X,
   Facebook,
   Clock,
+  Mail,
 } from "lucide-react";
 import {
   FB_URL,
@@ -16,13 +17,15 @@ import {
   PHONE_1_TEL,
   PHONE_2,
   PHONE_2_TEL,
+  EMAIL,
+  EMAIL_HREF,
 } from "../../lib/contact";
 import { createContactMessage } from "../../services/requestService";
 import { phoneError, emailError, sanitizePhone } from "../../lib/validate";
 import { PHONE_PLACEHOLDER } from "../../lib/phone";
 import { ErrorBanner, FormField, Input, PageHero, Select, Textarea } from "../../shared/ui";
 
-const IMG_CONTACT = "/media/terrains/highlands.jpg";
+const IMG_CONTACT = "/media/caimmo/page-contact.jpg";
 
 const SUBJECTS = [
   "Achat de terrain",
@@ -136,7 +139,19 @@ export default function ContactPage() {
         </a>
       ),
     },
-    { icon: Clock, title: "Disponibilité", body: <>Lun-Sam, 8h-18h</> },
+    {
+      icon: Mail,
+      title: "Email",
+      body: (
+        <a
+          href={EMAIL_HREF}
+          className="transition-colors hover:text-gold-700"
+        >
+          {EMAIL}
+        </a>
+      ),
+    },
+    { icon: Clock, title: "Disponibilité", body: <>Toujours ouvert</> },
   ];
 
   return (

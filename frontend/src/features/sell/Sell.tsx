@@ -359,7 +359,7 @@ export default function Sell() {
       <PageHero
         flat
         pill="Vendre avec CA IMMO"
-        image="/media/terrains/agricole.jpg"
+        image="/media/caimmo/page-vendre.jpg"
         title={
           <>
             Proposez votre terrain en toute{" "}

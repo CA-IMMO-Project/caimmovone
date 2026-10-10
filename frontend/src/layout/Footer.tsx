@@ -1,4 +1,4 @@
-import { Phone, MapPin, Facebook, Send } from "lucide-react";
+import { Phone, MapPin, Facebook, Send, Mail, Instagram, Music2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   FB_URL,
@@ -6,6 +6,12 @@ import {
   PHONE_1_TEL,
   PHONE_2,
   PHONE_2_TEL,
+  EMAIL,
+  EMAIL_HREF,
+  INSTAGRAM_URL,
+  INSTAGRAM_HANDLE,
+  TIKTOK_URL,
+  TIKTOK_HANDLE,
 } from "../lib/contact";
 
 export default function Footer() {
@@ -22,9 +28,9 @@ export default function Footer() {
               />
             </div>
             <p className="text-sm font-light leading-relaxed">
-              Chargé d'Affaire Immobilier spécialisé dans la vente de terrains à
-              Madagascar. Titres sécurisés, accompagnement de confiance, à
-              chaque étape de votre projet.
+              CA IMMO — Chargé d'Affaires Immobilier, votre expert en
+              immobilier à Madagascar. Terrains titrés, lotissement au bord du
+              lac et accompagnement sur mesure, à chaque étape de votre projet.
             </p>
             <div className="flex space-x-5 pt-2">
               <a
@@ -35,6 +41,24 @@ export default function Footer() {
                 aria-label="Facebook"
               >
                 <Facebook className="w-5 h-5" />
+              </a>
+              <a
+                href={INSTAGRAM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/60 hover:text-gold-500 transition-colors"
+                aria-label="Instagram"
+              >
+                <Instagram className="w-5 h-5" />
+              </a>
+              <a
+                href={TIKTOK_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/60 hover:text-gold-500 transition-colors"
+                aria-label="TikTok"
+              >
+                <Music2 className="w-5 h-5" />
               </a>
             </div>
           </div>
@@ -137,6 +161,37 @@ export default function Footer() {
                 </a>
               </li>
               <li className="flex items-center">
+                <Mail className="w-5 h-5 mr-3 text-gold-500 shrink-0" />
+                <a
+                  href={EMAIL_HREF}
+                  className="inline-block py-1.5 hover:text-gold-500 transition-colors"
+                >
+                  {EMAIL}
+                </a>
+              </li>
+              <li className="flex items-center">
+                <Instagram className="w-5 h-5 mr-3 text-gold-500 shrink-0" />
+                <a
+                  href={INSTAGRAM_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block py-1.5 hover:text-gold-500 transition-colors"
+                >
+                  {INSTAGRAM_HANDLE}
+                </a>
+              </li>
+              <li className="flex items-center">
+                <Music2 className="w-5 h-5 mr-3 text-gold-500 shrink-0" />
+                <a
+                  href={TIKTOK_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block py-1.5 hover:text-gold-500 transition-colors"
+                >
+                  TikTok {TIKTOK_HANDLE}
+                </a>
+              </li>
+              <li className="flex items-center">
                 <Send className="w-5 h-5 mr-3 text-gold-500 shrink-0" />
                 <Link
                   to="/contact"
@@ -154,7 +209,7 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} CA IMMO. Tous droits réservés.
           </p>
           <p className="mt-4 md:mt-0 flex flex-wrap items-center gap-x-4 gap-y-2">
-            <span>Chargé d'Affaire Immobilier — Madagascar</span>
+            <span>Chargé d'Affaires Immobilier — Antananarivo, Madagascar</span>
             <Link to="/confidentialite" className="underline underline-offset-4 hover:text-white">Informations sur vos données</Link>
           </p>
         </div>
