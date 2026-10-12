@@ -158,8 +158,11 @@ class PresentationDataTest extends TestCase
         $url = Land::firstOrFail()->documents[0]['url'];
         $this->getJson($url)->assertUnauthorized();
         Sanctum::actingAs(User::factory()->create(), ['admin']);
-        $response = $this->getJson($url)->assertOk()->assertHeader('Content-Type', 'application/pdf');
-        $this->assertStringStartsWith('%PDF-', $response->streamedContent());
+        $response = $this->get($url)
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/octet-stream');
+
+        $this->assertStringStartsWith('%PDF-', $response->getContent());
     }
 
     public function test_public_catalogue_hides_old_flag_buyers_lot_history_and_private_urls(): void
