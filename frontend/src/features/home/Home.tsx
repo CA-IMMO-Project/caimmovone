@@ -27,6 +27,7 @@ import {
   Tag,
   Ruler,
   Play,
+  Scale,
 } from "lucide-react";
 import { PHONE_1_TEL } from "../../lib/contact";
 import LandCard from "../catalog/LandCard";
@@ -41,6 +42,7 @@ const IMG_HERO = "/media/caimmo/home-hero.jpg";
 const IMG_PRESENTER = "/media/caimmo/home-collage.jpg";
 const IMG_DRONE_ACCESS = "/media/caimmo/home-drone.jpg";
 const IMG_LAKE = "/media/caimmo/home-cta.jpg";
+const IMG_DRONE = "/media/caimmo/drone-vol.png";
 
 const fadeUp = {
   initial: { opacity: 0, y: 24 },
@@ -116,6 +118,50 @@ function DroneIcon({
         strokeLinecap="round"
       />
     </svg>
+  );
+}
+
+/* Positions des 4 moteurs en % de l'image drone-vol.png.
+   Les diagonales tournent en sens inverse, comme sur un vrai quadrirotor. */
+const DRONE_PROPS = [
+  { x: 27, y: 33, size: 30, reverse: false }, // avant gauche
+  { x: 76, y: 24, size: 32, reverse: true }, // avant droit
+  { x: 14, y: 60, size: 24, reverse: true }, // arrière gauche
+  { x: 90, y: 43, size: 24, reverse: false }, // arrière droit
+];
+
+const PROP_BLADES =
+  "conic-gradient(from 0deg, transparent 0deg, rgba(45,50,60,0.55) 18deg, rgba(45,50,60,0.12) 48deg, transparent 80deg, transparent 180deg, rgba(45,50,60,0.55) 198deg, rgba(45,50,60,0.12) 228deg, transparent 260deg)";
+
+function DroneEnVol({ mirrored = false }: { mirrored?: boolean }) {
+  return (
+    <span className={`relative block w-full ${mirrored ? "-scale-x-100" : ""}`}>
+      <img
+        src={IMG_DRONE}
+        alt=""
+        aria-hidden
+        className="w-full h-auto"
+        loading="lazy"
+        decoding="async"
+      />
+      {/* Hélices floutées en rotation, posées sur les 4 moteurs */}
+      <span aria-hidden className="pointer-events-none absolute inset-0">
+        {DRONE_PROPS.map((prop, i) => (
+          <span
+            key={i}
+            className="absolute aspect-square -translate-x-1/2 -translate-y-1/2"
+            style={{ left: `${prop.x}%`, top: `${prop.y}%`, width: `${prop.size}%` }}
+          >
+            <span className="block h-full w-full scale-y-[0.22]">
+              <span
+                className={`block h-full w-full rounded-full ${prop.reverse ? "drone-prop-rev" : "drone-prop"}`}
+                style={{ background: PROP_BLADES, filter: "blur(2px)" }}
+              />
+            </span>
+          </span>
+        ))}
+      </span>
+    </span>
   );
 }
 
@@ -235,7 +281,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.4 }}
-            className="mt-14 lg:absolute lg:right-8 lg:bottom-20 lg:mt-0 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-y-6 lg:divide-x lg:divide-white/25"
+            className="mt-14 lg:absolute lg:right-8 lg:bottom-20 lg:mt-0 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-y-6 lg:divide-x lg:divide-white/25"
           >
             {[
               { icon: FileCheck, label: "Titre foncier\nen main" },
@@ -243,6 +289,7 @@ export default function Home() {
               { icon: LandPlot, label: "Lots de 300\nà 1000 m²" },
               { icon: Users, label: "Conseil sur mesure\net accompagnement" },
               { icon: ShieldCheck, label: "Sécurité\nfoncière" },
+              { icon: Scale, label: "Vente devant\nnotaire" },
             ].map(({ icon: Icon, label }) => (
               <div
                 key={label}
@@ -512,8 +559,8 @@ export default function Home() {
               },
               {
                 icon: Ruler,
-                title: "Notaire & géomètre",
-                text: "Des professionnels compétents pour renforcer la sécurité de votre acquisition.",
+                title: "Vente devant notaire",
+                text: "Chaque transaction est conclue par acte authentique devant notaire, avec bornage par géomètre.",
               },
               {
                 icon: Wallet,
@@ -594,26 +641,28 @@ export default function Home() {
               referrerPolicy="no-referrer"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-white via-white/20 to-transparent" />
-            {/* Drones en vol */}
+            {/* Drones en vol — vol plané ample + hélices en rotation */}
             <motion.div
-              className="absolute left-[8%] top-[10%] w-32 md:w-40 text-navy-950 drop-shadow-[0_12px_12px_rgba(7,22,52,0.45)]"
-              animate={
-                reduce ? undefined : { y: [0, -14, 0], rotate: [-3, 2, -3] }
-              }
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <DroneIcon spin className="w-full h-auto" />
-            </motion.div>
-            <motion.div
-              className="absolute left-[40%] bottom-[12%] w-16 md:w-20 text-navy-900/90 drop-shadow-[0_8px_8px_rgba(7,22,52,0.4)]"
+              className="absolute left-[8%] top-[10%] w-36 md:w-48 drop-shadow-[0_18px_16px_rgba(7,22,52,0.45)]"
               animate={
                 reduce
                   ? undefined
-                  : { x: [0, 24, 0], y: [0, -8, 0], rotate: [2, -3, 2] }
+                  : { x: [0, 12, 0], y: [0, -16, 0], rotate: [-2, 2, -2], scale: [1, 1.025, 1] }
               }
-              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
             >
-              <DroneIcon spin className="w-full h-auto" />
+              <DroneEnVol />
+            </motion.div>
+            <motion.div
+              className="absolute left-[40%] bottom-[12%] w-20 md:w-28 drop-shadow-[0_12px_10px_rgba(7,22,52,0.4)]"
+              animate={
+                reduce
+                  ? undefined
+                  : { x: [0, 26, 0], y: [0, -10, 0], rotate: [2, -2, 2], scale: [1, 1.03, 1] }
+              }
+              transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <DroneEnVol mirrored />
             </motion.div>
             <div className="absolute right-4 top-1/2 -translate-y-1/2 w-60 rounded-3xl rounded-bl-none bg-navy-900 p-6 text-white shadow-2xl">
               <Globe className="w-8 h-8 text-gold-500 mb-4" strokeWidth={2} />
@@ -635,7 +684,7 @@ export default function Home() {
               Nous nous engageons à vous accompagner avec transparence
             </h2>
           </motion.div>
-          <div className="lg:col-span-9 grid gap-4 grid-cols-2 md:grid-cols-5">
+          <div className="lg:col-span-9 grid gap-4 grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
             {[
               {
                 icon: ShieldCheck,
@@ -661,6 +710,11 @@ export default function Home() {
                 icon: Tag,
                 title: "Prix & négociation",
                 text: "Des offres compétitives et négociables selon les projets.",
+              },
+              {
+                icon: FileCheck,
+                title: "Acte notarié",
+                text: "Chaque vente est conclue devant notaire, pour une transaction en toute sécurité.",
               },
             ].map(({ icon: Icon, title, text }) => (
               <motion.div

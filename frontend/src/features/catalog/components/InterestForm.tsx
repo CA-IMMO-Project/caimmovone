@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Banknote, ChevronLeft, ChevronRight, LandPlot, Navigation, Info, WalletCards } from 'lucide-react';
+import { ArrowRight, Banknote, ChevronLeft, ChevronRight, LandPlot, Navigation, Info, WalletCards, ShieldCheck } from 'lucide-react';
 import { ChoiceCards, ErrorBanner, FormField, Input, ProgressSteps, Select, Textarea } from '../../../shared/ui';
 import { createReservation } from '../../../services/requestService';
 import type { SubmitResult } from '../../../services/requestService';
@@ -293,6 +293,11 @@ export default function InterestForm({ land, lot, onDone }: { land: Land; lot?: 
           </button>
         )}
       </div>
+
+      <p className="mt-5 flex items-center justify-end gap-2 text-xs text-navy-900/70">
+        <ShieldCheck className="h-4 w-4 shrink-0 text-gold-700" />
+        Transaction sécurisée — chaque vente est conclue devant notaire.
+      </p>
 
     </div>
   );

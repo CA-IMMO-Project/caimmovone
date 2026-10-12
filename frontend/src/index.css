@@ -246,3 +246,25 @@ a, button, [role="button"], input, select, textarea, label, summary {
 .admin-scroll-x::-webkit-scrollbar-thumb:hover {
   background-color: #374151;
 }
+
+/* — Drone : hélices floutées en rotation (posées sur drone-vol.png) — */
+@keyframes drone-prop {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.drone-prop {
+  animation: drone-prop 0.45s linear infinite;
+}
+
+.drone-prop-rev {
+  animation: drone-prop 0.45s linear infinite reverse;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drone-prop,
+  .drone-prop-rev {
+    animation: none;
+  }
+}

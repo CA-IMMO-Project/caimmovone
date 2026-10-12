@@ -1,4 +1,4 @@
-import { Phone, MapPin, Facebook, Send, Mail, Instagram, Music2 } from "lucide-react";
+import { Phone, MapPin, Facebook, Send, Mail, Instagram, Music2, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   FB_URL,
@@ -31,6 +31,10 @@ export default function Footer() {
               CA IMMO — Chargé d'Affaires Immobilier, votre expert en
               immobilier à Madagascar. Terrains titrés, lotissement au bord du
               lac et accompagnement sur mesure, à chaque étape de votre projet.
+            </p>
+            <p className="flex items-start gap-2 text-xs font-light leading-relaxed text-white/70">
+              <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0 text-gold-500" />
+              Toutes nos ventes sont conclues par acte authentique devant notaire.
             </p>
             <div className="flex space-x-5 pt-2">
               <a

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, Clock3 } from 'lucide-react';
+import { CalendarDays, Clock3, ShieldCheck } from 'lucide-react';
 import { ErrorBanner, FormField, Input, Select, Textarea } from '../../../shared/ui';
 import { phoneError, sanitizePhone } from '../../../lib/validate';
 import { PHONE_PLACEHOLDER } from '../../../lib/phone';
@@ -103,6 +103,10 @@ export default function VisitForm({ land, lot, onDone }: { land: Land; lot?: Lot
             Demander cette visite <CalendarDays className="h-4 w-4" />
           </button>
         </div>
+        <p className="flex items-center justify-end gap-2 text-xs text-navy-900/70">
+          <ShieldCheck className="h-4 w-4 shrink-0 text-gold-700" />
+          Transaction sécurisée — chaque vente est conclue devant notaire.
+        </p>
       </div>
 
     </div>
