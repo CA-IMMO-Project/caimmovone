@@ -62,7 +62,8 @@ class RequestController extends Controller
                 // trace du renvoi — pas de seconde fiche pour la même personne.
                 $meta = $dupe->meta ?? [];
                 foreach (['budget', 'profession', 'bankAccount', 'nationality', 'projectName',
-                    'paymentMode', 'duration', 'downPaymentAmount', 'visitDate', 'visitTime', 'birthDate', 'callTime'] as $key) {
+                    'paymentMode', 'duration', 'downPaymentAmount', 'visitDate', 'visitTime', 'birthDate', 'callTime',
+                    'deadline', 'projectDescription'] as $key) {
                     if (! empty($data[$key])) {
                         $meta[$key] = (string) $data[$key];
                     }
@@ -84,11 +85,12 @@ class RequestController extends Controller
                 $meta['resendCount'] = (int) ($meta['resendCount'] ?? 0) + 1;
                 $meta['lastResentAt'] = now()->toIso8601String();
 
-                $message = trim((string) $dupe->message);
-                $newText = trim((string) ($data['message'] ?? ''));
-                if ($newText !== '' && ! str_contains($message, $newText)) {
-                    $message .= ($message !== '' ? "\n\n" : '').'— Nouvel envoi du '.now()->format('d/m/Y H:i')." —\n".$newText;
-                }
+                $newText = trim((string) ($data['projectDescription'] ?? $data['message'] ?? ''));
+                // Le renvoi d’un formulaire actualise la description du projet au
+                // lieu d’injecter des marqueurs techniques (« Nouvel envoi… ») dans
+                // un champ visible par l’administrateur. La trace reste conservée
+                // proprement dans resendCount / lastResentAt ci-dessus.
+                $message = $newText !== '' ? $newText : trim((string) $dupe->message);
 
                 $dupe->update([
                     'message' => $message !== '' ? $message : $dupe->message,
@@ -109,7 +111,8 @@ class RequestController extends Controller
         // Champs complémentaires rangés dans meta (tout ce qui n'a pas de colonne).
         $meta = [];
         foreach (['budget', 'profession', 'bankAccount', 'nationality', 'projectName',
-            'paymentMode', 'duration', 'downPaymentAmount', 'visitDate', 'visitTime', 'birthDate', 'callTime'] as $key) {
+            'paymentMode', 'duration', 'downPaymentAmount', 'visitDate', 'visitTime', 'birthDate', 'callTime',
+            'deadline', 'projectDescription'] as $key) {
             if (! empty($data[$key])) {
                 $meta[$key] = (string) $data[$key];
             }

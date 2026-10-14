@@ -3,7 +3,6 @@ import {
   History,
   Landmark,
   Mail,
-  MapPin,
   MessageSquarePlus,
   Paperclip,
   Pencil,
@@ -75,19 +74,16 @@ import {
   fmtAr,
   fmtDate,
   fmtDateTime,
-  fmtNum,
   input,
 } from './crm/kit';
 import {
   AGENTS,
-  BUY_GOALS,
   BUY_PAYMENT,
   BUY_STATUSES,
   BuyRequest,
   BuyStatus,
   COUNTRIES,
   PRIORITIES,
-  PROPERTY_TYPES,
   PlannedAction,
   REGIONS,
   SOURCES,
@@ -559,8 +555,6 @@ function validate(r: BuyRequest): Errors {
     e.countryOther = 'Précisez le pays';
   if (r.budgetMax && r.budgetMin > r.budgetMax)
     e.budgetMax = 'Doit être supérieur au budget minimum';
-  if (r.areaMax && r.areaMin > r.areaMax)
-    e.areaMax = 'Doit être supérieure à la superficie minimale';
   if (!r.consent) e.consent = 'Le consentement du client est requis';
   if (!r.landId) e.landId = 'Choisissez le terrain que le client veut acheter';
   return e;
@@ -872,82 +866,8 @@ export function BuyRequestForm() {
           </Grid>
         </Section>
 
-        <Section
-          title="Autres critères de recherche"
-          icon={<MapPin className="w-4 h-4" />}
-        >
-          <Grid>
-            <Field label="Type de bien" span="full">
-              <Choice
-                value={r.propertyType}
-                onChange={(v) => set('propertyType', v)}
-                options={PROPERTY_TYPES}
-              />
-            </Field>
-            <Field label="Région">
-              <Select
-                value={r.region}
-                onChange={(v) => set('region', v)}
-                options={REGIONS}
-                placeholder="—"
-              />
-            </Field>
-            <Field label="District">
-              <input
-                className={input}
-                value={r.district}
-                onChange={(e) => set('district', e.target.value)}
-              />
-            </Field>
-            <Field label="Commune">
-              <input
-                className={input}
-                value={r.commune}
-                onChange={(e) => set('commune', e.target.value)}
-              />
-            </Field>
-            <Field label="Fokontany">
-              <input
-                className={input}
-                value={r.fokontany}
-                onChange={(e) => set('fokontany', e.target.value)}
-              />
-            </Field>
-            <Field label="Superficie minimale">
-              <NumberInput
-                value={r.areaMin}
-                onChange={(v) => set('areaMin', v)}
-                suffix="m²"
-              />
-            </Field>
-            <Field label="Superficie maximale" error={errors.areaMax}>
-              <NumberInput
-                value={r.areaMax}
-                onChange={(v) => set('areaMax', v)}
-                suffix="m²"
-              />
-            </Field>
-            <Field label="Critères particuliers" span="full">
-              <textarea
-                rows={2}
-                className={input}
-                value={r.criteria}
-                onChange={(e) => set('criteria', e.target.value)}
-                placeholder="Terrain plat, accès voiture, eau et électricité…"
-              />
-            </Field>
-          </Grid>
-        </Section>
-
         <Section title="Projet d’achat" icon={<Target className="w-4 h-4" />}>
           <Grid>
-            <Field label="Objectif de l’achat" span="full">
-              <Choice
-                value={r.goal}
-                onChange={(v) => set('goal', v)}
-                options={BUY_GOALS}
-              />
-            </Field>
             <Field label="Délai souhaité pour l’achat">
               <input
                 className={input}
@@ -956,7 +876,7 @@ export function BuyRequestForm() {
                 placeholder="Ex : dans 3 mois"
               />
             </Field>
-            <Field label="Informations supplémentaires" span={2}>
+            <Field label="Description du projet" span={2}>
               <textarea
                 rows={2}
                 className={input}
@@ -1188,31 +1108,22 @@ export function BuyRequestDetail() {
             <div className="space-y-5">
               <Section title="Projet du client">
                 <dl className="grid sm:grid-cols-2 gap-5">
-                  <Info label="Objectif" value={r.goal} />
                   <Info label="Budget" value={budget(r)} />
                   <Info label="Mode de paiement" value={r.paymentMode} />
-                  <Info
-                    label="Surface recherchée"
-                    value={
-                      r.areaMax
-                        ? `${fmtNum(r.areaMin)}–${fmtNum(r.areaMax)} m²`
-                        : ''
-                    }
-                  />
                   <Info label="Priorité" value={<Badge value={r.priority} />} />
                   <Info label="Délai envisagé" value={r.deadline} />
                 </dl>
                 {r.message && (
-                  <p className="mt-5 text-sm whitespace-pre-line text-slate-600">
-                    {r.message}
-                  </p>
+                  <div className="mt-5 rounded-lg bg-gray-50 p-3 text-sm text-slate-600">
+                    <strong className="block mb-1 text-slate-800">Description du projet</strong>
+                    <p className="whitespace-pre-line">{r.message}</p>
+                  </div>
                 )}
               </Section>
               <Section title="Coordonnées">
                 <dl className="grid sm:grid-cols-2 gap-5">
                   <Info label="Téléphone" value={phoneOf(r)} />
                   <Info label="Email" value={r.email} />
-                  <Info label="Critères" value={r.criteria} />
                   <Info
                     label="Meilleur moment pour rappeler"
                     value={r.callTime}
@@ -1278,7 +1189,7 @@ export function BuyRequestDetail() {
                 </dl>
               </Section>
               <Section
-                title="Financement et projet"
+                title="Financement et calendrier"
                 icon={<Wallet className="w-4 h-4" />}
               >
                 <dl className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1288,21 +1199,9 @@ export function BuyRequestDetail() {
                   )}
                   <Info label="Budget" value={budget(r)} />
                   <Info label="Apport disponible" value={fmtAr(r.deposit)} />
-                  <Info label="Objectif" value={r.goal} />
                   <Info label="Délai" value={r.deadline} />
                 </dl>
-                {r.criteria && (
-                  <p className="mt-4 text-sm bg-gray-50 rounded-lg p-3 whitespace-pre-line">
-                    <strong>Critères : </strong>
-                    {r.criteria}
-                  </p>
-                )}
-                {r.extraInfo && (
-                  <p className="mt-2 text-sm bg-gray-50 rounded-lg p-3 whitespace-pre-line">
-                    <strong>Infos : </strong>
-                    {r.extraInfo}
-                  </p>
-                )}
+
               </Section>
             </div>
           )}

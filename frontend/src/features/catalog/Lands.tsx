@@ -583,7 +583,7 @@ export default function Lands() {
 
       {/* — Listing — */}
       <section className="pb-24 pt-12">
-        <div className="mx-auto max-w-full px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div
             className={
               showFilters
@@ -774,7 +774,7 @@ export default function Lands() {
       </section>
 
       {/* — Recherche sur mesure — */}
-      <section className="mx-auto max-w-full px-4 pb-24 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-7xl px-4 pb-24 sm:px-6 lg:px-8">
         <div className="card-soft overflow-hidden md:grid md:grid-cols-[1.35fr_1fr]">
           <div className="p-10 md:p-14">
             <Eyebrow>Recherche sur mesure</Eyebrow>

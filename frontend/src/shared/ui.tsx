@@ -97,7 +97,7 @@ export function PageHero({
         <path fill="currentColor" d="M40,0 C0,40 0,140 40,180 Z" />
       </svg>
 
-      <div className="relative z-10 mx-auto max-w-full px-4 sm:px-6 lg:px-8 pt-4 md:pt-6">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-4 md:pt-6">
         <span className="inline-block rounded-md bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em]">
           {pill}
         </span>

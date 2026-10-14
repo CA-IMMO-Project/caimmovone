@@ -259,7 +259,11 @@ import { saveRequestApi, saveLandFileApi, deleteApi } from '../../services/admin
 import { cache, upsertSync, replaceSync, removeSync, warnSyncFailed } from './sync';
 
 export function getBuyRequests(): BuyRequest[] {
+  // Comme pour les dossiers vendeurs, on complète toute demande publique avec
+  // la forme intégrale attendue par le formulaire d’édition. Les valeurs reçues
+  // de l’API restent prioritaires : les choix du visiteur sont donc sélectionnés.
   return cache.requests.map((r) => ({
+    ...newBuyRequest(),
     ...r,
     clientId: r.clientId,
     landId: r.landId ?? '',

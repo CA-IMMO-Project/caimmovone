@@ -80,6 +80,52 @@ class SiteRequest extends Model
         // budget…). Le détail CRM, plus riche, reste prioritaire s'il existe.
         $meta = $this->meta ?? [];
 
+        // Normalisation site public -> modèle du formulaire d’édition du back-office.
+        // Les anciens noms restent acceptés afin que les demandes déjà enregistrées
+        // soient elles aussi correctement préremplies.
+        $nationality = (string) ($detail['country'] ?? $meta['country'] ?? $meta['nationality'] ?? '');
+        $knownCountries = ['Madagascar', 'France', 'La Réunion', 'Autre'];
+        $country = in_array($nationality, $knownCountries, true)
+            ? $nationality
+            : ($nationality !== '' ? 'Autre' : '');
+        $countryOther = (string) ($detail['countryOther'] ?? $meta['countryOther'] ??
+            ($country === 'Autre' && $nationality !== 'Autre' ? $nationality : ''));
+
+        $account = (string) ($meta['bankAccount'] ?? '');
+        $hasBankAccount = (string) ($detail['hasBankAccount'] ?? $meta['hasBankAccount'] ??
+            ($account !== '' ? (preg_match('/^non$/i', $account) ? 'Non' : 'Oui') : ''));
+        $bank = (string) ($detail['bank'] ?? $meta['bank'] ??
+            ($account !== '' && ! preg_match('/^(oui|non)$/i', $account) ? $account : ''));
+
+        $rawPayment = (string) ($detail['paymentMode'] ?? $meta['paymentMode'] ?? '');
+        $paymentMode = match ($rawPayment) {
+            'Comptant' => 'Paiement comptant – règlement en une fois',
+            'Facilité' => 'Facilité de paiement – paiement échelonné',
+            default => $rawPayment,
+        };
+        $paymentDuration = (string) ($detail['paymentDuration'] ?? $meta['paymentDuration'] ?? $meta['duration'] ?? '');
+        $rawDeposit = $detail['deposit'] ?? $meta['deposit'] ?? $meta['downPaymentAmount'] ?? 0;
+        $deposit = is_numeric($rawDeposit)
+            ? (int) $rawDeposit
+            : (int) preg_replace('/\D+/', '', (string) $rawDeposit);
+
+        $legacyMessage = trim((string) $this->message);
+        $deadline = (string) ($detail['deadline'] ?? $meta['deadline'] ?? '');
+        if ($deadline === '' && preg_match('/^Délai souhaité\s*:\s*([^\r\n]+)/iu', $legacyMessage, $match)) {
+            $deadline = trim($match[1]);
+        }
+        $projectDescription = (string) ($detail['extraInfo'] ?? $meta['projectDescription'] ?? '');
+        if ($projectDescription === '' && $legacyMessage !== '') {
+            // Nettoyage des anciennes demandes : les versions précédentes
+            // mélangeaient le délai et les marqueurs de renvoi avec le projet.
+            $projectDescription = (string) preg_replace('/^Délai souhaité\s*:[^\r\n]*(?:\r?\n)?/imu', '', $legacyMessage);
+            $projectDescription = (string) preg_replace('/^—\s*Nouvel envoi du\s+.*?—\s*$/imu', '', $projectDescription);
+            $projectDescription = trim((string) preg_replace('/\n{3,}/', "\n\n", $projectDescription));
+        }
+        $displayMessage = $this->kind === 'interet' && $projectDescription !== ''
+            ? $projectDescription
+            : ($detail['message'] ?? $this->message);
+
         return array_merge([
             // champs tableaux toujours présents pour l'écran « Demandes »
             'history' => [], 'notes' => [], 'contacts' => [],
@@ -99,7 +145,20 @@ class SiteRequest extends Model
             'phone' => $detail['phone'] ?? $this->phone,
             'dialCode' => $detail['dialCode'] ?? '',
             'email' => $detail['email'] ?? $this->email,
-            'message' => $detail['message'] ?? $this->message,
+            'country' => $country,
+            'countryOther' => $countryOther,
+            'hasBankAccount' => $hasBankAccount,
+            'bank' => $bank,
+            'paymentMode' => $paymentMode,
+            'paymentDuration' => $paymentDuration,
+            'deposit' => $deposit,
+            'deadline' => $deadline,
+            'extraInfo' => $projectDescription,
+            // Une demande issue du formulaire public est déposée après affichage
+            // des informations de confidentialité ; elle reste donc modifiable
+            // sans obliger l’administrateur à recocher ce champ.
+            'consent' => $detail['consent'] ?? $meta['consent'] ?? ($this->source === 'Site web'),
+            'message' => $displayMessage,
             'createdAt' => $this->created_at?->toIso8601String(),
             'updatedAt' => $this->updated_at?->toIso8601String(),
         ]);

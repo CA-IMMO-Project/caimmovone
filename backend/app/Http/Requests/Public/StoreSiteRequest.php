@@ -41,6 +41,8 @@ class StoreSiteRequest extends FormRequest
             'visitTime' => 'nullable|string|max:40',
             'birthDate' => 'nullable|string|max:40',
             'callTime' => 'nullable|string|max:80',
+            'deadline' => 'nullable|string|max:120',
+            'projectDescription' => 'nullable|string|max:5000',
         ];
     }
 

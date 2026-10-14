@@ -188,7 +188,7 @@ export default function AdminLands() {
         subtitle="Gérez les informations, la disponibilité et la publication de vos terrains."
         action={
           <>
-            {canLoadPresentation() && (
+            {/* {canLoadPresentation() && (
               <button
                 className={btnOutline}
                 disabled={loading}
@@ -197,7 +197,7 @@ export default function AdminLands() {
                 <RotateCcw size={15} />
                 Charger les exemples
               </button>
-            )}
+            )} */}
             <Link to={`${BASE}/nouveau`} className={btnPrimary}>
               <Plus size={15} />
               Ajouter un terrain

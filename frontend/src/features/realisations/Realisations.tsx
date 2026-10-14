@@ -50,7 +50,7 @@ export default function Realisations() {
       />
 
       <section className="pb-24">
-        <div className="mx-auto max-w-full px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* Barre : compteur + catégories */}
           <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
             <p className="text-sm text-navy-900/80">

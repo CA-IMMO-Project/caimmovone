@@ -114,6 +114,10 @@ export interface ReservationPayload {
   birthDate?: string;
   /** Meilleur moment pour rappeler le client (choisi sur le site). */
   callTime?: string;
+  /** Délai choisi dans l’étape « Votre projet d’achat ». */
+  deadline?: string;
+  /** Description libre saisie dans « Parlez-nous de votre projet ». */
+  projectDescription?: string;
 }
 
 export interface Reservation extends ReservationPayload {

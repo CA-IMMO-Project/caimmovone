@@ -391,7 +391,7 @@ export default function Home() {
       {/* ================= TERRAINS EN VEDETTE ================= */}
       {featured.length > 0 && (
         <section className="relative bg-white py-16 md:py-24">
-          <div className="mx-auto max-w-full px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
               <div>
                 <Eyebrow>Nos sélections</Eyebrow>

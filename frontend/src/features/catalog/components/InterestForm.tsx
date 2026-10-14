@@ -98,7 +98,13 @@ export default function InterestForm({ land, lot, onDone }: { land: Land; lot?: 
       paymentMode: form.payment,
       duration: form.payment === 'Facilité' ? form.duration : undefined,
       downPaymentAmount: form.payment === 'Facilité' ? form.downPaymentAmount : undefined,
-      message: [`Délai souhaité : ${form.deadline}`, form.message.trim()].filter(Boolean).join('\n'),
+      // Champs structurés : ils préremplissent directement les champs correspondants
+      // lorsque l’administrateur ouvre « Modifier la demande ».
+      deadline: form.deadline,
+      projectDescription: form.message.trim() || undefined,
+      // Conservé également comme message pour rester visible dans le résumé et
+      // assurer la compatibilité avec les anciennes versions du back-office.
+      message: form.message.trim() || undefined,
     };
     finalize(payload);
   };
