@@ -526,17 +526,59 @@ export function adminPreviewPlugin(): Plugin {
       }
       return Buffer.concat(chunks);
     };
+    /* Découpe un corps multipart (FormData envoyée par le site public) en
+       champs texte et fichiers. Volontairement minimal : aucun paquet ajouté
+       au projet pour un simple aperçu. */
+    const readPayload = async (req: IncomingMessage) => {
+      const raw = await body(req);
+      const contentType = String(req.headers['content-type'] ?? '');
+      const fields: Row = {};
+      const files: { name: string; type: string; content: Buffer }[] = [];
+      if (!contentType.startsWith('multipart/form-data')) {
+        return { fields: { ...(JSON.parse(raw.toString('utf8') || '{}') as Row) }, files };
+      }
+      const boundary = /boundary="?([^";]+)"?/.exec(contentType)?.[1];
+      if (!boundary) return { fields, files };
+      const delimiter = Buffer.from(`--${boundary}`);
+      let start = raw.indexOf(delimiter);
+      while (start !== -1) {
+        const next = raw.indexOf(delimiter, start + delimiter.length);
+        if (next === -1) break;
+        const part = raw.subarray(start + delimiter.length, next);
+        start = next;
+        const headerEnd = part.indexOf('\r\n\r\n');
+        if (headerEnd === -1) continue;
+        const header = part.subarray(0, headerEnd).toString('utf8');
+        const name = /name="([^"]+)"/.exec(header)?.[1];
+        if (!name) continue;
+        let content = part.subarray(headerEnd + 4);
+        while (content.length >= 2 && content[content.length - 2] === 13 && content[content.length - 1] === 10) {
+          content = content.subarray(0, content.length - 2);
+        }
+        const filename = /filename="([^"]*)"/.exec(header)?.[1];
+        if (filename) {
+          const type = /Content-Type:\s*([^\r\n]+)/i.exec(header)?.[1] ?? 'application/octet-stream';
+          files.push({ name: filename, type, content: Buffer.from(content) });
+          continue;
+        }
+        const key = name.replace(/\[\]$/, '');
+        const value = content.toString('utf8');
+        const previous = fields[key];
+        fields[key] = previous === undefined ? value : Array.isArray(previous) ? [...previous, value] : [previous, value];
+      }
+      return { fields, files };
+    };
     server.middlewares.use(async (req, res, next) => {
       const pathname = new URL(req.url ?? '/', 'http://preview.local')
         .pathname;
-      if (
-        pathname === '/' &&
-        !new URL(req.url ?? '/', 'http://preview.local').searchParams.has(
-          'site',
-        )
-      ) {
+      /* L'aperçu s'ouvre désormais sur le SITE PUBLIC (c'est le site qu'on
+         montre en premier) ; le back office reste accessible par /admin, et
+         le lien « Voir le site » du back office (/?site=1) continue de
+         fonctionner. Le mode aperçu n'existe qu'ici : aucune incidence sur la
+         production. */
+      if (pathname === '/admin/site') {
         res.statusCode = 302;
-        res.setHeader('Location', '/admin');
+        res.setHeader('Location', '/');
         res.end();
         return;
       }
@@ -555,6 +597,214 @@ export function adminPreviewPlugin(): Plugin {
       try {
         const path = pathname.slice('/api/v1'.length),
           method = req.method ?? 'GET';
+
+        /* ------------------------------------------------------------------
+           Formulaires PUBLICS du site — repris dans l'aperçu pour que le
+           parcours complet soit démontrable : demande d'achat, visite,
+           recherche sur mesure, dépôt de terrain (multipart avec la pièce
+           d'identité) et message de contact.
+
+           Les enregistrements sont ajoutés aux données fictives : ils
+           apparaissent aussitôt dans le back office (Demandes, Dossiers de
+           vente, Recherches, Messages) et disparaissent au redémarrage. Rien
+           n'est écrit dans une vraie base.
+           ------------------------------------------------------------------ */
+        if (method === 'POST' && ['/requests', '/searches', '/land-files', '/messages'].includes(path)) {
+          const { fields, files } = await readPayload(req);
+          const now = new Date().toISOString();
+          const fullName = String(fields.fullName ?? '').trim();
+          const [firstName = '', ...restName] = fullName.split(/\s+/);
+          const common = {
+            id: `preview-site-${randomUUID().slice(0, 8)}`,
+            createdAt: now,
+            updatedAt: now,
+            /* Le nom affiché en tête de fiche vient de fullName : sans cette
+               ligne, une demande fraîche héritait du nom de la fiche modèle et
+               le back office semblait afficher « quelqu'un d'autre ». */
+            fullName: fullName || `${firstName} ${restName.join(' ')}`.trim(),
+            firstName,
+            lastName: restName.join(' '),
+            phone: String(fields.phone ?? ''),
+            email: String(fields.email ?? ''),
+            source: 'Site web',
+            /* Aucun client n'existe encore pour une demande qui arrive du site :
+               on ne reprend donc pas le rattachement de la fiche modèle. */
+            clientId: undefined,
+            clientKey: undefined,
+          };
+
+          if (path === '/requests') {
+            const kind = String(fields.kind ?? 'interet');
+            const template = data.requests.find((r) => r.kind === kind) ?? data.requests[0] ?? {};
+            const interet = kind === 'interet';
+            const row: Row = {
+              ...template,
+              ...common,
+              kind,
+              status: kind === 'visite' ? 'Demandée' : 'Nouvelle',
+              priority: 'Haute',
+              ref: ref(kind === 'visite' ? 'VIS' : kind === 'vente' ? 'VEN' : 'ACH', data.requests.length),
+              message: String(fields.message ?? fields.projectDescription ?? ''),
+              extraInfo: String(fields.projectDescription ?? fields.message ?? ''),
+              goal: String(fields.goal ?? ''),
+              budget: String(fields.budget ?? ''),
+              budgetMin: Number(fields.budgetMin ?? 0) || 0,
+              budgetMax: Number(fields.budgetMax ?? 0) || 0,
+              deadline: String(fields.deadline ?? ''),
+              callTime: String(fields.callTime ?? ''),
+              /* Date de naissance et adresse : sans ces lignes, la fiche
+                 d'aperçu affichait celles de l'exemple (17/04/1989, une adresse
+                 d'Antananarivo) pour une demande qui ne les avait pas fournies. */
+              birthDate: String(fields.birthDate ?? ''),
+              address: String(fields.address ?? ''),
+              profession: String(fields.profession ?? ''),
+              paymentMode: String(fields.paymentMode ?? ''),
+              paymentDuration: String(fields.duration ?? ''),
+              deposit: Number(String(fields.downPaymentAmount ?? '').replace(/\D+/g, '')) || 0,
+              downPaymentRange: String(fields.downPaymentRange ?? ''),
+              hasBankAccount: String(fields.bankAccount ?? 'Non'),
+              whatsapp: String(fields.whatsapp ?? ''),
+              country: String(fields.nationality ?? ''),
+              visitDate: String(fields.visitDate ?? ''),
+              visitTime: String(fields.visitTime ?? ''),
+              landId: fields.landId ? String(fields.landId) : template.landId,
+              lotId: fields.lotId ? String(fields.lotId) : template.lotId,
+              consent: true,
+              /* Une demande qui vient d'arriver n'a NI échange, NI action
+                 planifiée, NI pièce jointe : le modèle ne sert qu'à la forme de
+                 la fiche. Sans cette remise à zéro, la nouvelle demande héritait
+                 du récit de la fiche modèle — deux fiches partageaient alors la
+                 même action « à rappeler », ce que React signalait comme une clé
+                 dupliquée dans l'agenda. */
+              history: [],
+              actions: [],
+              notes: [],
+              attachments: [],
+              tasks: [],
+            };
+            data.requests = [row, ...data.requests];
+            return json(res, 201, {
+              ref: row.ref,
+              message: interet
+                ? 'Votre demande a bien été enregistrée. Notre équipe vous recontacte très vite.'
+                : 'Votre demande a bien été enregistrée.',
+            });
+          }
+
+          if (path === '/searches') {
+            const template = data.searches[0] ?? {};
+            const row: Row = {
+              ...template,
+              ...common,
+              ref: ref('REC', data.searches.length),
+              status: 'Nouvelle',
+              // WhatsApp et email sont désormais demandés par le formulaire de
+              // recherche comme par les autres formulaires publics.
+              whatsapp: String(fields.whatsapp ?? ''),
+              email: String(fields.email ?? ''),
+              budgetMax: Number(fields.budgetMax ?? 0) || 0,
+              areaMin: Number(fields.areaMin ?? 0) || 0,
+              areaMax: Number(fields.areaMax ?? 0) || 0,
+              mainZone: String(fields.mainZone ?? fields.targetZone ?? ''),
+              /* Tous les critères saisis à l'écran doivent être repris : sinon
+                 la fiche d'aperçu continuait d'afficher ceux de l'exemple
+                 (usage, flexibilité, rayon…), et le client croyait que le back
+                 office n'enregistrait pas sa demande. */
+              usage: String(fields.usage ?? '') || template.usage,
+              otherZones: String(fields.otherZones ?? ''),
+              targetZone: String(fields.targetZone ?? ''),
+              flexible: String(fields.flexible ?? '') || template.flexible,
+              radiusKm: Number(fields.radiusKm ?? 0) || 5,
+              lat: fields.lat === undefined ? null : Number(fields.lat),
+              lng: fields.lng === undefined ? null : Number(fields.lng),
+              criteria: String(fields.criteria ?? ''),
+              message: String(fields.criteria ?? ''),
+            };
+            data.searches = [row, ...data.searches];
+            return json(res, 201, { ref: row.ref, message: 'Votre recherche a bien été enregistrée.' });
+          }
+
+          if (path === '/land-files') {
+            const template = data.landFiles[0] ?? {};
+            const idPiece = files[0]
+              ? (() => {
+                  const id = `preview-piece-${randomUUID().slice(0, 8)}`;
+                  attachments.set(id, { content: files[0].content, name: files[0].name, type: files[0].type });
+                  return { id, name: files[0].name, type: files[0].type, size: files[0].content.length, url: `/api/v1/admin/files/${id}` };
+                })()
+              : undefined;
+            const row: Row = {
+              ...template,
+              ...common,
+              ref: ref('VEN', data.landFiles.length),
+              status: "À l'étude",
+              owner: { ...(template.owner ?? {}), firstName: common.firstName, lastName: common.lastName, phone: common.phone, email: common.email },
+              title: String(fields.title ?? ''),
+              area: Number(fields.area ?? 0) || 0,
+              price: Number(fields.price ?? 0) || 0,
+              pricePerM2: Number(fields.area) > 0 ? Math.round(Number(fields.price ?? 0) / Number(fields.area)) : 0,
+              description: String(fields.description ?? ''),
+              relief: String(fields.relief ?? ''),
+              accesses: fields.access ? [String(fields.access)] : [],
+              water: String(fields.water ?? ''),
+              electricity: String(fields.electricity ?? ''),
+              region: String(fields.region ?? ''),
+              district: String(fields.district ?? ''),
+              commune: String(fields.commune ?? ''),
+              fokontany: String(fields.fokontany ?? ''),
+              addressHint: String(fields.directions ?? ''),
+              lat: fields.lat ? Number(fields.lat) : template.lat,
+              lng: fields.lng ? Number(fields.lng) : template.lng,
+              salePayment: String(fields.payment ?? ''),
+              maxDuration: String(fields.paymentDuration ?? ''),
+              depositRange: String(fields.deposit ?? ''),
+              ownerStatus: String(fields.ownerStatus ?? ''),
+              estimateRequested: String(fields.estimateRequested ?? ''),
+              idDoc: { ...(template.idDoc ?? {}), type: String(fields.idType ?? 'CIN'), number: String(fields.idNumber ?? ''), ...(idPiece ? { file: idPiece } : {}) },
+              photos: [],
+              documents: [],
+              // Documents fonciers déclarés par le vendeur (liste de lignes,
+              // « Aucun document pour l'instant » compris) : la fiche du back
+              // office les affiche au même endroit qu'en production.
+              docTypes: Array.isArray(fields.docTypes)
+                ? fields.docTypes.map((d) => String(d))
+                : fields.docTypes
+                  ? [String(fields.docTypes)]
+                  : [],
+              receivedAt: now.slice(0, 10),
+              summary: String(fields.summary ?? ''),
+              /* Fiche vendeur neuve : aucun échange, aucune action planifiée,
+                 aucun élément de contrôle déjà validé (ils appartenaient au
+                 dossier modèle, pas à ce vendeur). */
+              history: [],
+              actions: [],
+              internalComments: '',
+              checklist: (Array.isArray(template.checklist) ? template.checklist : []).map(
+                (c: { id?: string; label?: string }) => ({ ...c, done: false }),
+              ),
+            };
+            data.landFiles = [row, ...data.landFiles];
+            return json(res, 201, {
+              ref: row.ref,
+              message: 'Votre dossier a bien été enregistré. Notre équipe vérifie les informations et vous recontacte.',
+            });
+          }
+
+          // /messages — message de contact
+          const messageTemplate = data.messages[0] ?? {};
+          const messageRow: Row = {
+            ...messageTemplate,
+            ...common,
+            id: common.id,
+            createdAt: now,
+            status: 'Nouveau',
+            subject: String(fields.subject ?? ''),
+            message: String(fields.message ?? ''),
+          };
+          data.messages = [messageRow, ...data.messages];
+          return json(res, 201, { message: 'Message transmis.' });
+        }
+
         if (path === '/admin/login' && method === 'POST') {
           const credentials = JSON.parse((await body(req)).toString());
           if (

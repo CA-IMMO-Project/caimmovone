@@ -11,6 +11,7 @@
 import { bootstrap } from '../../services/adminService';
 import type { ContactMessage, Land } from '../../types';
 import { notice } from './dialog';
+import { normaliserDemandeSite } from './model';
 import type { BuyRequest, LandFile } from './model';
 import type { Client, Realisation, SpecificSearch } from './people';
 
@@ -69,7 +70,11 @@ export function hydrate(data: {
 }) {
   presentationAllowed = data.presentationAllowed === true;
   cache.lands = data.lands ?? [];
-  cache.requests = data.requests ?? [];
+  // Les demandes arrivées du site parlent le vocabulaire court du formulaire
+  // public : on l'aligne sur celui du back office dès l'entrée dans le cache.
+  cache.requests = (data.requests ?? []).map((r) =>
+    normaliserDemandeSite(r as BuyRequest),
+  );
   cache.clients = data.clients ?? [];
   cache.searches = data.searches ?? [];
   cache.landFiles = data.landFiles ?? [];

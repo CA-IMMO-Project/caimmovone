@@ -40,6 +40,7 @@ import {
 } from "../../lib/validate";
 import { createLandFileRequest } from "../../services/requestService";
 import { PHONE_PLACEHOLDER } from "../../lib/phone";
+import { PHONE_1, PHONE_1_TEL, WHATSAPP_URL } from "../../lib/contact";
 import type {
   LandFileSubmission,
   SubmitResult,
@@ -54,15 +55,50 @@ const STEP_LABELS = [
   "Prix et conditions",
 ];
 const RELIEFS = ["Plat", "Pente douce", "Pente forte"] as const;
+/* Pièces d'identité acceptées — liste alignée sur celle du back office
+   (frontend/src/admin/crm/model.ts : ID_TYPES) et sur ce qui est exigé pour
+   l'acte de vente à Madagascar (procédure officielle torolalana.gov.mg :
+   « photocopies des cartes nationales d'identité (CNI) légalisées du vendeur,
+   de l'acheteur et des témoins »).
+
+   Volontairement EXCLUS :
+   · le permis de conduire — refusé par la vérification d'identité à distance
+     des plateformes (il ne prouve ni l'identité ni la nationalité), alors qu'il
+     est toléré, au mieux, en présence physique ;
+   · le certificat de résidence du fokontany — ce n'est PAS une pièce
+     d'identité : c'est un justificatif d'adresse délivré pour 200 à 1 000 Ar,
+     qui sert justement à obtenir une CIN. Il sera demandé plus tard, au moment
+     du dossier de vente, avec l'acte de vente.
+   Une CIN expirée reste acceptée : à Madagascar elle permet encore de justifier
+   son identité si la photographie est ressemblante. */
+const ID_TYPES = ["CIN", "Passeport", "Carte de résident"] as const;
+/* Pièces foncières réellement rencontrées à Madagascar : le titre foncier
+   n'est pas la règle, les papiers coutumiers (« petit papier ») et l'indivision
+   familiale (terrain hérité, acte de notoriété) sont très fréquents. Aucun
+   document n'est obligatoire pour déposer : l'agence fait le point avec le
+   vendeur. */
 const DOC_TYPES = [
   "Titre foncier",
-  "Certificat foncier",
+  "Certificat foncier (commune)",
+  "« Petit papier » / papiers coutumiers",
+  "Lettre de vente (acte sous seing privé)",
+  "Acte de notoriété / titre en indivision (succession)",
   "Plan du terrain",
-  "Acte de vente",
-  "Certificat juridique",
-  "Autre document",
+  "Impôt ou taxe foncière",
+  "Certificat de situation juridique (CSJ)",
+  "Aucun document pour l’instant",
 ] as const;
-const DEPOSITS = ["15–25 %", "25–35 %", "35–45 %", "45 % et plus"] as const;
+/* Situation du vendeur vis-à-vis du terrain — un titre est souvent resté au
+   nom d'un parent décédé ; l'agence doit le savoir dès le dépôt. */
+const OWNER_STATUSES = [
+  "Propriétaire inscrit sur le document",
+  "Indivision familiale (terrain hérité)",
+  "Mandataire du propriétaire",
+] as const;
+/* Réponse « je n'ai rien » : exclusive — on ne peut pas avoir un titre foncier
+   ET aucun document. */
+const NO_DOC = "Aucun document pour l’instant";
+const AREA_UNITS = ["m²", "are", "hectare"] as const;
 
 function requestRef(): string {
   const d = new Date();
@@ -80,19 +116,28 @@ export default function Sell() {
   const [done, setDone] = useState<SubmitResult | null>(null); // référence du dossier déposé
   const [sending, setSending] = useState(false);
 
+  /* Le dépôt de vente ne demande QUE ce qui est utile pour recontacter le
+     propriétaire et retrouver le terrain. Ni date de naissance, ni
+     profession, ni compte bancaire, ni numéro de pièce d'identité : ces
+     informations se donnent plus tard, à l'agence, quand le dossier devient
+     sérieux — les exiger en ligne écarte des vendeurs parfaitement valables
+     (titre au nom d'un parent décédé, absence de CIN à jour, terrain aux
+     papiers coutumiers…). */
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
     phone: "",
+    whatsapp: "Oui",
     email: "",
-    birthDate: "",
-    profession: "",
-    country: "Madagascar",
-    bankAccount: "Oui",
-    idType: "CIN",
-    idNumber: "",
+    ownerStatus: OWNER_STATUSES[0] as string,
+    // La pièce d'identité est obligatoire, mais demandée à la DERNIÈRE étape
+    // (le numéro saisi à la main a été supprimé : il se lit sur la pièce).
+    // Pas de valeur par défaut : le type est un choix explicite.
+    idType: "",
     title: "",
     area: "",
+    areaUnit: "m²" as (typeof AREA_UNITS)[number],
+    priceKnown: "Oui" as "Oui" | "Non",
     price: "",
     description: "",
     relief: "Plat" as (typeof RELIEFS)[number],
@@ -105,12 +150,22 @@ export default function Sell() {
     fokontany: "",
     directions: "",
     payment: "Les deux" as "Comptant" | "Facilité" | "Les deux",
-    duration: "10–12 mois",
-    deposit: "25–35 %" as (typeof DEPOSITS)[number] | "Personnalisé",
-    customDeposit: "",
+    duration: "À discuter",
+    noPhoto: false,
   });
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
+
+  /* Superficie : on annonce couramment un terrain en ares ou en hectares
+     (« 3 ha », « 50 ares »). Le vendeur saisit dans son unité, le dossier
+     repart toujours en m² — plus d'erreur de virgule ou de zéro. */
+  const areaInM2 = () => {
+    const n = Number(form.area.replace(",", "."));
+    if (!Number.isFinite(n) || n <= 0) return 0;
+    const factor =
+      form.areaUnit === "are" ? 100 : form.areaUnit === "hectare" ? 10000 : 1;
+    return Math.round(n * factor);
+  };
 
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
     null,
@@ -126,9 +181,17 @@ export default function Sell() {
   const [videoObjs, setVideoObjs] = useState<File[]>([]);
   const [docObjs, setDocObjs] = useState<File[]>([]);
   const [docTypes, setDocTypes] = useState<string[]>([]);
-  const [consents, setConsents] = useState({ c1: false, c2: false, c3: false, c4: false });
+  /* Trois confirmations suffisent : exactitude / droit de vendre, contact et
+     étude du dossier, information sur les données personnelles. */
+  const [consents, setConsents] = useState({ c1: false, c2: false, c3: false });
   const toggleDocType = (d: string) =>
-    setDocTypes((p) => (p.includes(d) ? p.filter((x) => x !== d) : [...p, d]));
+    setDocTypes((p) => {
+      if (d === NO_DOC) return p.includes(NO_DOC) ? [] : [NO_DOC];
+      const chosen = p.filter((x) => x !== NO_DOC);
+      return chosen.includes(d)
+        ? chosen.filter((x) => x !== d)
+        : [...chosen, d];
+    });
 
   const next = () => {
     setError(null);
@@ -149,44 +212,69 @@ export default function Sell() {
         setError(phone ?? email);
         return;
       }
-      if (!form.idNumber.trim()) {
-        setError("Indiquez le numéro de votre pièce d’identité.");
+      // Pièce d'identité : obligatoire, et demandée dès cette première étape.
+      if (!form.idType) {
+        setError(
+          "Indiquez le type de votre pièce d’identité (CIN, passeport ou carte de résident).",
+        );
+        return;
+      }
+      if (idFiles.length === 0) {
+        setError("Joignez une photo de votre pièce d’identité pour continuer.");
         return;
       }
     }
     if (step === 1) {
-      if (
-        !form.title.trim() ||
-        !form.area ||
-        !form.price ||
-        !form.description.trim()
-      ) {
+      if (!form.title.trim() || !form.area || !form.description.trim()) {
         setError(
-          "Renseignez au moins le titre, la superficie, le prix et la description du terrain.",
+          "Renseignez au moins le titre, la superficie et la description du terrain.",
         );
         return;
       }
       if (!isPositiveNumber(form.area)) {
-        setError("La superficie doit être un nombre positif (en m²).");
+        setError(`La superficie doit être un nombre positif (en ${form.areaUnit}).`);
         return;
       }
-      if (!isPositiveNumber(form.price)) {
-        setError("Le prix doit être un nombre positif (en Ariary).");
+      // Le prix n'est obligatoire que si le vendeur dit le connaître :
+      // « je préfère que CA IMMO estime » est une réponse valable.
+      if (form.priceKnown === "Oui" && !isPositiveNumber(form.price)) {
+        setError("Indiquez votre prix, ou choisissez « Je préfère que CA IMMO estime ».");
         return;
       }
     }
-    if (
-      step === 2 &&
-      (!form.commune.trim() || !form.district.trim() || !coords)
-    ) {
-      setError(
-        "Indiquez la commune et le district, et placez le marqueur sur la carte.",
-      );
-      return;
+    if (step === 2) {
+      if (
+        !form.commune.trim() ||
+        !form.district.trim() ||
+        !form.fokontany.trim()
+      ) {
+        setError(
+          "Indiquez le district, la commune et le fokontany : c’est ainsi que le terrain est retrouvé sur place.",
+        );
+        return;
+      }
+      if (form.directions.trim().length < 10) {
+        setError(
+          "Ajoutez un repère d’accès (ex. « derrière la station Jovenna, à 200 m de l’EPP »).",
+        );
+        return;
+      }
     }
-    if (step === 3 && photos.length === 0) {
-      setError("Ajoutez au moins une photo du terrain.");
-      return;
+    if (step === 3) {
+      if (photos.length === 0 && !form.noPhoto) {
+        setError(
+          "Ajoutez au moins une photo, ou cochez « Je n’ai pas de photos » : l’agence passera en prendre lors de la visite.",
+        );
+        return;
+      }
+      // Le vendeur doit dire ce qu'il a — « aucun document » compris. La fiche
+      // arrive ainsi toujours renseignée, sans écarter ceux qui n'ont rien.
+      if (docTypes.length === 0) {
+        setError(
+          "Indiquez ce que vous avez comme documents — choisissez « Aucun document pour l’instant » si vous n’avez rien.",
+        );
+        return;
+      }
     }
     setStep((s) => Math.min(s + 1, 4));
     scrollToForm();
@@ -208,46 +296,55 @@ export default function Sell() {
       ? !form.firstName.trim() ||
         !form.lastName.trim() ||
         !form.phone.trim() ||
-        !form.idNumber.trim()
+        !form.idType ||
+        idFiles.length === 0
       : step === 1
         ? !form.title.trim() ||
           !form.area.trim() ||
-          !form.price.trim() ||
-          !form.description.trim()
+          !form.description.trim() ||
+          (form.priceKnown === "Oui" && !form.price.trim())
         : step === 2
-          ? !form.commune.trim() || !form.district.trim() || !coords
+          ? !form.commune.trim() ||
+            !form.district.trim() ||
+            !form.fokontany.trim() ||
+            form.directions.trim().length < 10
           : step === 3
-            ? photos.length === 0
-            : !consents.c1 || !consents.c2 || !consents.c3 || !consents.c4;
+            ? (photos.length === 0 && !form.noPhoto) || docTypes.length === 0
+            : // Dernière étape : les trois confirmations.
+              !consents.c1 || !consents.c2 || !consents.c3;
 
   const composeMessage = () => {
     const lines = [
       `— Propriétaire —`,
-      `${form.firstName} ${form.lastName} (${form.birthDate || "n.c."}) — ${form.profession || "n.c."}`,
-      `Résidence : ${form.country} — Compte bancaire : ${form.bankAccount}`,
-      `Pièce : ${form.idType} ${form.idNumber || "n.c."}${idFiles.length ? ` (${idFiles.join(", ")})` : ""}`,
+      `${form.firstName} ${form.lastName} — situation : ${form.ownerStatus}`,
+      `WhatsApp : ${form.whatsapp}${form.email ? ` — Email : ${form.email}` : ""}`,
+      `Pièce d’identité : ${form.idType}${idFiles.length ? ` (${idFiles.join(", ")})` : ""}`,
       ``,
       `— Terrain —`,
-      `${form.title} — ${form.area} m² — ${form.price} Ar souhaités`,
+      `${form.title} — ${areaInM2()} m² (${form.area} ${form.areaUnit})`,
+      form.priceKnown === "Oui"
+        ? `Prix souhaité : ${form.price} Ar`
+        : `Prix : estimation demandée à CA IMMO`,
       `Relief : ${form.relief} — Accès : ${form.access} — Eau : ${form.water} — Électricité : ${form.electricity}`,
       form.description.trim(),
       ``,
       `— Localisation —`,
-      `${form.commune}, ${form.district}${form.fokontany ? `, ${form.fokontany}` : ""} (${form.region})`,
+      `${form.fokontany}, ${form.commune}, ${form.district} (${form.region})`,
+      form.directions.trim() ? `Repère d’accès : ${form.directions.trim()}` : "",
       coords
         ? `Position GPS : ${coords.lat}, ${coords.lng}`
-        : "Position non indiquée sur la carte",
-      form.directions.trim() ? `Accès : ${form.directions.trim()}` : "",
+        : "Position GPS non indiquée (à relever lors de la visite)",
       ``,
       `— Documents —`,
-      `Photos : ${photos.join(", ") || "aucune"}`,
+      photos.length
+        ? `Photos : ${photos.join(", ")}`
+        : "Photos : aucune — passage de l’agence à prévoir",
       video.length ? `Vidéo : ${video.join(", ")}` : "",
-      `Types de documents : ${docTypes.join(", ") || "à préciser"}`,
+      `Types de documents : ${docTypes.join(", ") || "à préciser avec le propriétaire"}`,
       docs.length ? `Fichiers : ${docs.join(", ")}` : "",
       ``,
       `— Conditions —`,
-      `Paiement accepté : ${form.payment}${form.payment !== "Comptant" ? ` (durée max ${form.duration})` : ""}`,
-      `Acompte minimum : ${form.deposit === "Personnalisé" ? `${form.customDeposit || "—"} %` : form.deposit}`,
+      `Paiement accepté : ${form.payment}${form.payment !== "Comptant" ? ` (étalement : ${form.duration})` : ""}`,
     ].filter((l) => l !== "");
     return lines.join("\n");
   };
@@ -288,10 +385,6 @@ export default function Sell() {
       setError(email);
       return;
     }
-    if (!form.idNumber.trim()) {
-      setError("Merci d’indiquer le numéro de votre pièce d’identité.");
-      return;
-    }
     if (!form.title.trim()) {
       setError(
         "Donnez un titre à votre annonce (ex. « Terrain clos à Ivato »).",
@@ -299,16 +392,28 @@ export default function Sell() {
       return;
     }
     if (!isPositiveNumber(form.area)) {
-      setError("Indiquez la surface du terrain en m² (ex. 650).");
+      setError(`Indiquez la surface du terrain en ${form.areaUnit} (ex. 650).`);
       return;
     }
-    if (!isPositiveNumber(form.price)) {
+    if (form.priceKnown === "Oui" && !isPositiveNumber(form.price)) {
       setError("Indiquez le prix souhaité en Ariary (ex. 120000000).");
       return;
     }
-    if (!consents.c1 || !consents.c2 || !consents.c3 || !consents.c4) {
+    if (!form.idType) {
+      setError("Indiquez le type de votre pièce d’identité (CIN, passeport ou carte de résident).");
+      setStep(4);
+      return;
+    }
+    if (idFiles.length === 0) {
       setError(
-        "Merci de confirmer les trois points du dossier et de prendre connaissance des informations sur les données personnelles.",
+        "Joignez une pièce d’identité (photo ou PDF) : c’est obligatoire pour déposer un terrain. Un souci pour l’envoyer ? Appelez-nous, nous enregistrons le dossier avec vous.",
+      );
+      setStep(4);
+      return;
+    }
+    if (!consents.c1 || !consents.c2 || !consents.c3) {
+      setError(
+        "Merci de confirmer les trois points du dossier avant l’envoi.",
       );
       return;
     }
@@ -316,15 +421,13 @@ export default function Sell() {
       fullName: `${form.firstName} ${form.lastName}`.trim(),
       phone: form.phone,
       email: form.email || undefined,
-      birthDate: form.birthDate,
-      profession: form.profession,
-      country: form.country,
-      bankAccount: form.bankAccount,
-      idType: form.idType,
-      idNumber: form.idNumber,
+      whatsapp: form.whatsapp,
+      ownerStatus: form.ownerStatus,
+      estimateRequested: form.priceKnown === "Non" ? "Oui" : undefined,
+      idType: form.idType || undefined,
       title: form.title,
-      area: Number(form.area) || 0,
-      price: Number(form.price) || 0,
+      area: areaInM2(),
+      price: Number(form.price.replace(",", ".")) || 0,
       description: form.description,
       relief: form.relief,
       access: form.access,
@@ -338,11 +441,12 @@ export default function Sell() {
       lat: coords?.lat,
       lng: coords?.lng,
       payment: form.payment,
-      paymentDuration: form.duration,
-      deposit:
-        form.deposit === "Personnalisé"
-          ? `${form.customDeposit || "—"} %`
-          : form.deposit,
+      // L'étalement n'est demandé que s'il peut accepter un paiement échelonné.
+      paymentDuration:
+        form.payment === "Comptant" ? "Non concerné (comptant)" : form.duration,
+      // L'acompte et le rythme des versements se conviennent avec l'agence :
+      // on l'écrit noir sur blanc plutôt que de laisser le champ vide.
+      deposit: "À convenir avec l’agence",
       photoNames: photos,
       videoNames: video,
       docNames: docs,
@@ -435,10 +539,10 @@ export default function Sell() {
                   </p>
                   <div className="mt-6 space-y-3 border-t border-white/10 pt-6">
                     {[
-                      "Pièce d’identité valide",
-                      "Photos récentes du terrain",
-                      "Document foncier ou justificatif",
-                      "Localisation précise",
+                      "Le nom du fokontany et un repère sur place",
+                      "Ce que vous savez du terrain : surface, limites, accès",
+                      "Les papiers que vous avez, même anciens ou coutumiers",
+                      "Une photo de votre pièce d’identité (demandée dès la première étape)",
                     ].map((t, i) => (
                       <p
                         key={t}
@@ -544,7 +648,16 @@ export default function Sell() {
                               }
                             />
                           </FormField>
-                          <FormField label="Adresse email">
+                          <FormField label="Ce numéro est-il sur WhatsApp ?" required>
+                            <Select
+                              value={form.whatsapp}
+                              onChange={(e) => set("whatsapp", e.target.value)}
+                            >
+                              <option>Oui</option>
+                              <option>Non</option>
+                            </Select>
+                          </FormField>
+                          <FormField label="Adresse email" className="sm:col-span-2">
                             <Input
                               type="email"
                               placeholder="vous@exemple.com"
@@ -552,52 +665,12 @@ export default function Sell() {
                               onChange={(e) => set("email", e.target.value)}
                             />
                           </FormField>
-                          <FormField label="Date de naissance">
-                            <Input
-                              type="date"
-                              value={form.birthDate}
-                              onChange={(e) => set("birthDate", e.target.value)}
-                            />
-                          </FormField>
-                          <FormField label="Profession">
-                            <Input
-                              placeholder="Votre profession"
-                              value={form.profession}
-                              onChange={(e) =>
-                                set("profession", e.target.value)
-                              }
-                            />
-                          </FormField>
-                          <FormField label="Pays de résidence" required>
-                            <Select
-                              value={form.country}
-                              onChange={(e) => set("country", e.target.value)}
-                            >
-                              <option>Madagascar</option>
-                              <option>France</option>
-                              <option>La Réunion</option>
-                              <option>Autre</option>
-                            </Select>
-                          </FormField>
-                          <FormField
-                            label="Titulaire d’un compte bancaire ?"
-                            required
-                          >
-                            <Select
-                              value={form.bankAccount}
-                              onChange={(e) =>
-                                set("bankAccount", e.target.value)
-                              }
-                            >
-                              <option>Oui</option>
-                              <option>Non</option>
-                            </Select>
-                          </FormField>
                         </div>
 
                         <div className="border-t border-navy-900/8 pt-7">
                           <h3 className="text-xs font-semibold uppercase tracking-[0.24em] text-navy-900/70">
-                            Justificatif d’identité
+                            Pièce d’identité du vendeur{" "}
+                            <em className="not-italic text-gold-700">*</em>
                           </h3>
                           <div className="mt-5 grid gap-5 sm:grid-cols-2">
                             <FormField label="Type de pièce" required>
@@ -605,26 +678,17 @@ export default function Sell() {
                                 value={form.idType}
                                 onChange={(e) => set("idType", e.target.value)}
                               >
-                                <option>CIN</option>
-                                <option>Passeport</option>
-                                <option>Carte de résident</option>
-                                <option>Autre</option>
+                                <option value="">— Choisir le type de pièce —</option>
+                                {ID_TYPES.map((t) => (
+                                  <option key={t}>{t}</option>
+                                ))}
                               </Select>
-                            </FormField>
-                            <FormField label="Numéro de pièce" required>
-                              <Input
-                                placeholder="Numéro du document"
-                                value={form.idNumber}
-                                onChange={(e) =>
-                                  set("idNumber", e.target.value)
-                                }
-                              />
                             </FormField>
                           </div>
                           <div className="mt-5">
                             <UploadZone
-                              title="Ajouter le justificatif d’identité"
-                              text="CIN recto/verso ou passeport • PDF, JPG, PNG ou WebP • jusqu’à 4 fichiers"
+                              title="Joindre la pièce d’identité *"
+                              text="Un seul fichier suffit • PDF, JPG, PNG ou WebP • jusqu’à 4 fichiers"
                               accept=".pdf,.jpg,.jpeg,.png,.webp"
                               multiple
                               maxFiles={4}
@@ -634,9 +698,9 @@ export default function Sell() {
                               files={idFiles}
                             />
                           </div>
-                          <p className="mt-5 flex items-start gap-2.5 text-xs font-normal leading-relaxed text-navy-900/80">
+                          <p className="mt-4 flex items-start gap-2.5 text-xs font-normal leading-relaxed text-navy-900/80">
                             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-green-700" />
-                            Les pièces servent à étudier votre dossier vendeur. Consultez les <Link to="/confidentialite" className="font-semibold underline decoration-gold-500 underline-offset-2">informations sur le traitement de vos données</Link>.
+                            <Link to="/confidentialite" className="font-semibold underline decoration-gold-500 underline-offset-2">Informations sur le traitement de vos données</Link>.
                           </p>
                         </div>
                       </div>
@@ -659,29 +723,83 @@ export default function Sell() {
                           <FormField
                             label="Superficie totale"
                             required
-                            hint="En mètres carrés"
+                            hint={
+                              areaInM2() > 0
+                                ? `Soit ${areaInM2().toLocaleString("fr-FR")} m² — c’est cette valeur qui sera enregistrée.`
+                                : "Indiquez la surface, puis son unité."
+                            }
                           >
                             <Input
                               type="number"
                               min={0}
-                              placeholder="Ex. 650"
+                              step="any"
+                              placeholder={
+                                form.areaUnit === "hectare"
+                                  ? "Ex. 3"
+                                  : form.areaUnit === "are"
+                                    ? "Ex. 50"
+                                    : "Ex. 650"
+                              }
                               value={form.area}
                               onChange={(e) => set("area", e.target.value)}
                             />
                           </FormField>
                           <FormField
-                            label="Prix total souhaité"
+                            label="Unité de la superficie"
                             required
-                            hint="En Ariary (Ar)"
+                            hint="« are » ou « hectare » sont acceptés : la conversion en m² est automatique."
                           >
-                            <Input
-                              type="number"
-                              min={0}
-                              placeholder="Ex. 120 000 000"
-                              value={form.price}
-                              onChange={(e) => set("price", e.target.value)}
+                            <Select
+                              value={form.areaUnit}
+                              onChange={(e) =>
+                                set(
+                                  "areaUnit",
+                                  e.target.value as (typeof AREA_UNITS)[number],
+                                )
+                              }
+                            >
+                              {AREA_UNITS.map((u) => (
+                                <option key={u}>{u}</option>
+                              ))}
+                            </Select>
+                          </FormField>
+                          <FormField
+                            label="Prix : le connaissez-vous déjà ?"
+                            required
+                            className="sm:col-span-2"
+                            hint="Répondre « Je préfère que CA IMMO estime » est une réponse normale : vous n’êtes pas obligé d’avoir un chiffre."
+                          >
+                            <ChoiceCards<"Oui" | "Non">
+                              value={form.priceKnown}
+                              onChange={(v) => set("priceKnown", v)}
+                              options={[
+                                {
+                                  value: "Oui",
+                                  label: "Oui, j’ai un prix en tête",
+                                },
+                                {
+                                  value: "Non",
+                                  label: "Je préfère que CA IMMO estime",
+                                },
+                              ]}
                             />
                           </FormField>
+                          {form.priceKnown === "Oui" && (
+                            <FormField
+                              label="Prix total souhaité"
+                              required
+                              className="sm:col-span-2"
+                              hint="En Ariary — vous pouvez écrire 120000000 (soit 120 millions Ar)."
+                            >
+                              <Input
+                                type="number"
+                                min={0}
+                                placeholder="Ex. 120000000"
+                                value={form.price}
+                                onChange={(e) => set("price", e.target.value)}
+                              />
+                            </FormField>
+                          )}
                           <FormField label="Relief du terrain" required>
                             <ChoiceCards<(typeof RELIEFS)[number]>
                               value={form.relief}
@@ -693,6 +811,21 @@ export default function Sell() {
                             />
                           </FormField>
                         </div>
+
+                        <FormField
+                          label="Votre situation vis-à-vis du terrain"
+                          required
+                        >
+                          <ChoiceCards<string>
+                            value={form.ownerStatus}
+                            onChange={(v) => set("ownerStatus", v)}
+                            columns={1}
+                            options={OWNER_STATUSES.map((s) => ({
+                              value: s,
+                              label: s,
+                            }))}
+                          />
+                        </FormField>
 
                         <FormField
                           label="Description du terrain"
@@ -779,7 +912,7 @@ export default function Sell() {
                               onChange={(e) => set("commune", e.target.value)}
                             />
                           </FormField>
-                          <FormField label="Fokontany">
+                          <FormField label="Fokontany" required>
                             <Input
                               placeholder="Nom du fokontany"
                               value={form.fokontany}
@@ -788,21 +921,27 @@ export default function Sell() {
                           </FormField>
                         </div>
 
+                        {/* À Madagascar, un terrain se retrouve par ses repères
+                            (« à côté de l'école EPP », « derrière la station
+                            Jovenna »), pas par ses coordonnées GPS. Le repère
+                            écrit est donc obligatoire ; la carte reste un
+                            bonus pour ceux qui savent s'en servir. */}
                         <FormField
-                          label="Indications d’accès"
-                          hint="Décrivez l’accès depuis un point de repère connu."
+                          label="Repère d’accès"
+                          required
+                          hint="Comment trouve-t-on le terrain sur place ? Un point connu suffit."
                         >
                           <Textarea
                             rows={3}
-                            placeholder="Ex. Depuis la RN4, tourner après la station…"
+                            placeholder="Ex. Fokontany Ambohipo, à 200 m de l’école EPP derrière la station Jovenna, 2e portail bleu après le canal…"
                             value={form.directions}
                             onChange={(e) => set("directions", e.target.value)}
                           />
                         </FormField>
 
                         <FormField
-                          label="Position du terrain sur la carte"
-                          required
+                          label="Position sur la carte"
+                          hint="Utile si vous savez placer le repère. Sinon, notre équipe relève la position lors de la visite du terrain."
                         >
                           <GeoMapPicker
                             lat={coords?.lat}
@@ -840,9 +979,26 @@ export default function Sell() {
                             <em className="not-italic text-gold-700">*</em>
                           </h3>
                           <p className="mt-1.5 text-xs font-normal text-navy-900/80">
-                            Ajoutez au moins une photo : vue générale, accès et
-                            limites du terrain.
+                            Une photo prise au téléphone suffit : vue générale, accès et limites du terrain.
                           </p>
+                          <label className="mt-4 flex cursor-pointer items-start gap-3.5 rounded-2xl border border-navy-900/8 bg-white px-5 py-4">
+                            <input
+                              type="checkbox"
+                              className="peer sr-only"
+                              checked={form.noPhoto}
+                              onChange={(e) =>
+                                set("noPhoto", e.target.checked)
+                              }
+                            />
+                            <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border border-navy-900/25 transition peer-checked:border-gold-500 peer-checked:bg-gold-500 peer-focus-visible:ring-2 peer-focus-visible:ring-navy-900/60 peer-focus-visible:ring-offset-2">
+                              <Check
+                                className={`h-3.5 w-3.5 ${form.noPhoto ? "text-navy-900" : "text-transparent"}`}
+                              />
+                            </span>
+                            <span className="text-xs font-normal leading-relaxed text-navy-900/85">
+                              Je n’ai pas de photos pour le moment
+                            </span>
+                          </label>
                           <div className="mt-4">
                             <UploadZone
                               title="Ajouter les photos"
@@ -864,8 +1020,7 @@ export default function Sell() {
                             Vidéo du terrain
                           </h3>
                           <p className="mt-1.5 text-xs font-normal text-navy-900/80">
-                            Une courte vidéo aide les acheteurs à mieux
-                            visualiser le terrain.
+                            Une courte vidéo aide les acheteurs à mieux visualiser le terrain.
                           </p>
                           <div className="mt-4">
                             <UploadZone
@@ -888,28 +1043,33 @@ export default function Sell() {
                             Documents fonciers{" "}
                             <em className="not-italic text-gold-700">*</em>
                           </h3>
-                          <p className="mt-1.5 text-xs font-normal text-navy-900/80">
-                            Sélectionnez les documents dont vous disposez. Les formats et limites de dépôt sont indiqués ci-dessous.
-                          </p>
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            {DOC_TYPES.map((d) => (
-                              <button
-                                key={d}
-                                type="button"
-                                onClick={() => toggleDocType(d)}
-                                className={
-                                  docTypes.includes(d)
-                                    ? "chip-on"
-                                    : "chip-off !bg-white/70"
-                                }
-                              >
-                                {docTypes.includes(d) && (
-                                  <Check className="h-3.5 w-3.5" />
-                                )}
-                                <FileText className="h-3.5 w-3.5" />
-                                {d}
-                              </button>
-                            ))}
+                          <div className="mt-4 space-y-2.5">
+                            {DOC_TYPES.map((d) => {
+                              const active = docTypes.includes(d);
+                              return (
+                                <label
+                                  key={d}
+                                  className={`flex cursor-pointer items-center gap-3.5 rounded-2xl border px-5 py-3.5 transition ${
+                                    active
+                                      ? "border-gold-500/60 bg-gold-500/10"
+                                      : "border-navy-900/8 bg-white hover:border-navy-900/20"
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    className="peer sr-only"
+                                    checked={active}
+                                    onChange={() => toggleDocType(d)}
+                                  />
+                                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md border border-navy-900/25 transition peer-checked:border-gold-500 peer-checked:bg-gold-500 peer-focus-visible:ring-2 peer-focus-visible:ring-navy-900/60 peer-focus-visible:ring-offset-2">
+                                    <Check
+                                      className={`h-3.5 w-3.5 ${active ? "text-navy-900" : "text-transparent"}`}
+                                    />
+                                  </span>
+                                  <span className="text-xs font-normal text-navy-900">{d}</span>
+                                </label>
+                              );
+                            })}
                           </div>
                           <div className="mt-4">
                             <UploadZone
@@ -965,45 +1125,22 @@ export default function Sell() {
                         </FormField>
 
                         {form.payment !== "Comptant" && (
-                          <FormField label="Durée maximale acceptée" required>
+                          <FormField
+                            label="Sur quelle durée acceptez-vous un étalement ?"
+                            required
+                            hint="« À discuter » est une réponse parfaitement acceptable : le conseiller en parle avec vous."
+                          >
                             <Select
                               value={form.duration}
                               onChange={(e) => set("duration", e.target.value)}
                             >
+                              <option>À discuter</option>
                               <option>0–4 mois</option>
                               <option>4–6 mois</option>
                               <option>6–10 mois</option>
                               <option>10–12 mois</option>
-                              <option>Autre durée</option>
+                              <option>Plus de 12 mois</option>
                             </Select>
-                          </FormField>
-                        )}
-
-                        <FormField label="Acompte minimum demandé" required>
-                          <ChoiceCards<
-                            (typeof DEPOSITS)[number] | "Personnalisé"
-                          >
-                            value={form.deposit}
-                            onChange={(v) => set("deposit", v)}
-                            columns={4}
-                            options={[
-                              ...DEPOSITS.map((d) => ({ value: d, label: d })),
-                              { value: "Personnalisé", label: "Personnalisé" },
-                            ]}
-                          />
-                        </FormField>
-                        {form.deposit === "Personnalisé" && (
-                          <FormField label="Pourcentage personnalisé">
-                            <Input
-                              type="number"
-                              min={1}
-                              max={100}
-                              placeholder="Ex. 30"
-                              value={form.customDeposit}
-                              onChange={(e) =>
-                                set("customDeposit", e.target.value)
-                              }
-                            />
                           </FormField>
                         )}
 
@@ -1044,7 +1181,11 @@ export default function Sell() {
                                   Prix souhaité
                                 </small>
                                 <strong className="truncate text-xs font-medium text-navy-900">
-                                  {form.price ? `${form.price} Ar` : "—"}
+                                  {form.priceKnown === "Non"
+                                    ? "Estimation par CA IMMO"
+                                    : form.price
+                                      ? `${form.price} Ar`
+                                      : "—"}
                                 </strong>
                               </div>
                             </div>
@@ -1060,14 +1201,10 @@ export default function Sell() {
                             },
                             {
                               key: "c2" as const,
-                              text: "Vous acceptez que notre équipe vous contacte pour organiser l’étude du dossier.",
+                              text: "Vous acceptez que notre équipe vous contacte pour étudier le dossier, et vous comprenez que le terrain ne sera proposé aux acheteurs qu’après étude.",
                             },
                             {
                               key: "c3" as const,
-                              text: "Vous comprenez que le terrain ne sera publié qu’après validation du dossier.",
-                            },
-                            {
-                              key: "c4" as const,
                               text: <>J’ai pris connaissance des <Link to="/confidentialite" onClick={(event) => event.stopPropagation()} className="font-semibold underline decoration-gold-500 underline-offset-2">informations sur les données personnelles</Link>.</>,
                             },
                           ].map(({ key, text }) => (

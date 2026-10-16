@@ -75,6 +75,8 @@ export interface SpecificSearch {
   fullName: string;
   phone: string;
   email: string;
+  /** Le numéro laissé est-il joignable sur WhatsApp ? (question posée par le site public) */
+  whatsapp: string;
   // Besoin
   usage: string;
   budgetMax: number;
@@ -113,6 +115,7 @@ export const emptySearchFields = (): SearchFields => ({
   fullName: '',
   phone: '',
   email: '',
+  whatsapp: 'Oui',
   usage: 'Habitation',
   budgetMax: 0,
   areaMin: 0,

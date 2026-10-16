@@ -1,8 +1,12 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useState } from 'react';
-import { Circle, MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet';
+import { Circle, MapContainer, Marker, useMapEvents } from 'react-leaflet';
+import { Map as MapIcon, Satellite } from 'lucide-react';
 import { btn } from './kit';
+import PlaceSearchBox from '../../shared/PlaceSearchBox';
+import { BaseMapLayer, MAP_MAX_ZOOM, type MapGap } from '../../shared/mapTiles';
+import type { Place } from '../../services/placeService';
 
 // ---------- Carte ----------
 // Repère unifié — identique au site public (shared/GeoMapPicker).
@@ -44,6 +48,9 @@ export default function MapPicker({
   const [satellite, setSatellite] = useState(false); // Plan par défaut — comme le site public
   const [map, setMap] = useState<L.Map | null>(null);
   const [geoError, setGeoError] = useState('');
+  // Ce qui manque à cet endroit : pas de photo satellite, et/ou plan sans
+  // détail à ce zoom (détecté tuile par tuile par le fond de carte).
+  const [gap, setGap] = useState<MapGap>({ imagery: false, plan: false });
   // lat/lng peuvent valoir null (recherche publique sans point placé) : on ne garde que des nombres valides.
   const pos: [number, number] | undefined =
     typeof lat === 'number' &&
@@ -54,6 +61,14 @@ export default function MapPicker({
       : undefined;
   const set = (a: number, b: number) =>
     onChange?.(Number(a.toFixed(6)), Number(b.toFixed(6)));
+
+  /* Recherche de lieu : même composant que le site public — la liste des
+     propositions reste ouverte après un choix. */
+  const goToPlace = (p: Place) => {
+    setGeoError('');
+    set(p.lat, p.lng);
+    map?.setView([p.lat, p.lng], 16);
+  };
 
   const locate = () => {
     setGeoError('');
@@ -74,6 +89,17 @@ export default function MapPicker({
 
   return (
     <div>
+      {!readOnly && (
+        <PlaceSearchBox
+          onSelect={goToPlace}
+          className="mb-3"
+          near={() => {
+            const c = map?.getCenter();
+            return c ? { lat: c.lat, lng: c.lng } : undefined;
+          }}
+        />
+      )}
+
       {/* isolate : les calques Leaflet restent sous les modales. */}
       <div
         className={`relative isolate z-0 ${height} rounded-xl overflow-hidden border border-gray-200`}
@@ -81,22 +107,24 @@ export default function MapPicker({
         <MapContainer
           center={pos ?? TANA}
           zoom={pos ? 16 : 11}
+          maxZoom={MAP_MAX_ZOOM}
           className="w-full h-full z-0"
           ref={setMap}
           scrollWheelZoom
         >
-          {satellite ? (
-            <TileLayer
-              attribution="Tiles &copy; Esri"
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-              maxZoom={19}
-            />
-          ) : (
-            <TileLayer
-              attribution="&copy; OpenStreetMap"
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-          )}
+          {/* Fonds de carte partagés avec le site public : les tuiles
+              d'imagerie non couvertes sont détectées et masquées (le plan
+              apparaît dessous), et la carte borne elle-même le zoom au
+              dernier niveau réellement couvert. */}
+          <BaseMapLayer
+            satellite={satellite}
+            onGap={setGap}
+            onImageryUnavailable={() =>
+              setGeoError(
+                'Imagerie satellite momentanément inaccessible — passez en vue Plan pour continuer.',
+              )
+            }
+          />
           {!readOnly && <ClickToPlace onPick={set} />}
           {pos && radiusKm ? (
             <Circle
@@ -122,10 +150,20 @@ export default function MapPicker({
         <div className="absolute top-3 right-3 z-[400] flex flex-col gap-2">
           <button
             type="button"
-            onClick={() => setSatellite(!satellite)}
+            onClick={() => {
+              setSatellite(!satellite);
+              setGeoError('');
+              setGap({ imagery: false, plan: false });
+            }}
+            aria-pressed={satellite}
             className={`${btn} bg-white shadow text-navy-900 hover:bg-gray-50`}
           >
-            {satellite ? 'Plan' : 'Satellite'}
+            {satellite ? (
+              <MapIcon className="w-3.5 h-3.5" aria-hidden />
+            ) : (
+              <Satellite className="w-3.5 h-3.5" aria-hidden />
+            )}
+            {satellite ? 'Vue plan' : 'Vue satellite'}
           </button>
           {!readOnly && (
             <button
@@ -140,12 +178,34 @@ export default function MapPicker({
       </div>
       {!readOnly && (
         <p className="text-xs text-gray-600 mt-1.5">
-          Cliquez sur la carte ou déplacez le marqueur pour enregistrer la
-          position exacte.
+          Recherchez un lieu, zoomez, puis cliquez sur la carte ou déplacez le
+          marqueur pour enregistrer la position exacte.
         </p>
+      )}
+      {gap.plan && (
+        <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">
+          <strong className="font-semibold">Zone peu cartographiée à ce niveau de zoom.</strong>{' '}
+          Les fonds de carte n’ont plus de détail ici : zoomez moins, et fiez-vous
+          au repère écrit saisi par le propriétaire.
+        </p>
+      )}
+
+      {satellite && !gap.imagery && (
+        <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">
+          L’imagerie satellite n’existe pas partout à Madagascar : son niveau de
+          détail s’arrête plus tôt hors des grandes villes. La carte s’arrête
+          d’elle-même au dernier zoom réellement couvert — aucune tuile grise.
+          Le plan, lui, couvre tout le pays.
+        </p>
+      )}
+
+      {satellite && gap.imagery && (
+        <p className="text-xs text-amber-800 mt-1.5 leading-relaxed">
+          <strong className="font-semibold">Pas de photo satellite à ce zoom, ici.</strong>{' '}
+          L’imagerie s’arrête plus tôt qu’en ville à cet endroit : le plan s’affiche
+          à sa place (fokontany, pistes, repères). On peut continuer à zoomer.</p>
       )}
       {geoError && <p className="text-xs text-red-600 mt-1">{geoError}</p>}
     </div>
   );
 }
-

@@ -69,6 +69,8 @@ class LandFileController extends Controller
                 'salePayment' => $data['payment'] ?? ($detail['salePayment'] ?? ''),
                 'maxDuration' => $data['paymentDuration'] ?? ($detail['maxDuration'] ?? ''),
                 'depositRange' => $data['deposit'] ?? ($detail['depositRange'] ?? ''),
+                'ownerStatus' => $data['ownerStatus'] ?? ($detail['ownerStatus'] ?? ''),
+                'estimateRequested' => $data['estimateRequested'] ?? ($detail['estimateRequested'] ?? ''),
                 'summary' => $data['summary'] ?? ($detail['summary'] ?? ''),
             ] as $key => $value) {
                 $detail[$key] = $value;
@@ -172,6 +174,9 @@ class LandFileController extends Controller
             'salePayment' => $data['payment'] ?? '',
             'maxDuration' => $data['paymentDuration'] ?? '',
             'depositRange' => $data['deposit'] ?? '',
+            // Déclaré par le vendeur au dépôt (visible dans la fiche VEN).
+            'ownerStatus' => $data['ownerStatus'] ?? '',
+            'estimateRequested' => $data['estimateRequested'] ?? '',
             // Vidéos et éventuelles pièces d'identité au-delà de la 1ère : pas
             // de case dédiée dans la fiche, elles restent visibles dans
             // « Fichiers reçus du site web ».

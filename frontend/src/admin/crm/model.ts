@@ -17,6 +17,19 @@ export const SOURCES = ['Site web', 'Téléphone', 'Facebook', 'WhatsApp', 'Agen
 export const PRIORITIES = ['Faible', 'Normale', 'Haute', 'Urgente'] as const;
 
 export const BUY_PAYMENT = ['Paiement comptant – règlement en une fois', 'Facilité de paiement – paiement échelonné'] as const;
+
+/* Le site public envoie un vocabulaire court (« Comptant », « Facilité ») alors
+   que le back office raisonne avec ses libellés longs. Sans cette mise en
+   correspondance, une demande venue du site n'était reconnue NI comme un
+   paiement échelonné (la « Tranche d'apport » restait donc invisible sur la
+   fiche), NI par le filtre « Paiement », et la liste déroulante du formulaire
+   « Modifier » s'ouvrait sur une valeur inexistante. */
+export function normaliserDemandeSite<T extends { paymentMode?: string }>(r: T): T {
+  const mode = (r.paymentMode ?? '').trim();
+  if (/^facilit/i.test(mode)) return { ...r, paymentMode: BUY_PAYMENT[1] };
+  if (/^comptant/i.test(mode)) return { ...r, paymentMode: BUY_PAYMENT[0] };
+  return r;
+}
 export const PROPERTY_TYPES = ['Terrain', 'Maison', 'Appartement', 'Villa', 'Immeuble', 'Local commercial', 'Autre'];
 export const BUY_GOALS = ['Résidence principale', 'Investissement', 'Construction', 'Projet commercial', 'Projet professionnel', 'Autre'];
 export const BUY_STATUSES = [
@@ -122,6 +135,13 @@ export interface BuyRequest extends Person {
   goal: string;
   deadline: string;
   extraInfo: string;
+  /** Fourchette de budget telle que saisie sur le site (« 50 à 100 millions Ar »). */
+  budget?: string;
+  /** Moyen de règlement préféré (Mobile Money, virement, espèces, à voir). */
+  /** Tranche d'apport choisie pour un paiement échelonné. */
+  downPaymentRange?: string;
+  /** Le numéro laissé sur le site est-il joignable sur WhatsApp ? */
+  whatsapp?: string;
   consent: boolean;
   agent: string;
   priority: Priority;
@@ -149,6 +169,10 @@ export interface LandFile {
   id: string;
   createdAt: string;
   updatedAt: string;
+  /** Déclaré par le vendeur au dépôt (propriétaire inscrit, indivision, mandataire). */
+  ownerStatus?: string;
+  /** Le vendeur a demandé une estimation de prix à CA IMMO (« Oui »). */
+  estimateRequested?: string;
   /** Fiche dans la base clients (rapprochée par email/téléphone à la soumission) — permet de retrouver tous les dossiers d'un même client depuis sa fiche. */
   clientId?: string;
   // Propriétaire

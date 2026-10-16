@@ -1,15 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Circle, useMapEvents } from 'react-leaflet';
+import { useState } from 'react';
+import { MapContainer, Marker, Circle, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { LocateFixed, Search, X } from 'lucide-react';
+import { Info, LocateFixed, Satellite, Map as MapIcon } from 'lucide-react';
+import PlaceSearchBox from './PlaceSearchBox';
+import { BaseMapLayer, MAP_MAX_ZOOM, type MapGap } from './mapTiles';
+import type { Place } from '../services/placeService';
 
 /* ==========================================================================
    Carte réelle (OpenStreetMap / satellite Esri) pour le site public :
-   le visiteur recherche son quartier (géocodage Nominatim), zoome,
-   clique pour placer le repère ou le déplace à la souris. Les coordonnées
-   GPS réelles (lat/lng) sont transmises au backend — mêmes cartes que le
-   back office.
+   le visiteur recherche son quartier, zoome, clique pour placer le repère ou
+   le déplace à la souris. Les coordonnées GPS réelles (lat/lng) sont
+   transmises au backend — mêmes cartes que le back office.
+
+   La recherche et les fonds de carte sont partagés avec le back office
+   (`PlaceSearchBox` et `mapTiles`) : un seul comportement à maintenir, et un
+   correctif d'affichage profite partout.
    ========================================================================== */
 
 const TANA: [number, number] = [-18.8792, 47.5079];
@@ -23,12 +29,6 @@ const pin = L.divIcon({
   iconSize: [30, 38],
   iconAnchor: [15, 37],
 });
-
-interface GeoResult {
-  lat: string;
-  lon: string;
-  display_name: string;
-}
 
 function ClickToPlace({ onPick }: { onPick: (lat: number, lng: number) => void }) {
   useMapEvents({ click: (e) => onPick(e.latlng.lat, e.latlng.lng) });
@@ -46,11 +46,10 @@ export default function GeoMapPicker({ lat, lng, onChange, radiusKm, height = 'h
 }) {
   const [map, setMap] = useState<L.Map | null>(null);
   const [satellite, setSatellite] = useState(false);
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<GeoResult[]>([]);
-  const [searching, setSearching] = useState(false);
   const [notice, setNotice] = useState('');
-  const debounce = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Ce qui manque à cet endroit : pas de photo satellite, et/ou plan sans
+  // détail à ce zoom. Le composant de carte le détecte tuile par tuile.
+  const [gap, setGap] = useState<MapGap>({ imagery: false, plan: false });
 
   const pos: [number, number] | undefined =
     typeof lat === 'number' && Number.isFinite(lat) && typeof lng === 'number' && Number.isFinite(lng)
@@ -59,45 +58,12 @@ export default function GeoMapPicker({ lat, lng, onChange, radiusKm, height = 'h
 
   const place = (a: number, b: number) => onChange?.(Number(a.toFixed(6)), Number(b.toFixed(6)));
 
-  /* — Géocodage Nominatim (OpenStreetMap), limité à Madagascar — */
-  const geocode = async (q: string) => {
-    setSearching(true);
+  /* — Choix d'une proposition : on cadre la carte sur le lieu, la liste de
+       propositions reste affichée (comportement Google Maps). — */
+  const goToPlace = (p: Place) => {
     setNotice('');
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=mg&limit=5&accept-language=fr&q=${encodeURIComponent(q)}`;
-      const res = await fetch(url, { headers: { Accept: 'application/json' } });
-      if (!res.ok) throw new Error();
-      const data = (await res.json()) as GeoResult[];
-      setResults(data);
-      if (!data.length) setNotice('Lieu introuvable — essayez un autre nom, ou zoomez et cliquez directement sur la carte.');
-    } catch {
-      setResults([]);
-      setNotice('Recherche momentanément indisponible — zoomez et cliquez directement sur la carte.');
-    } finally {
-      setSearching(false);
-    }
-  };
-
-  // Recherche automatique (déclenchée 500 ms après la fin de la saisie)
-  useEffect(() => {
-    clearTimeout(debounce.current);
-    const q = query.trim();
-    if (q.length < 3) {
-      setResults([]);
-      return;
-    }
-    debounce.current = setTimeout(() => void geocode(q), 500);
-    return () => clearTimeout(debounce.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query]);
-
-  const pick = (r: GeoResult) => {
-    const la = Number(r.lat);
-    const lo = Number(r.lon);
-    place(la, lo);
-    map?.setView([la, lo], 16);
-    setResults([]);
-    setQuery(r.display_name.split(',')[0]);
+    place(p.lat, p.lng);
+    map?.setView([p.lat, p.lng], 16);
   };
 
   const locate = () => {
@@ -120,57 +86,32 @@ export default function GeoMapPicker({ lat, lng, onChange, radiusKm, height = 'h
     <div>
       {/* — Recherche de lieu — */}
       {!readOnly && (
-      <div className="relative mb-3">
-        <div className="flex items-center gap-2 rounded-2xl border border-navy-900/10 bg-white px-4 py-3 focus-within:border-gold-500">
-          <Search className="h-4 w-4 shrink-0 text-navy-900/50" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                if (query.trim().length >= 3) void geocode(query.trim());
-              }
-            }}
-            placeholder="Rechercher un lieu… (ex. Ivato, Talatamaty, Ambohidratrimo)"
-            className="w-full bg-transparent text-sm text-navy-900 outline-none placeholder:text-navy-900/40"
-            aria-label="Rechercher un lieu sur la carte"
-          />
-          {searching && <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-gold-500 border-t-transparent" aria-hidden />}
-          {query && !searching && (
-            <button type="button" onClick={() => { setQuery(''); setResults([]); setNotice(''); }} aria-label="Effacer la recherche" className="shrink-0 text-navy-900/40 hover:text-navy-900">
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-        {results.length > 0 && (
-          <ul className="absolute left-0 right-0 top-full z-[500] mt-2 overflow-hidden rounded-2xl border border-navy-900/10 bg-white shadow-xl shadow-navy-900/10">
-            {results.map((r) => (
-              <li key={`${r.lat}-${r.lon}`}>
-                <button
-                  type="button"
-                  onClick={() => pick(r)}
-                  className="block w-full px-4 py-3 text-left text-sm text-navy-900 transition hover:bg-gold-500/10"
-                >
-                  {r.display_name}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+        <PlaceSearchBox
+          onSelect={goToPlace}
+          className="mb-3"
+          near={() => {
+            const c = map?.getCenter();
+            return c ? { lat: c.lat, lng: c.lng } : undefined;
+          }}
+        />
       )}
 
       {/* — Carte — */}
       {/* isolate : les calques Leaflet (z-index internes élevés) restent SOUS les modales. */}
       <div className={`relative isolate z-0 ${height} overflow-hidden rounded-[1.5rem] border border-navy-900/10`}>
-        <MapContainer center={pos ?? TANA} zoom={pos ? 16 : 11} className="z-0 h-full w-full" ref={setMap} scrollWheelZoom>
-          {satellite ? (
-            <TileLayer attribution="Tiles &copy; Esri" url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" maxZoom={19} />
-          ) : (
-            <TileLayer attribution="&copy; OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          )}
+        <MapContainer
+          center={pos ?? TANA}
+          zoom={pos ? 16 : 11}
+          maxZoom={MAP_MAX_ZOOM}
+          className="z-0 h-full w-full"
+          ref={setMap}
+          scrollWheelZoom
+        >
+          <BaseMapLayer
+            satellite={satellite}
+            onGap={setGap}
+            onImageryUnavailable={() => setNotice('Imagerie satellite momentanément inaccessible — passez en vue Plan pour continuer.')}
+          />
           {!readOnly && <ClickToPlace onPick={place} />}
           {pos && radiusKm ? <Circle center={pos} radius={radiusKm * 1000} pathOptions={{ color: '#f7c325', weight: 2, fillOpacity: 0.15 }} /> : null}
           {pos && (
@@ -182,13 +123,16 @@ export default function GeoMapPicker({ lat, lng, onChange, radiusKm, height = 'h
             />
           )}
         </MapContainer>
+
         <div className="absolute right-3 top-3 z-[400] flex flex-col gap-2">
           <button
             type="button"
-            onClick={() => setSatellite(!satellite)}
-            className="rounded-full bg-white px-4 py-2 text-xs font-semibold text-navy-900 shadow-md transition hover:bg-gray-50"
+            onClick={() => { setSatellite(!satellite); setNotice(''); setGap({ imagery: false, plan: false }); }}
+            aria-pressed={satellite}
+            className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs font-semibold text-navy-900 shadow-md transition hover:bg-gray-50"
           >
-            {satellite ? 'Plan' : 'Satellite'}
+            {satellite ? <MapIcon className="h-3.5 w-3.5" aria-hidden /> : <Satellite className="h-3.5 w-3.5" aria-hidden />}
+            {satellite ? 'Vue plan' : 'Vue satellite'}
           </button>
           {!readOnly && (
             <button
@@ -196,17 +140,56 @@ export default function GeoMapPicker({ lat, lng, onChange, radiusKm, height = 'h
               onClick={locate}
               className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs font-semibold text-navy-900 shadow-md transition hover:bg-gray-50"
             >
-              <LocateFixed className="h-3.5 w-3.5" /> Ma position
+              <LocateFixed className="h-3.5 w-3.5" aria-hidden /> Ma position
             </button>
           )}
         </div>
       </div>
+
       {!readOnly && (
         <p className="mt-1.5 text-xs font-normal text-navy-900/60">
           Recherchez un lieu, zoomez (molette ou boutons +/−), puis cliquez sur la carte ou déplacez le repère pour indiquer la position exacte.
         </p>
       )}
-      {notice && <p className="mt-1 text-xs font-medium text-amber-700">{notice}</p>}
+
+      {/* — Couverture satellite : information permanente, pas une erreur.
+           L'imagerie Esri n'est pas servie partout à Madagascar (elle s'arrête
+           à tel zoom selon la zone). Ces tuiles manquantes sont détectées et
+           remplacées par le plan : le gris « Map data not yet available » ne
+           s'affiche jamais. Ce texte explique simplement la limite. — */}
+      {satellite && !gap.imagery && (
+        <p className="mt-1.5 flex items-start gap-2 text-xs font-normal leading-relaxed text-navy-900/70">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-navy-900/50" aria-hidden />
+          L’imagerie satellite n’existe pas partout : son niveau de détail s’arrête plus tôt hors des grandes villes. La carte s’arrête alors d’elle-même au dernier zoom réellement couvert — vous ne verrez jamais de tuile grise. Le <button type="button" onClick={() => { setSatellite(false); setNotice(''); }} className="font-semibold text-navy-900 underline decoration-gold-500 underline-offset-2">plan</button>, lui, couvre tout Madagascar.
+        </p>
+      )}
+
+      {gap.plan && (
+        <p className="mt-1.5 flex items-start gap-2 text-xs font-normal leading-relaxed text-navy-900/70">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-navy-900/50" aria-hidden />
+          <span>
+            <strong className="font-semibold">Zone peu cartographiée à ce niveau de zoom.</strong>{' '}
+            Les fonds de carte n’ont plus de détail ici : zoomez moins, et appuyez-vous sur le
+            repère écrit (fokontany, élément connu) — c’est lui qui guide notre équipe.
+          </span>
+        </p>
+      )}
+
+      {satellite && gap.imagery && (
+        <p className="mt-1.5 flex items-start gap-2 text-xs font-normal leading-relaxed text-amber-800">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-700" aria-hidden />
+          <span>
+            <strong className="font-semibold">Pas de photo satellite à ce zoom, ici.</strong>{' '}
+            À cet endroit, l’imagerie s’arrête plus tôt qu’en ville : le plan s’affiche à sa
+            place (fokontany, pistes, repères), et vous pouvez continuer à zoomer pour placer
+            le repère. Restez en{' '}
+            <button type="button" onClick={() => { setSatellite(false); setNotice(''); setGap({ imagery: false, plan: false }); }} className="font-semibold underline decoration-gold-500 underline-offset-2">vue plan</button>{' '}
+            pour éviter ces zones sans photo.
+          </span>
+        </p>
+      )}
+
+      {notice && <p className="mt-1.5 text-xs font-medium text-amber-700">{notice}</p>}
     </div>
   );
 }

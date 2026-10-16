@@ -4,14 +4,23 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays, Clock3, ShieldCheck } from 'lucide-react';
 import { ErrorBanner, FormField, Input, Select, Textarea } from '../../../shared/ui';
-import { phoneError, sanitizePhone } from '../../../lib/validate';
+import { phoneError, emailError, sanitizePhone } from '../../../lib/validate';
 import { PHONE_PLACEHOLDER } from '../../../lib/phone';
 import { createReservation } from '../../../services/requestService';
 import type { SubmitResult } from '../../../services/requestService';
 import type { Land, Lot, ReservationPayload } from '../../../types';
 
 export default function VisitForm({ land, lot, onDone }: { land: Land; lot?: Lot; onDone: (result: SubmitResult) => void }) {
-  const [form, setForm] = useState({ date: '', time: 'Matin (9h – 12h)', firstName: '', lastName: '', phone: '', message: '' });
+  const [form, setForm] = useState({
+    date: '',
+    time: 'Matin (9h – 12h)',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    whatsapp: 'Oui',
+    email: '',
+    message: '',
+  });
   const [error, setError] = useState<string | null>(null);
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
   const today = new Date().toISOString().slice(0, 10);
@@ -43,12 +52,19 @@ export default function VisitForm({ land, lot, onDone }: { land: Land; lot?: Lot
       setError(phone);
       return;
     }
+    const email = emailError(form.email);
+    if (email) {
+      setError(email);
+      return;
+    }
     const payload: ReservationPayload = {
       kind: 'visite',
       landId: land.id,
       lotId: lot?.id,
       fullName: `${form.firstName} ${form.lastName}`.trim(),
       phone: form.phone,
+      email: form.email || undefined,
+      whatsapp: form.whatsapp,
       visitDate: form.date,
       visitTime: form.time,
       message: form.message,
@@ -65,6 +81,29 @@ export default function VisitForm({ land, lot, onDone }: { land: Land; lot?: Lot
       </p>
 
       <div className="grid gap-5 sm:grid-cols-2">
+        <FormField label="Prénom" required>
+          <Input placeholder="Ex. Andry" value={form.firstName} onChange={(e) => set('firstName', e.target.value)} />
+        </FormField>
+        <FormField label="Nom" required>
+          <Input placeholder="Ex. Rakoto" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} />
+        </FormField>
+        {/* Téléphone et WhatsApp côte à côte, exactement comme dans la demande
+            d'achat et la recherche : la question WhatsApp est la suite logique
+            du numéro, elle n'a pas à être reléguée en bas du formulaire. */}
+        <FormField label="Téléphone" required>
+          <Input type="tel" inputMode="tel" placeholder={PHONE_PLACEHOLDER} value={form.phone} onChange={(e) => set('phone', sanitizePhone(e.target.value))} />
+        </FormField>
+        <FormField label="Ce numéro est-il sur WhatsApp ?" required>
+          <Select value={form.whatsapp} onChange={(e) => set('whatsapp', e.target.value)}>
+            <option>Oui</option>
+            <option>Non</option>
+          </Select>
+        </FormField>
+        <FormField label="Adresse email" className="sm:col-span-2">
+          <Input type="email" placeholder="vous@exemple.com" value={form.email} onChange={(e) => set('email', e.target.value)} />
+        </FormField>
+        {/* Même ordre que les trois autres formulaires : d'abord qui vous êtes,
+            puis les informations propres à la demande (ici le créneau). */}
         <FormField label="Date souhaitée" required>
           <Input type="date" min={today} value={form.date} onChange={(e) => set('date', e.target.value)} />
         </FormField>
@@ -73,15 +112,6 @@ export default function VisitForm({ land, lot, onDone }: { land: Land; lot?: Lot
             <option>Matin (9h – 12h)</option>
             <option>Après-midi (14h – 17h)</option>
           </Select>
-        </FormField>
-        <FormField label="Prénom" required>
-          <Input placeholder="Ex. Andry" value={form.firstName} onChange={(e) => set('firstName', e.target.value)} />
-        </FormField>
-        <FormField label="Nom" required>
-          <Input placeholder="Ex. Rakoto" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} />
-        </FormField>
-        <FormField label="Numéro de téléphone" required className="sm:col-span-2" hint={`Format : ${PHONE_PLACEHOLDER}`}>
-          <Input type="tel" inputMode="tel" placeholder={PHONE_PLACEHOLDER} value={form.phone} onChange={(e) => set('phone', sanitizePhone(e.target.value))} />
         </FormField>
         <FormField label="Commentaire" className="sm:col-span-2">
           <Textarea rows={3} placeholder="Une question ou une précision pour la visite ?" value={form.message} onChange={(e) => set('message', e.target.value)} />

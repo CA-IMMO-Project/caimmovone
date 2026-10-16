@@ -60,24 +60,7 @@ class RequestController extends Controller
             if ($dupe !== null) {
                 // MISE À JOUR de la fiche existante : nouvelles infos fusionnées,
                 // trace du renvoi — pas de seconde fiche pour la même personne.
-                $meta = $dupe->meta ?? [];
-                foreach (['budget', 'profession', 'bankAccount', 'nationality', 'projectName',
-                    'paymentMode', 'duration', 'downPaymentAmount', 'visitDate', 'visitTime', 'birthDate', 'callTime',
-                    'deadline', 'projectDescription'] as $key) {
-                    if (! empty($data[$key])) {
-                        $meta[$key] = (string) $data[$key];
-                    }
-                }
-                if (! empty($data['age'])) {
-                    $meta['age'] = $data['age'];
-                }
-                // Budget approximatif du site -> colonne Budget du back office.
-                if (! empty($data['budget'])) {
-                    $approx = (int) preg_replace('/\D+/', '', (string) $data['budget']);
-                    if ($approx > 0) {
-                        $meta['budgetMax'] = $approx;
-                    }
-                }
+                $meta = array_merge($dupe->meta ?? [], $this->metaFrom($data));
                 $meta['landTitle'] = $land->title;
                 if ($lotId) {
                     $meta['lotId'] = $lotId;
@@ -109,24 +92,7 @@ class RequestController extends Controller
         }
 
         // Champs complémentaires rangés dans meta (tout ce qui n'a pas de colonne).
-        $meta = [];
-        foreach (['budget', 'profession', 'bankAccount', 'nationality', 'projectName',
-            'paymentMode', 'duration', 'downPaymentAmount', 'visitDate', 'visitTime', 'birthDate', 'callTime',
-            'deadline', 'projectDescription'] as $key) {
-            if (! empty($data[$key])) {
-                $meta[$key] = (string) $data[$key];
-            }
-        }
-        if (! empty($data['age'])) {
-            $meta['age'] = $data['age'];
-        }
-        // Budget approximatif du site -> colonne Budget du back office.
-        if (! empty($data['budget'])) {
-            $approx = (int) preg_replace('/\D+/', '', (string) $data['budget']);
-            if ($approx > 0) {
-                $meta['budgetMax'] = $approx;
-            }
-        }
+        $meta = $this->metaFrom($data);
         if ($land) {
             $meta['landTitle'] = $land->title;
         }
@@ -155,5 +121,48 @@ class RequestController extends Controller
             'ref' => $siteRequest->ref,
             'message' => 'Votre demande a bien été enregistrée. Notre équipe vous recontacte très vite.',
         ], 201);
+    }
+
+    /**
+     * Champs du site public rangés dans `meta` (tout ce qui n'a pas de colonne
+     * dédiée). Utilisé à la création comme à la mise à jour d'une demande.
+     */
+    private function metaFrom(array $data): array
+    {
+        $meta = [];
+        foreach ([
+            'budget', 'profession', 'bankAccount', 'nationality', 'countryOther', 'projectName',
+            'paymentMode', 'duration', 'downPaymentAmount', 'downPaymentRange',
+            'visitDate', 'visitTime', 'birthDate', 'callTime', 'whatsapp',
+            'deadline', 'goal', 'projectDescription',
+        ] as $key) {
+            if (! empty($data[$key])) {
+                $meta[$key] = (string) $data[$key];
+            }
+        }
+        if (! empty($data['age'])) {
+            $meta['age'] = $data['age'];
+        }
+
+        // Budget : le formulaire envoie un choix construit sur le prix affiché
+        // (bornes numériques correspondantes) + son libellé lisible. Les bornes
+        // alimentent les champs « Budget min. / max. » du back office, le
+        // libellé reste consultable dans la fiche (ex. « J'aimerais un peu
+        // moins »).
+        if (! empty($data['budgetMin'])) {
+            $meta['budgetMin'] = (int) $data['budgetMin'];
+        }
+        if (! empty($data['budgetMax'])) {
+            $meta['budgetMax'] = (int) $data['budgetMax'];
+        }
+        // Compatibilité : ancien champ « budget » saisi en clair (un nombre).
+        if (empty($meta['budgetMax']) && ! empty($data['budget'])) {
+            $approx = (int) preg_replace('/\D+/', '', (string) $data['budget']);
+            if ($approx > 0) {
+                $meta['budgetMax'] = $approx;
+            }
+        }
+
+        return $meta;
     }
 }

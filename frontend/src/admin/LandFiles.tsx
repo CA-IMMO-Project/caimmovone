@@ -2306,10 +2306,19 @@ export function LandFileDetail() {
                         : f.maxDuration
                     }
                   />
+                  {/* Le montant n'est affiché que s'il est connu : le dépôt en
+                      ligne ne demande plus d'acompte en %, il indique
+                      simplement « à convenir avec l'agence ». */}
                   <Info
                     label="Acompte minimum"
-                    value={`${f.depositRange === 'Personnalisé' ? `${f.depositCustom} %` : f.depositRange} · ${fmtAr(depositAmount(f))}`}
+                    value={`${f.depositRange === 'Personnalisé' ? `${f.depositCustom} %` : f.depositRange}${depositAmount(f) > 0 ? ` · ${fmtAr(depositAmount(f))}` : ''}`}
                   />
+                  {f.estimateRequested === 'Oui' && (
+                    <Info
+                      label="Prix"
+                      value="Estimation demandée à CA IMMO"
+                    />
+                  )}
                   <Info
                     label="Fréquence"
                     value={
@@ -2548,6 +2557,12 @@ export function LandFileDetail() {
                   </a>
                 }
               />
+              {/* Situation déclarée par le vendeur au dépôt : un titre resté au
+                  nom d'un parent ou une indivision familiale explique la suite
+                  des démarches à prévoir. */}
+              {f.ownerStatus && (
+                <Info label="Situation du vendeur" value={f.ownerStatus} />
+              )}
               <Info label="Profession" value={f.owner.profession} />
               <Info
                 label="Pays de résidence"

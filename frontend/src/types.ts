@@ -118,6 +118,17 @@ export interface ReservationPayload {
   deadline?: string;
   /** Description libre saisie dans « Parlez-nous de votre projet ». */
   projectDescription?: string;
+  /** Objectif du projet (résidence, investissement…), tel qu’affiché au back office. */
+  goal?: string;
+  /** Bornes numériques du budget (fourchette choisie par le client). */
+  budgetMin?: number;
+  budgetMax?: number;
+  /** Tranche d’apport initial choisie en cas de paiement échelonné. */
+  downPaymentRange?: string;
+  /** Le numéro de téléphone est-il joignable sur WhatsApp ? */
+  whatsapp?: string;
+  /** Pays de résidence saisi hors de la liste proposée. */
+  countryOther?: string;
 }
 
 export interface Reservation extends ReservationPayload {

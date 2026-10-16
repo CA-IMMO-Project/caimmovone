@@ -330,6 +330,7 @@ export function VisitDetail() {
           { label: 'Visite prévue', value: fmtVisitDate(r) },
           { label: 'Terrain', value: land?.title },
           { label: 'Téléphone', value: formatPhone(r.phone, r.dialCode) },
+          { label: 'WhatsApp', value: r.whatsapp },
           { label: 'Agent', value: r.agent },
         ]}
       />

@@ -30,6 +30,8 @@ export interface SearchSubmission {
   fullName: string;
   phone: string;
   email?: string;
+  /** Le numéro laissé est-il joignable sur WhatsApp ? (question posée par tous les formulaires publics) */
+  whatsapp?: string;
   usage?: string;
   budgetMax?: number;
   areaMin?: number;
@@ -54,6 +56,12 @@ export interface LandFileSubmission {
   fullName: string;
   phone: string;
   email?: string;
+  /** Le numéro est-il joignable sur WhatsApp ? (canal de contact réel). */
+  whatsapp?: string;
+  /** Situation du vendeur : propriétaire inscrit, indivision, mandataire. */
+  ownerStatus?: string;
+  /** Le propriétaire demande une estimation de prix à CA IMMO. */
+  estimateRequested?: string;
   birthDate?: string;
   profession?: string;
   country?: string;

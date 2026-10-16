@@ -103,6 +103,7 @@ import {
   splitName,
 } from './crm/people';
 import { refreshCache, subscribeCache } from './crm/sync';
+import { DEPOSIT_BANDS } from '../shared/deposit';
 import {
   FormFooter,
   RecordHeader,
@@ -137,6 +138,11 @@ const FLOW_LABELS = [
 const isInstalment = (r: BuyRequest) => r.paymentMode === BUY_PAYMENT[1];
 
 function budget(r: BuyRequest) {
+  // Le site public envoie d'abord la FOURCHETTE choisie par le client
+  // (« 50 à 100 millions Ar ») : c'est le libellé le plus fidèle, il est
+  // affiché tel quel. Les bornes numériques servent de repli (anciennes
+  // demandes, saisie manuelle au back office).
+  if (r.budget) return r.budget;
   if (!r.budgetMin && !r.budgetMax) return '—';
   if (!r.budgetMax) return `≥ ${fmtAr(r.budgetMin)}`;
   return `${fmtAr(r.budgetMin).replace(' Ar', '')} – ${fmtAr(r.budgetMax)}`;
@@ -846,7 +852,22 @@ export function BuyRequestForm() {
                 suffix="Ar"
               />
             </Field>
-            <Field label="Apport disponible">
+            {isInstalment(r) && (
+              <Field
+                label="Tranche d'apport annoncée par le client"
+                span="full"
+              >
+                <Choice
+                  value={r.downPaymentRange ?? ''}
+                  onChange={(v) => set('downPaymentRange', v)}
+                  options={DEPOSIT_BANDS}
+                />
+              </Field>
+            )}
+            <Field
+              label="Montant exact de l'apport"
+              hint="Renseigné par le conseiller pendant l'appel."
+            >
               <NumberInput
                 value={r.deposit}
                 onChange={(v) => set('deposit', v)}
@@ -1108,6 +1129,7 @@ export function BuyRequestDetail() {
             <div className="space-y-5">
               <Section title="Projet du client">
                 <dl className="grid sm:grid-cols-2 gap-5">
+                  <Info label="Objectif" value={r.goal} />
                   <Info label="Budget" value={budget(r)} />
                   <Info label="Mode de paiement" value={r.paymentMode} />
                   <Info label="Priorité" value={<Badge value={r.priority} />} />
@@ -1159,6 +1181,7 @@ export function BuyRequestDetail() {
               <Section title="Coordonnées" icon={<User className="w-4 h-4" />}>
                 <dl className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <Info label="Téléphone" value={phoneOf(r)} />
+                  <Info label="WhatsApp" value={r.whatsapp} />
                   <Info label="Email" value={r.email} />
                   <Info
                     label="Meilleur moment pour appeler"
@@ -1197,8 +1220,19 @@ export function BuyRequestDetail() {
                   {isInstalment(r) && (
                     <Info label="Durée souhaitée" value={r.paymentDuration} />
                   )}
+                  {isInstalment(r) && r.downPaymentRange && (
+                    <Info label="Tranche d’apport" value={r.downPaymentRange} />
+                  )}
                   <Info label="Budget" value={budget(r)} />
-                  <Info label="Apport disponible" value={fmtAr(r.deposit)} />
+                  {/* La tranche d'apport (ci-dessus) est le choix principal du
+                      client ; le montant exact n'est saisi que s'il le connaît.
+                      On masque donc la ligne au lieu d'afficher « — ». */}
+                  {r.deposit > 0 && (
+                    <Info
+                      label="Montant exact de l’apport"
+                      value={fmtAr(r.deposit)}
+                    />
+                  )}
                   <Info label="Délai" value={r.deadline} />
                 </dl>
 

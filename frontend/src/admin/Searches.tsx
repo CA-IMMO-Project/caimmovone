@@ -109,6 +109,13 @@ export function SearchFormFields({
             onChange={(e) => set('email', e.target.value)}
           />
         </Field>
+        <Field label="Ce numéro est-il sur WhatsApp ?">
+          <Select
+            value={f.whatsapp}
+            onChange={(v) => set('whatsapp', v)}
+            options={['Oui', 'Non']}
+          />
+        </Field>
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Field label="Usage du terrain">
@@ -773,6 +780,16 @@ export function SearchDetail() {
             icon={<Target className="w-4 h-4" />}
           >
             <dl className="space-y-3">
+              {/* Le téléphone est l'information n°1 d'une recherche à
+                  rappeler : il doit être visible sur la fiche, sans ouvrir
+                  « Modifier ». L'email est demandé par le formulaire du site,
+                  il doit donc apparaître aussi. */}
+              <Info
+                label="Téléphone"
+                value={s.phone && <TelLink phone={s.phone} />}
+              />
+              <Info label="Email" value={s.email} />
+              <Info label="WhatsApp" value={s.whatsapp} />
               <Info label="Usage" value={s.usage} />
               <Info label="Budget maximum" value={fmtAr(s.budgetMax)} />
               <Info

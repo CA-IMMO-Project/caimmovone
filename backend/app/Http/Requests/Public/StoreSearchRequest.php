@@ -23,6 +23,10 @@ class StoreSearchRequest extends FormRequest
         return [
             'fullName' => 'required|string|max:150', 'phone' => 'required|string|max:40',
             'email' => 'nullable|email|max:160', 'usage' => 'nullable|string|max:80',
+            // Le numéro laissé est-il joignable sur WhatsApp ? Même question que
+            // sur les autres formulaires publics : c'est le canal réellement
+            // utilisé pour envoyer les photos et la localisation des terrains.
+            'whatsapp' => 'nullable|in:Oui,Non',
             'budgetMax' => 'nullable|numeric|min:0', 'areaMin' => 'nullable|numeric|min:0',
             'areaMax' => 'nullable|numeric|min:0|gte:areaMin', 'mainZone' => 'nullable|string|max:160',
             'otherZones' => 'nullable|string|max:400', 'targetZone' => 'nullable|string|max:200',

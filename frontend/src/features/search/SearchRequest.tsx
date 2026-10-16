@@ -122,6 +122,7 @@ export default function SearchRequest() {
     firstName: "",
     lastName: "",
     phone: "",
+    whatsapp: "Oui",
     email: "",
     zone: "",
     otherZones: "",
@@ -301,6 +302,7 @@ export default function SearchRequest() {
     finalize({
       fullName: `${form.firstName} ${form.lastName}`.trim(),
       phone: form.phone,
+      whatsapp: form.whatsapp,
       email: form.email || undefined,
       usage: USAGE_TO_SEARCH[form.usage],
       budgetMax: budgetMax(),
@@ -471,7 +473,16 @@ export default function SearchRequest() {
                             }
                           />
                         </FormField>
-                        <FormField label="Adresse email">
+                        <FormField label="Ce numéro est-il sur WhatsApp ?" required>
+                          <Select
+                            value={form.whatsapp}
+                            onChange={(e) => set("whatsapp", e.target.value)}
+                          >
+                            <option>Oui</option>
+                            <option>Non</option>
+                          </Select>
+                        </FormField>
+                        <FormField label="Adresse email" className="sm:col-span-2">
                           <Input
                             type="email"
                             placeholder="vous@exemple.com"
