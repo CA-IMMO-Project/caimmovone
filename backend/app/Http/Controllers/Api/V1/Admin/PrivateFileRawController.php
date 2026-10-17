@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -19,7 +20,7 @@ use Illuminate\Support\Facades\Storage;
  */
 class PrivateFileRawController extends Controller
 {
-    public function show(Request $request, string $path): \Illuminate\Http\JsonResponse
+    public function show(Request $request, string $path): JsonResponse
     {
         $path = ltrim(rawurldecode($path), '/');
 

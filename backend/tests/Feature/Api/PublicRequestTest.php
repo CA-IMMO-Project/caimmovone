@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Land;
+use App\Models\SiteRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -55,7 +56,7 @@ class PublicRequestTest extends TestCase
         $this->assertDatabaseHas('requests', ['kind' => 'interet', 'land_id' => $land->id]);
 
         // Le choix de budget et les champs de projet alimentent la fiche admin.
-        $meta = \App\Models\SiteRequest::first()->meta;
+        $meta = SiteRequest::first()->meta;
         $this->assertSame(80000000, $meta['budgetMin']);
         $this->assertSame(80000000, $meta['budgetMax']);
         $this->assertSame('Résidence principale', $meta['goal']);
@@ -88,7 +89,7 @@ class PublicRequestTest extends TestCase
             'projectDescription' => 'Nous cherchons un terrain calme pour notre famille.',
         ]))->assertCreated();
 
-        $metas = \App\Models\SiteRequest::all()->pluck('meta');
+        $metas = SiteRequest::all()->pluck('meta');
         $this->assertArrayNotHasKey('projectDescription', $metas[0]);
         $this->assertSame(
             'Nous cherchons un terrain calme pour notre famille.',
@@ -134,7 +135,7 @@ class PublicRequestTest extends TestCase
             'whatsapp' => 'Oui', 'email' => 'jean@example.test',
         ])->assertCreated();
 
-        $visit = \App\Models\SiteRequest::where('kind', 'visite')->firstOrFail();
+        $visit = SiteRequest::where('kind', 'visite')->firstOrFail();
         $this->assertSame('Oui', $visit->meta['whatsapp']);
         $this->assertSame('jean@example.test', $visit->meta['email'] ?? $visit->email);
     }

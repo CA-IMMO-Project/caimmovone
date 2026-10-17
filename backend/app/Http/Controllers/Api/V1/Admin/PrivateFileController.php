@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Sert un fichier CRM confidentiel après autorisation Sanctum.
@@ -20,7 +21,7 @@ use Illuminate\Support\Facades\Storage;
  */
 class PrivateFileController extends Controller
 {
-    public function show(Request $request, string $path): \Symfony\Component\HttpFoundation\Response
+    public function show(Request $request, string $path): Response
     {
         $path = ltrim(rawurldecode($path), '/');
 
@@ -39,10 +40,11 @@ class PrivateFileController extends Controller
         // Force téléchargement si demandé explicitement via ?download=1.
         if ($request->query('download') === '1') {
             $filename = basename($path);
+
             return response($content, 200, [
                 'Content-Type' => $disk->mimeType($path) ?: 'application/octet-stream',
                 'Content-Length' => $size,
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Content-Disposition' => 'attachment; filename="'.$filename.'"',
                 'Cache-Control' => 'private, no-store, max-age=0',
             ]);
         }

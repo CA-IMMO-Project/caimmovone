@@ -41,7 +41,7 @@ Route::get('/storage/{path}', function (Request $request, string $path) {
     }, 200, [
         'Content-Type' => $mimeType,
         'Content-Length' => $size,
-        'Content-Disposition' => $disposition . '; filename="' . $filename . '"',
+        'Content-Disposition' => $disposition.'; filename="'.$filename.'"',
         'X-Content-Type-Options' => 'nosniff',
     ]);
 })->where('path', '.*');
