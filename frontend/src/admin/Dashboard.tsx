@@ -186,7 +186,7 @@ export default function Dashboard() {
     <>
       <PageHeader
         title="Tableau de bord"
-        subtitle={`${todayLabel} · ${activePurchases} achat(s) en cours, ${visits.length} visite(s), ${files.length} dossier(s) de vente.`}
+        subtitle={`${todayLabel} · ${activePurchases} achat(s) en cours, ${visits.length} visite(s), ${files.length} dossier(s) vendeur.`}
         action={
           <>
             <Link to="/admin/agenda" className={btnOutline}>

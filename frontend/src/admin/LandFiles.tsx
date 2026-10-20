@@ -117,8 +117,8 @@ import {
 const BASE = '/admin/dossiers-terrains';
 const FLOW: LandFileStatus[] = [
   'Nouveau',
-  "À l'étude",
   'À examiner',
+  "À l'étude",
   'Visite terrain programmée',
   'Analyse des pièces',
   'Prêt à publier',
@@ -129,8 +129,8 @@ const FLOW: LandFileStatus[] = [
 ];
 const FLOW_LABELS = [
   'Nouveau',
-  "À l'étude",
   'À examiner',
+  "À l'étude",
   'Visite terrain',
   'Pièces',
   'Prêt à publier',
@@ -807,7 +807,7 @@ export function LandFileForm() {
         backTo={original ? `${BASE}/${original.id}` : BASE}
         mode={original ? 'edit' : 'create'}
         title={
-          original ? 'Modifier le dossier terrain' : 'Nouveau dossier terrain'
+          original ? 'Modifier le dossier vendeur' : 'Nouveau dossier vendeur'
         }
         reference={original ? f.ref : undefined}
         subtitle="Propriétaire, caractéristiques du terrain et suivi du dossier."
