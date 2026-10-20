@@ -204,7 +204,7 @@ export function VisitList() {
     <>
       <PageHeader
         title="Demandes de visite"
-        subtitle="Visites demandées depuis le site — confirmation et suivi"
+        subtitle="Visites demandées depuis le portail public — confirmation et suivi"
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
@@ -451,7 +451,7 @@ export function VisitDetail() {
                     rel="noopener noreferrer"
                     className={btnOutline}
                   >
-                    Voir sur le site
+                    Voir sur le portail public
                   </Link>
                 </div>
               </Section>

@@ -177,7 +177,7 @@ export default function Realisations() {
     <>
       <PageHeader
         title="Réalisations"
-        subtitle="Galerie de projets et suivi de leur publication sur le site."
+        subtitle="Galerie de projets et suivi de leur publication sur le portail public."
         action={
           <>
             <a
@@ -187,7 +187,7 @@ export default function Realisations() {
               className={btnOutline}
             >
               <ExternalLink size={15} />
-              Voir sur le site
+              Voir sur le portail public
             </a>
             <button
               className={btnPrimary}

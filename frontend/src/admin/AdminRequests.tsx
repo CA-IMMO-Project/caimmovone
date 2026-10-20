@@ -155,7 +155,7 @@ export function AdminMessages() {
     <>
       <PageHeader
         title="Messages"
-        subtitle="Messages reçus depuis le site et suivi de leur traitement."
+        subtitle="Messages reçus depuis le portail public et suivi de leur traitement."
       />
       <div className="grid grid-cols-3 gap-3 mb-5">
         <Stat label="Messages" value={items.length} />

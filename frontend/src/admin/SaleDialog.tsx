@@ -334,7 +334,7 @@ export default function SaleDialog({
         ) : (
           <div className="grid sm:grid-cols-2 gap-4 p-4 rounded-xl border border-gray-200">
             <p className="sm:col-span-2 text-xs text-gray-500">
-              Mêmes informations que l’inscription sur le site. Le client sera
+              Mêmes informations que l’inscription sur le portail public. Le client sera
               ajouté à la base clients.
             </p>
             <Field label="Nom complet" required span={2}>

@@ -306,7 +306,7 @@ export default function LandEditor() {
   return (
     <form onSubmit={submit} className="space-y-6">
       <RecordHeader
-        module="Catalogue du site"
+        module="Catalogue des terrains"
         backTo={existing ? `/admin/terrains/${existing.id}` : '/admin/terrains'}
         mode={isNew ? 'create' : 'edit'}
         title={isNew ? 'Nouveau terrain' : 'Modifier le terrain'}
@@ -344,7 +344,7 @@ export default function LandEditor() {
           {tab === 'identite' && (
             <Section
               title="Identité, statut et publication"
-              hint="On distingue désormais le statut commercial du workflow éditorial du front office."
+              hint="On distingue le statut commercial de l’état de publication sur le portail public."
               icon={<Sparkles className="h-5 w-5" />}
             >
               <div className="grid gap-4 sm:grid-cols-2">
@@ -431,8 +431,8 @@ export default function LandEditor() {
                   </select>
                 </Field>
                 <Field
-                  label="Workflow de publication"
-                  hint="Seuls les terrains publiés apparaissent sur le site public."
+                  label="État de publication"
+                  hint="Seuls les terrains publiés apparaissent sur le portail public."
                 >
                   <select
                     value={form.publicationStatus ?? 'brouillon'}
@@ -490,7 +490,7 @@ export default function LandEditor() {
           {tab === 'visuels' && (
             <Section
               title="Visuels et arguments commerciaux"
-              hint="Upload direct des images uniquement : plus de saisie manuelle d’URL pour les visuels du catalogue."
+              hint="Ajout direct des images uniquement : plus de saisie manuelle de lien pour les visuels du catalogue."
               icon={<ImagePlus className="h-5 w-5" />}
             >
               <div className="grid gap-4 sm:grid-cols-2">
@@ -529,7 +529,7 @@ export default function LandEditor() {
                 <Field
                   label="Galerie complémentaire"
                   full
-                  hint="Les images de galerie sont uploadées puis stockées côté serveur."
+                  hint="Les images de galerie sont ajoutées puis enregistrées avec le bien."
                 >
                   <div className="space-y-3">
                     <FileDrop
@@ -565,7 +565,7 @@ export default function LandEditor() {
                 <Field
                   label="Atouts du terrain"
                   full
-                  hint="Un atout par ligne : ils deviennent des badges sur le front office."
+                  hint="Un atout par ligne : ils sont mis en avant sur le portail public."
                 >
                   <textarea
                     rows={5}
@@ -683,7 +683,7 @@ export default function LandEditor() {
           {tab === 'prix' && (
             <Section
               title="Prix, modalités et pièces juridiques"
-              hint="Bloc essentiel pour la cohérence avec la page détail du front office."
+              hint="Bloc essentiel pour la cohérence avec la page détail du portail public."
               icon={<WalletCards className="h-5 w-5" />}
             >
               <div className="grid gap-4 sm:grid-cols-2">
@@ -829,8 +829,8 @@ export default function LandEditor() {
                           {lot.number || 'Lot sans nom'}
                         </p>
                         <p className="text-xs text-gray-500">
-                          Ce détail enrichit le back office, sans dégrader la
-                          fiche publique.
+                          Ce détail enrichit l’espace de gestion, sans dégrader
+                          la fiche publique.
                         </p>
                       </div>
                       <button
@@ -909,7 +909,7 @@ export default function LandEditor() {
                           />
                         ) : (
                           <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
-                            Aucune photo uploadée pour ce lot.
+                            Aucune photo ajoutée pour ce lot.
                           </div>
                         )}
                       </div>
@@ -935,12 +935,12 @@ export default function LandEditor() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-navy-900">
-                  Cohérence front office
+                  Cohérence avec le portail public
                 </p>
                 <p className="mt-1 text-xs text-gray-600">
-                  Indicateur éditorial indicatif : il mesure la présence de
-                  contenus publics, mais ne constitue pas une règle de
-                  publication.
+                  Aide à la complétion : ce score mesure la présence des
+                  contenus visibles sur le portail public ; il ne constitue
+                  pas une règle de publication.
                 </p>
               </div>
               <span
@@ -966,7 +966,7 @@ export default function LandEditor() {
               <div className="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
                 <div className="flex items-center gap-2 font-medium">
                   <CheckCircle2 className="h-4 w-4" /> La fiche couvre bien les
-                  éléments majeurs visibles sur le front office.
+                  éléments majeurs visibles sur le portail public.
                 </div>
               </div>
             ) : (
@@ -1003,8 +1003,8 @@ export default function LandEditor() {
                   publiquement.
                 </div>
                 <p className="mt-1 text-xs">
-                  Passez le workflow en « Publié » pour le faire remonter dans
-                  le catalogue du site.
+                  Passez l’état de publication à « Publié » pour l’afficher dans
+                  le catalogue du portail public.
                 </p>
               </div>
             ) : null}

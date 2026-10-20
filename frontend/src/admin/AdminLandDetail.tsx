@@ -90,7 +90,7 @@ export default function AdminLandDetail() {
   return (
     <>
       <RecordHeader
-        module="Catalogue du site"
+        module="Catalogue des terrains"
         backTo="/admin/terrains"
         title={land.title}
         reference={`#${land.id}`}
@@ -321,7 +321,7 @@ export default function AdminLandDetail() {
                 sur {formatArea(land.area)}
               </p>
               <p className="mb-3 text-xs text-gray-500">
-                Le site public les affiche et les demandes reçues précisent la
+                Le portail public les affiche et les demandes reçues précisent la
                 parcelle choisie.
               </p>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">

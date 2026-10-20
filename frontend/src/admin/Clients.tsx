@@ -374,7 +374,7 @@ export function ClientList() {
     <>
       <PageHeader
         title="Base clients"
-        subtitle="Clients inscrits depuis le site ou créés dans le backoffice"
+        subtitle="Clients inscrits depuis le portail public ou créés dans l’espace de gestion"
         action={
           <button onClick={() => setCreating(true)} className={btnGold}>
             <Plus className="w-4 h-4" /> Nouveau client
@@ -390,7 +390,7 @@ export function ClientList() {
           tone="text-blue-700"
         />
         <Stat
-          label="Créés au backoffice"
+          label="Créés dans l’espace de gestion"
           value={rows.filter((c) => c.source === 'Backoffice').length}
         />
       </div>

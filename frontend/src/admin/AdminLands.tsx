@@ -184,7 +184,7 @@ export default function AdminLands() {
   return (
     <>
       <PageHeader
-        title="Catalogue du site"
+        title="Catalogue des terrains"
         subtitle="Gérez les informations, la disponibilité et la publication de vos terrains."
         action={
           <>

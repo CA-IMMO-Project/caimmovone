@@ -13,7 +13,7 @@ const sections = [
   },
   {
     title: 'Où sont-elles envoyées et qui peut y accéder ?',
-    body: 'Les demandes soumises par le site sont envoyées à son API puis affichées dans le back office CA IMMO. Les fichiers transmis avec un dossier vendeur sont gérés séparément des ressources publiques et consultés au moyen des fonctions d’administration prévues par l’application. La liste complète des personnes autorisées, des prestataires d’hébergement et des autres destinataires doit être confirmée par CA IMMO.',
+    body: 'Les demandes soumises depuis le portail public sont transmises à CA IMMO puis affichées dans l’espace de gestion CA IMMO. Les fichiers transmis avec un dossier vendeur sont gérés séparément des ressources publiques et consultés au moyen des fonctions d’administration prévues par l’application. La liste complète des personnes autorisées, des prestataires d’hébergement et des autres destinataires doit être confirmée par CA IMMO.',
   },
   {
     title: 'Combien de temps sont-elles conservées ?',

@@ -94,8 +94,8 @@ function ContactModal({ open, onClose }: { open: boolean; onClose: () => void })
           </span>
           <h3 className="mt-5 font-display text-xl font-bold text-navy-900">Message bien envoyé</h3>
           <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-navy-900/80">
-            Merci&nbsp;! Votre message est arrivé dans notre back office —
-            l’équipe CA IMMO vous recontacte très vite.
+            Merci&nbsp;! Votre message est arrivé à l’équipe CA IMMO —
+            nous vous recontactons très vite.
           </p>
           <button onClick={close} className="btn-gold mt-7">Fermer</button>
         </div>

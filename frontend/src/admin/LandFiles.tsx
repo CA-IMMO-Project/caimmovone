@@ -237,7 +237,7 @@ function SiteFilesBlock({
   if (groups.every(([, items]) => items.length === 0)) return null;
   return (
     <Section
-      title="Fichiers reçus du site web"
+      title="Fichiers reçus du portail public"
       icon={<FileDown className="w-4 h-4" />}
       confidential
     >

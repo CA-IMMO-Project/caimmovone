@@ -75,7 +75,7 @@ const links = [
     icon: Tag,
     group: 'Biens & publications',
   },
-  { to: '/admin/terrains', label: 'Catalogue du site', icon: Map, group: '' },
+  { to: '/admin/terrains', label: 'Catalogue des terrains', icon: Map, group: '' },
   { to: '/admin/realisations', label: 'Réalisations', icon: Hammer, group: '' },
   {
     to: '/admin/messages',
@@ -125,7 +125,7 @@ export default function AdminLayout() {
           setLoadError(
             error instanceof Error
               ? error.message
-              : 'Impossible de charger le back-office.',
+              : 'Impossible de charger l’espace de gestion.',
           );
       });
   }, [navigate]);
@@ -153,7 +153,7 @@ export default function AdminLayout() {
             className="h-12 w-12 mx-auto rounded-lg"
           />
           <p className="mt-4 text-sm text-slate-500">
-            {loadError || 'Chargement du back-office…'}
+            {loadError || 'Chargement de l’espace de gestion…'}
           </p>
           {loadError && (
             <button
@@ -211,7 +211,7 @@ export default function AdminLayout() {
       <DialogHost />
       <aside
         className={`fixed inset-y-0 left-0 z-40 w-60 admin-sidebar bg-navy-950 text-white flex flex-col transition-transform lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}
-        aria-label="Navigation du back-office"
+        aria-label="Navigation de l’espace de gestion"
       >
         <div className="h-[72px] px-5 border-b border-white/10 flex items-center gap-3 shrink-0">
           <img
@@ -266,7 +266,7 @@ export default function AdminLayout() {
             className="flex gap-3 items-center px-3 min-h-10 text-xs text-white/75 rounded-md hover:bg-white/10"
           >
             <ExternalLink size={16} />
-            Voir le site public
+            Voir le portail public
           </a>
           <button
             onClick={handleLogout}
@@ -401,7 +401,7 @@ export function AdminLogin() {
           />
           <p className="record-eyebrow">CA IMMO · Espace de gestion</p>
           <h1 className="text-2xl font-semibold tracking-tight">
-            {IS_ADMIN_PREVIEW ? 'Valider le nouveau back-office' : 'Connexion'}
+            {IS_ADMIN_PREVIEW ? 'Valider le nouvel espace de gestion' : 'Connexion'}
           </h1>
           <p className="text-xs text-slate-500 mt-3 leading-relaxed">
             {IS_ADMIN_PREVIEW

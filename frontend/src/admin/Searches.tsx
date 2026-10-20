@@ -782,7 +782,7 @@ export function SearchDetail() {
             <dl className="space-y-3">
               {/* Le téléphone est l'information n°1 d'une recherche à
                   rappeler : il doit être visible sur la fiche, sans ouvrir
-                  « Modifier ». L'email est demandé par le formulaire du site,
+                  « Modifier ». L'email est demandé par le formulaire du portail public,
                   il doit donc apparaître aussi. */}
               <Info
                 label="Téléphone"
