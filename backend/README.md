@@ -32,8 +32,8 @@ php artisan migrate
 php artisan presentation:install
 ```
 
-10 terrains, 12 clients, 8 achats, 4 visites, 4 recherches, 4 dossiers vendeurs,
-6 messages et **50 PDF réels consultables**, portant « Exemple — sans valeur juridique ».
+10 terrains, 38 clients, 32 achats, 8 visites, 7 recherches, 6 dossiers vendeurs,
+10 messages et **83 PDF réels consultables**, portant « Exemple — sans valeur juridique ».
 Il s'agit de données fictives, pas de pièces ou transactions authentiques.
 Aucun grand bandeau n'est ajouté au site. Les projets-types de réalisations restent non publiés.
 
@@ -42,7 +42,7 @@ Les lignes existantes et les modifications apportées aux exemples sont conserv�
 L'ancien reset du catalogue ne supprime plus les terrains.
 
 Guide détaillé : [données et dossiers de présentation](../docs/presentation-backend-ca-immo.md).
-Index des fichiers : [50 pièces PDF](database/seeders/fixtures/INDEX_DES_PIECES.md).
+Index des fichiers : [83 pièces PDF](database/seeders/fixtures/INDEX_DES_PIECES.md).
 
 ## Terrain « vérifié »
 

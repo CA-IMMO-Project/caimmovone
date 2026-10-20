@@ -35,16 +35,16 @@ class PresentationDataTest extends TestCase
     {
         $this->seed(PresentationSeeder::class);
         $this->assertSame(10, Land::count());
-        $this->assertSame(12, Client::count());
-        $this->assertSame(8, SiteRequest::where('kind', 'interet')->count());
-        $this->assertSame(4, SiteRequest::where('kind', 'visite')->count());
-        $this->assertSame(4, Search::count());
-        $this->assertSame(4, LandFile::count());
-        $this->assertSame(6, ContactMessage::count());
+        $this->assertSame(38, Client::count());
+        $this->assertSame(32, SiteRequest::where('kind', 'interet')->count());
+        $this->assertSame(8, SiteRequest::where('kind', 'visite')->count());
+        $this->assertSame(7, Search::count());
+        $this->assertSame(6, LandFile::count());
+        $this->assertSame(10, ContactMessage::count());
         $this->assertSame(3, Realisation::count());
         $this->assertSame(0, Realisation::where('published', true)->count());
-        $this->assertSame(51, DB::table('presentation_records')->count());
-        $this->assertSame(50, count(Storage::disk('local')->allFiles('presentation/v1')));
+        $this->assertSame(114, DB::table('presentation_records')->count());
+        $this->assertSame(83, count(Storage::disk('local')->allFiles('presentation/v1')));
         $this->assertSame(0, User::count(), 'Le jeu ne doit pas créer de compte ni de mot de passe.');
 
         foreach (Land::all() as $land) {
@@ -88,7 +88,7 @@ class PresentationDataTest extends TestCase
             $this->assertTrue(ctype_digit($client->toAdminArray()['age']));
         }
         $sales = Land::all()->flatMap(fn ($land) => $land->sales ?? []);
-        $this->assertCount(2, $sales);
+        $this->assertCount(3, $sales);
         foreach ($sales as $sale) {
             $this->assertSame('Achat finalisé', SiteRequest::findOrFail($sale['buyRequestId'])->status);
         }
@@ -133,7 +133,7 @@ class PresentationDataTest extends TestCase
         $this->assertSame($ownedBefore, $owned->fresh()->getAttributes());
         $this->assertSame($fileBefore, Storage::disk('local')->get('originals/title.pdf'));
         $this->assertSame(11, Land::count());
-        $this->assertSame(13, Client::count());
+        $this->assertSame(39, Client::count());
     }
 
     public function test_missing_sample_files_are_restored_without_overwriting_existing_files(): void
@@ -256,6 +256,34 @@ class PresentationDataTest extends TestCase
     {
         $message = new ContactMessage(['full_name' => 'Sarah Andrianarison']);
         $this->assertSame('Andrianarison', $message->toAdminArray()['lastName']);
+    }
+
+    /**
+     * Demande de l'encadreur : le pipeline du tableau de bord doit montrer
+     * toutes les étapes du cycle de vente avec plusieurs dossiers par étape,
+     * pour que les barres du graphique soient lisibles pendant la soutenance.
+     */
+    public function test_dashboard_pipeline_is_populated_for_every_stage_of_the_sales_flow(): void
+    {
+        $this->seed(PresentationSeeder::class);
+        $flow = [
+            'Nouvelle', 'À contacter', 'Contacté', 'En étude', 'Proposition envoyée',
+            'Visite programmée', 'Négociation', 'Validée', 'Achat finalisé',
+        ];
+        $pipeline = SiteRequest::where('kind', 'interet')->get()->countBy('status');
+        $this->assertEqualsCanonicalizing($flow, $pipeline->keys()->all(), 'Le jeu de présentation doit couvrir exactement les 9 étapes du pipeline.');
+        foreach ($flow as $stage) {
+            $this->assertGreaterThanOrEqual(
+                2,
+                $pipeline->get($stage, 0),
+                "Étape « {$stage} » trop vide : le tableau de bord afficherait une barre quasi vide.",
+            );
+        }
+        $this->assertGreaterThanOrEqual(
+            30,
+            array_sum($pipeline->all()),
+            'Le pipeline doit contenir assez de demandes pour être visuellement lisible.',
+        );
     }
 
     private function assertPrivatePdf(array $file): void

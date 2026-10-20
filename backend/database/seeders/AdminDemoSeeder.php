@@ -80,7 +80,8 @@ class AdminDemoSeeder extends Seeder
                     'visitDate' => $visit?->toDateString() ?? '', 'visitTime' => $visit?->format('H:i') ?? '',
                     'callTime' => 'En journée', 'attachments' => [$attachment],
                     'notes' => [$this->entry($row['key'].'-note', $row['message'], -1, $row['agent'])],
-                    'contacts' => [[
+                    // Une demande « Nouvelle » n'a encore aucun contact : le premier appel reste à faire.
+                    'contacts' => $row['status'] === 'Nouvelle' ? [] : [[
                         'id' => 'ex-'.$row['key'].'-contact', 'at' => $this->date($row['createdOffset'] + 1, '11:00')->toIso8601String(),
                         'channel' => 'Appel', 'summary' => $row['contactSummary'],
                     ]],
@@ -235,7 +236,7 @@ class AdminDemoSeeder extends Seeder
             });
         }
 
-        $this->command?->info('CRM : 12 clients, 8 achats, 4 visites, 4 recherches, 4 dossiers vendeurs et 6 messages liés.');
+        $this->command?->info('CRM : 38 clients, 32 achats, 8 visites, 7 recherches, 6 dossiers vendeurs et 10 messages liés.');
     }
 
     private function date(int $offset, string $time = '09:00'): CarbonImmutable

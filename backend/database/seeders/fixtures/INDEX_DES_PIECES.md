@@ -2,7 +2,7 @@
 
 **Exemple — sans valeur juridique.** Ces supports ne sont pas des titres, CIN, actes, certificats ou pièces bancaires authentiques.
 
-50 PDF fournis. Le chargement Laravel copie ces PDF sur le disque privé ; ils sont consultables après connexion au back office.
+83 PDF fournis. Le chargement Laravel copie ces PDF sur le disque privé ; ils sont consultables après connexion au back office.
 
 | Fichier | Dossier | Nature |
 |---|---|---|
@@ -48,13 +48,46 @@
 | `crm/demandes/visite-02.pdf` | visite-02 | Fiche de préparation de visite |
 | `crm/demandes/visite-03.pdf` | visite-03 | Fiche de préparation de visite |
 | `crm/demandes/visite-04.pdf` | visite-04 | Fiche de préparation de visite |
+| `crm/demandes/achat-09.pdf` | achat-09 | Synthèse du projet d’achat |
+| `crm/demandes/achat-10.pdf` | achat-10 | Synthèse du projet d’achat |
+| `crm/demandes/achat-11.pdf` | achat-11 | Synthèse du projet d’achat |
+| `crm/demandes/achat-12.pdf` | achat-12 | Synthèse du projet d’achat |
+| `crm/demandes/achat-13.pdf` | achat-13 | Synthèse du projet d’achat |
+| `crm/demandes/achat-14.pdf` | achat-14 | Synthèse du projet d’achat |
+| `crm/demandes/achat-15.pdf` | achat-15 | Synthèse du projet d’achat |
+| `crm/demandes/achat-16.pdf` | achat-16 | Synthèse du projet d’achat |
+| `crm/demandes/achat-17.pdf` | achat-17 | Synthèse du projet d’achat |
+| `crm/demandes/achat-18.pdf` | achat-18 | Synthèse du projet d’achat |
+| `crm/demandes/achat-19.pdf` | achat-19 | Synthèse du projet d’achat |
+| `crm/demandes/achat-20.pdf` | achat-20 | Synthèse du projet d’achat |
+| `crm/demandes/achat-21.pdf` | achat-21 | Synthèse du projet d’achat |
+| `crm/demandes/achat-22.pdf` | achat-22 | Synthèse du projet d’achat |
+| `crm/demandes/achat-23.pdf` | achat-23 | Synthèse du projet d’achat |
+| `crm/demandes/achat-24.pdf` | achat-24 | Synthèse du projet d’achat |
+| `crm/demandes/achat-25.pdf` | achat-25 | Synthèse du projet d’achat |
+| `crm/demandes/achat-26.pdf` | achat-26 | Synthèse du projet d’achat |
+| `crm/demandes/achat-27.pdf` | achat-27 | Synthèse du projet d’achat |
+| `crm/demandes/achat-28.pdf` | achat-28 | Synthèse du projet d’achat |
+| `crm/demandes/achat-29.pdf` | achat-29 | Synthèse du projet d’achat |
+| `crm/demandes/achat-30.pdf` | achat-30 | Synthèse du projet d’achat |
+| `crm/demandes/achat-31.pdf` | achat-31 | Synthèse du projet d’achat |
+| `crm/demandes/achat-32.pdf` | achat-32 | Synthèse du projet d’achat |
+| `crm/demandes/visite-05.pdf` | visite-05 | Fiche de préparation de visite |
+| `crm/demandes/visite-06.pdf` | visite-06 | Fiche de préparation de visite |
+| `crm/demandes/visite-07.pdf` | visite-07 | Fiche de préparation de visite |
+| `crm/demandes/visite-08.pdf` | visite-08 | Fiche de préparation de visite |
 | `crm/proprietaires/vendeur-01.pdf` | vendeur-01 | Profil du propriétaire |
 | `crm/proprietaires/vendeur-02.pdf` | vendeur-02 | Profil du propriétaire |
 | `crm/proprietaires/vendeur-03.pdf` | vendeur-03 | Profil du propriétaire |
 | `crm/proprietaires/vendeur-04.pdf` | vendeur-04 | Profil du propriétaire |
+| `crm/proprietaires/vendeur-05.pdf` | vendeur-05 | Profil du propriétaire |
+| `crm/proprietaires/vendeur-06.pdf` | vendeur-06 | Profil du propriétaire |
 | `crm/recherches/recherche-01.pdf` | recherche-01 | Cahier de recherche |
 | `crm/recherches/recherche-02.pdf` | recherche-02 | Cahier de recherche |
 | `crm/recherches/recherche-03.pdf` | recherche-03 | Cahier de recherche |
 | `crm/recherches/recherche-04.pdf` | recherche-04 | Cahier de recherche |
+| `crm/recherches/recherche-05.pdf` | recherche-05 | Cahier de recherche |
+| `crm/recherches/recherche-06.pdf` | recherche-06 | Cahier de recherche |
+| `crm/recherches/recherche-07.pdf` | recherche-07 | Cahier de recherche |
 
 `manifest.json` donne la taille et le SHA-256 de chaque fichier. Les originaux éventuellement déjà présents dans le logiciel ne sont ni remplacés ni supprimés.

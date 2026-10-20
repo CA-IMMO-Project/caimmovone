@@ -55,7 +55,7 @@ Artisan::command('presentation:install', function () {
         $seeder->setContainer(app());
         $seeder->setCommand($this);
         $seeder->run();
-        $this->info('Jeu CA IMMO prêt : 10 terrains, 12 clients, 8 achats, 4 visites, 4 recherches, 4 dossiers vendeurs, 6 messages et 50 PDF privés.');
+        $this->info('Jeu CA IMMO prêt : 10 terrains, 38 clients, 32 achats, 8 visites, 7 recherches, 6 dossiers vendeurs, 10 messages et 83 PDF privés.');
         $this->comment('Les données existantes et les modifications apportées aux exemples sont conservées. Aucun compte administrateur n’est créé ou réinitialisé par cette commande.');
 
         return 0;
@@ -65,3 +65,8 @@ Artisan::command('presentation:install', function () {
         return 1;
     }
 })->purpose('Ajoute le jeu de présentation et ses PDF sur une base isolée, sans écraser les données existantes');
+
+// Raccourci : « php artisan presentation » exécute exactement presentation:install.
+Artisan::command('presentation', function () {
+    return $this->call('presentation:install');
+})->purpose('Alias de presentation:install — ajoute le jeu de présentation CA IMMO');
