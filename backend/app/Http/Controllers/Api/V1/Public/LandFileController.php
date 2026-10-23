@@ -71,7 +71,10 @@ class LandFileController extends Controller
                 'depositRange' => $data['deposit'] ?? ($detail['depositRange'] ?? ''),
                 'ownerStatus' => $data['ownerStatus'] ?? ($detail['ownerStatus'] ?? ''),
                 'estimateRequested' => $data['estimateRequested'] ?? ($detail['estimateRequested'] ?? ''),
+                'whatsapp' => $data['whatsapp'] ?? ($detail['whatsapp'] ?? ''),
                 'summary' => $data['summary'] ?? ($detail['summary'] ?? ''),
+                // Renvoi d'un dossier : la déclaration la plus récente fait foi.
+                'docTypes' => array_values((array) ($data['docTypes'] ?? ($detail['docTypes'] ?? []))),
             ] as $key => $value) {
                 $detail[$key] = $value;
             }
@@ -177,6 +180,9 @@ class LandFileController extends Controller
             // Déclaré par le vendeur au dépôt (visible dans la fiche VEN).
             'ownerStatus' => $data['ownerStatus'] ?? '',
             'estimateRequested' => $data['estimateRequested'] ?? '',
+            // Le numéro laissé est-il joignable sur WhatsApp ? Même question que
+            // les autres formulaires publics — conservée dans la fiche VEN.
+            'whatsapp' => $data['whatsapp'] ?? '',
             // Vidéos et éventuelles pièces d'identité au-delà de la 1ère : pas
             // de case dédiée dans la fiche, elles restent visibles dans
             // « Fichiers reçus du site web ».
@@ -196,6 +202,11 @@ class LandFileController extends Controller
             // part avant de pouvoir les consulter.
             'photos' => $uploaded['photos'],
             'documents' => $uploaded['documents'],
+            // Ce que le vendeur DÉCLARE avoir, même sans joindre un seul
+            // fichier. Sans cette ligne, un vendeur qui coche « titre
+            // foncier » mais n'envoie rien laissait l'agent devant un dossier
+            // muet : impossible de savoir ce qu'il faut réclamer à la visite.
+            'docTypes' => array_values((array) ($data['docTypes'] ?? [])),
             'actions' => [],
             'history' => $history,
             'source' => 'Site web',

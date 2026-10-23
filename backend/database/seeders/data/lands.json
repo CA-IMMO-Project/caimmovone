@@ -13,7 +13,7 @@
       "/media/caimmo/about-collage-haut.jpg",
       "/media/caimmo/reels/laceo-acces.jpg"
     ],
-    "description": "Ensemble résidentiel organisé en quatre parcelles, dans un environnement de lac et de verdure. Les surfaces et prix servent à présenter les parcours de réservation et de vente. Localisation indicative ; disponibilités et pièces à confirmer avant tout projet. Photographies utilisées à titre illustratif.",
+    "description": "Ensemble résidentiel de 2 258 m² organisé en quatre parcelles, en bordure du lac de Vontovorona. Voirie interne, éclairage public et réseau d'eau déjà installés. Idéal pour une résidence principale ou un programme locatif, à 20 minutes du centre-ville.",
     "features": [
       "Résidentiel",
       "Environnement lacustre",
@@ -57,7 +57,7 @@
         "price": 60000000,
         "status": "réservé",
         "imageUrl": "/media/caimmo/about-collage-haut.jpg",
-        "details": "Parcelle réservée dans le scénario de réservation.",
+        "details": "Réservée — compromis en cours de rédaction.",
         "history": [
           {
             "id": "ex-lot-2",
@@ -74,7 +74,7 @@
         "price": 60000000,
         "status": "vendu",
         "imageUrl": "/media/caimmo/reels/laceo-acces.jpg",
-        "details": "Parcelle vendue dans le scénario d’achat finalisé.",
+        "details": "Vendue — acte signé, mutation en cours.",
         "history": [
           {
             "id": "ex-lot-3",
@@ -136,7 +136,7 @@
       "/media/caimmo/page-recherche.jpg",
       "/media/caimmo/about-cta.jpg"
     ],
-    "description": "Parcelle résidentielle de 758 m² avec vue dégagée et faible dénivelé. Un cas de projet familial avec paiement échelonné. Les données de ce dossier sont indicatives et ne constituent pas une offre de vente. Photographies utilisées à titre illustratif.",
+    "description": "Parcelle Premium de 758 m² avec vue dégagée sur le lac. Dernière disponibilité du domaine, livrée bornée et raccordée. Paiement échelonné possible sur 12 mois.",
     "features": [
       "Résidentiel",
       "Vue dégagée",
@@ -177,7 +177,7 @@
   },
   {
     "presentationKey": "iavoloha",
-    "title": "Iavoloha Pagode — terrain résidentiel",
+    "title": "Iavoloha — terrain résidentiel",
     "location": "Iavoloha, Analamanga",
     "region": "Analamanga",
     "zone": "Iavoloha",
@@ -189,7 +189,7 @@
       "/media/caimmo/reels/iavoloha-drone.jpg",
       "/media/caimmo/iavoloha-quartier.jpg"
     ],
-    "description": "Terrain de 452 m² pour un projet de résidence principale, avec un accès carrossable et une proximité des réseaux dans ce scénario. Prix et localisation indicatifs ; étude des pièces et des raccordements à prévoir. Photographies utilisées à titre illustratif.",
+    "description": "Terrain de 452 m² au calme, à Iavoloha, à 15 minutes du centre. Accès carrossable, eau et électricité en bordure. Convient pour une résidence principale.",
     "features": [
       "Résidentiel",
       "Accès voiture",
@@ -242,7 +242,7 @@
       "/media/caimmo/banniere-section.jpg",
       "/media/caimmo/page-realisations.jpg"
     ],
-    "description": "Terrain plat de 850 m², pensé pour une maison familiale avec jardin. Le dossier illustre une vente comptant avec un budget maîtrisé. Le plan fourni est un schéma, pas un document de bornage. Photographies utilisées à titre illustratif.",
+    "description": "Parcelle familiale de 850 m², plate et clôturée, dans un quartier résidentiel de Talatamaty. École et commerces à pied. Prête à construire, titrée et bornée.",
     "features": [
       "Accès voiture",
       "Projet résidentiel",
@@ -283,7 +283,7 @@
   },
   {
     "presentationKey": "ivato",
-    "title": "Ivato — terrain pour projet mixte",
+    "title": "Ivato — terrain mixte",
     "location": "Ivato, Analamanga",
     "region": "Analamanga",
     "zone": "Ivato",
@@ -295,7 +295,7 @@
       "/media/caimmo/page-vendre.jpg",
       "/media/caimmo/reels/iavoloha-drone.jpg"
     ],
-    "description": "Parcelle de 1 200 m² pour un projet mixte résidentiel et professionnel. L’accès et les réseaux sont des hypothèses de travail à confirmer sur place. Le cas permet de présenter une négociation et une visite. Photographies utilisées à titre illustratif.",
+    "description": "Terrain de 1 200 m² à Ivato, proche de l'aéroport, pour un projet mixte résidentiel et professionnel. Bonne desserte, terrain plat, réseaux disponibles.",
     "features": [
       "Projet professionnel",
       "Commercial",
@@ -336,7 +336,7 @@
   },
   {
     "presentationKey": "itaosy",
-    "title": "Itaosy — terrain de proximité",
+    "title": "Itaosy — parcelle résidentielle",
     "location": "Itaosy, Analamanga",
     "region": "Analamanga",
     "zone": "Itaosy",
@@ -348,7 +348,7 @@
       "/media/caimmo/home-drone.jpg",
       "/media/caimmo/about-collage-haut.jpg"
     ],
-    "description": "Terrain de 600 m² pour une première acquisition résidentielle. Le scénario met en avant un projet à moyen terme, avec une visite puis une étude du financement. Toutes les valeurs sont indicatives. Photographies utilisées à titre illustratif.",
+    "description": "Terrain de 600 m² à Itaosy, première acquisition idéale. Accès routier direct, quartier en développement, eau et électricité à proximité.",
     "features": [
       "Résidentiel",
       "Première acquisition",
@@ -389,19 +389,19 @@
   },
   {
     "presentationKey": "ambohidratrimo",
-    "title": "Ambohidratrimo — parcelle réservée",
+    "title": "Ambohidratrimo — parcelle familiale",
     "location": "Ambohidratrimo, Analamanga",
     "region": "Analamanga",
     "zone": "Ambohidratrimo",
     "area": 900,
-    "price": 63000000,
+    "price": 49500000,
     "imageUrl": "/media/caimmo/about-carre.jpg",
     "gallery": [
       "/media/caimmo/about-carre.jpg",
       "/media/caimmo/page-recherche.jpg",
       "/media/caimmo/about-hero.jpg"
     ],
-    "description": "Terrain de 900 m² réservé dans un parcours d’achat en cours. Le client dispose d’un budget de 70 millions d’ariary. Les conditions de réservation du jeu sont illustratives, sans engagement. Photographies utilisées à titre illustratif.",
+    "description": "Parcelle de 900 m² réservée à un acquéreur, à Ambohidratrimo. En attente de la signature du compromis et de la vérification des pièces.",
     "features": [
       "Accès voiture",
       "Projet résidentiel",
@@ -438,11 +438,12 @@
         "path": "terrains/ambohidratrimo/synthese-dossier.pdf",
         "name": "Synthèse du dossier"
       }
-    ]
+    ],
+    "pricePerM2Manual": null
   },
   {
     "presentationKey": "ilafy",
-    "title": "Ilafy — acquisition finalisée",
+    "title": "Ilafy — terrain résidentiel",
     "location": "Ilafy, Analamanga",
     "region": "Analamanga",
     "zone": "Ilafy",
@@ -454,7 +455,7 @@
       "/media/caimmo/page-realisations.jpg",
       "/media/caimmo/home-drone.jpg"
     ],
-    "description": "Parcelle de 750 m² utilisée pour présenter un achat finalisé, son historique et son rattachement à la fiche client. Le statut vendu appartient au scénario ; aucun acte officiel ou paiement réel n’est représenté. Photographies utilisées à titre illustratif.",
+    "description": "Terrain de 750 m² à Ilafy, vendu avec le concours de l'agence. Dossier complet, acte signé et mutation en cours.",
     "features": [
       "Accès voiture",
       "Projet résidentiel",
@@ -495,7 +496,7 @@
   },
   {
     "presentationKey": "brickaville",
-    "title": "Brickaville — projet agricole à étudier",
+    "title": "Brickaville — terrain agricole",
     "location": "Brickaville, Atsinanana",
     "region": "Atsinanana",
     "zone": "Brickaville",
@@ -507,7 +508,7 @@
       "/media/caimmo/about-carre.jpg",
       "/media/caimmo/page-recherche.jpg"
     ],
-    "description": "Projet agricole de 1,5 hectare, conservé en brouillon pendant l’étude des informations reçues. Le scénario prévoit une demande de pièces complémentaires. Ce dossier n’est pas publié au catalogue. Photographies utilisées à titre illustratif.",
+    "description": "Projet agricole de 1,5 hectare à Brickaville, en bordure de la route. Sol adapté aux cultures vivrières, point d'eau à proximité. Étude des pièces en cours.",
     "features": [
       "Agricole",
       "Grande superficie",
@@ -548,7 +549,7 @@
   },
   {
     "presentationKey": "mahajanga",
-    "title": "Mahajanga — dossier commercial archivé",
+    "title": "Mahajanga — terrain commercial",
     "location": "Mahajanga, Boeny",
     "region": "Boeny",
     "zone": "Mahajanga",
@@ -560,7 +561,7 @@
       "/media/caimmo/page-realisations.jpg",
       "/media/caimmo/about-cta.jpg"
     ],
-    "description": "Ancien projet commercial de 1 100 m², conservé aux archives. Les pièces foncières manquent dans le scénario. La fiche reste disponible pour illustrer l’archivage sans supprimer le dossier. Photographies utilisées à titre illustratif.",
+    "description": "Ancien terrain commercial de 1 100 m² à Mahajanga, conservé aux archives. Dossier foncier incomplet ; reprendre contact si de nouveaux documents sont fournis.",
     "features": [
       "Commercial",
       "Dossier archivé"

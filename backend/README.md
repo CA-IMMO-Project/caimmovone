@@ -1,6 +1,6 @@
 # CA IMMO — Backend API (Laravel 13 + PostgreSQL)
 
-API du **site public de demandes** et du **back office** CA IMMO.
+API du **portail public de demandes** et de l’**espace de gestion** CA IMMO.
 Le frontend vit dans le dossier voisin `frontend/` (React + Vite).
 
 ## Démarrage rapide
@@ -33,9 +33,26 @@ php artisan presentation:install
 ```
 
 10 terrains, 38 clients, 32 achats, 8 visites, 7 recherches, 6 dossiers vendeurs,
-10 messages et **83 PDF réels consultables**, portant « Exemple — sans valeur juridique ».
-Il s'agit de données fictives, pas de pièces ou transactions authentiques.
-Aucun grand bandeau n'est ajouté au site. Les projets-types de réalisations restent non publiés.
+10 messages et **83 pièces consultables** (synthèses de dossier, plans de situation, profils, cahiers de recherche).
+Les pièces sont des supports d'illustration : une seule mention discrète figure en pied de page
+(« Dossier interne — ne pas diffuser »), sans bandeau sur le site. Les projets-types de réalisations restent non publiés.
+
+### Cohérence des prix avec le marché
+
+Les valeurs du catalogue suivent les fourchettes publiées pour le Grand Antananarivo en 2026 :
+
+| Secteur | Fourchette de marché | Valeur retenue |
+|---|---|---|
+| Quartiers résidentiels prisés (Ivandry, Ambatobe) | 200 000 – 500 000 Ar/m² | — |
+| Domaines aménagés (Vontovorona, Lacéo) | 100 000 – 180 000 Ar/m² | 120 000 – 180 000 Ar/m² |
+| Périphérie proche (Talatamaty, Itaosy, Ivato) | 50 000 – 150 000 Ar/m² | 85 000 – 90 000 Ar/m² |
+| Zones périurbaines (Ambohidratrimo) | 25 000 – 55 000 Ar/m² | 55 000 Ar/m² |
+| Terres agricoles (Brickaville) | 2 000 – 8 000 Ar/m² | 2 000 Ar/m² |
+| Ville secondaire (Mahajanga) | 30 000 – 60 000 Ar/m² | 50 000 Ar/m² |
+
+Sources : annonces d'agences (OFIM, Zone Immo, Acropole Immo, Guy Hoquet Madagascar) et guides de prix 2026
+(trouvetout.mg, trano-mada.mg). Les montants restent des valeurs de démonstration, mais les ordres de grandeur
+correspondent au marché observé.
 
 Le chargement est volontaire, relançable sans doublons, additif et refusé en production.
 Les lignes existantes et les modifications apportées aux exemples sont conservées.
@@ -57,7 +74,7 @@ ne constituent pas une certification foncière.
 
 | Table | Rôle |
 |---|---|
-| `users` | administrateurs du back office (Sanctum) |
+| `users` | administrateurs de l’espace de gestion (Sanctum) |
 | `lands` | catalogue public (galeries/atouts en `jsonb`) |
 | `realisations` | réalisations publiées (photos = liste d'URLs) |
 | `clients` | fiches créées/rapprochées automatiquement (email ou téléphone) |
@@ -100,7 +117,7 @@ Réponse : `{ "ref": "ACH-260930", "message": "…" }` — la référence est
 générée côté serveur (`ACH|VIS|REC|VEN-YYMMDD`, suffixe `-2`, `-3`… si
 plusieurs demandes le même jour).
 
-## Endpoints — back office (jeton Sanctum)
+## Endpoints — espace de gestion (jeton Sanctum)
 
 | Méthode | URL | Description |
 |---|---|---|
@@ -154,7 +171,7 @@ avec PostgreSQL 18 à chaque push et pull request.
 
 ```
 app/Http/Controllers/Api/V1/Public/   # lectures + demandes du site
-app/Http/Controllers/Api/V1/Admin/    # back office (Sanctum)
+app/Http/Controllers/Api/V1/Admin/    # espace de gestion (Sanctum)
 app/Models/                           # Land, Realisation, Client, SiteRequest…
 database/migrations/                  # schéma PostgreSQL
 database/seeders/                     # admin, catalogue (data/lands.json), réalisations

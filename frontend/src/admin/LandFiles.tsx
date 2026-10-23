@@ -889,6 +889,13 @@ export function LandFileForm() {
                     placeholder={PHONE_PLACEHOLDER}
                   />
                 </Field>
+                <Field label="Ce numéro est-il sur WhatsApp ?">
+                  <Select
+                    value={f.whatsapp ?? ''}
+                    onChange={(v) => set('whatsapp', v)}
+                    options={['Oui', 'Non']}
+                  />
+                </Field>
                 <Field
                   label="Adresse email"
                   required
@@ -2376,6 +2383,28 @@ export function LandFileDetail() {
               icon={<FileText className="w-4 h-4" />}
               confidential
             >
+              {/* Ce que le vendeur a déclaré avoir au dépôt, même sans joindre
+                  un seul fichier : c'est la liste de ce qu'il faut réclamer à
+                  la visite. */}
+              {!!f.docTypes?.length && (
+                <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50/60 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-900">
+                    Déclaré par le vendeur au dépôt
+                  </p>
+                  <ul className="mt-1.5 space-y-0.5">
+                    {f.docTypes.map((t) => (
+                      <li key={t} className="text-sm text-navy-900">
+                        • {t}
+                      </li>
+                    ))}
+                  </ul>
+                  {!f.documents.length && (
+                    <p className="mt-1.5 text-xs text-amber-900/80">
+                      Aucun fichier joint : à réclamer lors de la visite.
+                    </p>
+                  )}
+                </div>
+              )}
               {!f.documents.length && (
                 <p className="text-sm text-gray-600">
                   Aucun document. Ajoutez-les depuis « Modifier ».
@@ -2557,6 +2586,7 @@ export function LandFileDetail() {
                   </a>
                 }
               />
+              <Info label="WhatsApp" value={f.whatsapp} />
               {/* Situation déclarée par le vendeur au dépôt : un titre resté au
                   nom d'un parent ou une indivision familiale explique la suite
                   des démarches à prévoir. */}

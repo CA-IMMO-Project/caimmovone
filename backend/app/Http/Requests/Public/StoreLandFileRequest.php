@@ -78,8 +78,8 @@ class StoreLandFileRequest extends FormRequest
             'idFiles.min' => 'Joignez une pièce d’identité du propriétaire (photo ou PDF) : elle est nécessaire pour déposer un terrain.',
             'idFiles.*.mimes' => 'Format non accepté : envoyez la pièce en PDF, JPG, PNG ou WebP.',
             'idFiles.*.max' => 'La pièce est trop lourde (10 Mo maximum) : envoyez une photo moins lourde.',
-            'docTypes.required' => 'Indiquez ce que vous avez comme documents — choisissez « Aucun document pour l’instant » si vous n’avez rien.',
-            'docTypes.min' => 'Indiquez ce que vous avez comme documents — choisissez « Aucun document pour l’instant » si vous n’avez rien.',
+            'docTypes.required' => 'Dites ce que vous possédez déjà comme documents — ou cochez « Je n’ai encore aucun de ces documents » si vous n’avez rien.',
+            'docTypes.min' => 'Dites ce que vous possédez déjà comme documents — ou cochez « Je n’ai encore aucun de ces documents » si vous n’avez rien.',
         ];
     }
 

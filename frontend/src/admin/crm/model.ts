@@ -173,6 +173,10 @@ export interface LandFile {
   ownerStatus?: string;
   /** Le vendeur a demandé une estimation de prix à CA IMMO (« Oui »). */
   estimateRequested?: string;
+  /** Le numéro laissé est-il joignable sur WhatsApp ? (« Oui » / « Non »). */
+  whatsapp?: string;
+  /** Documents que le vendeur DÉCLARE avoir, même s'il n'a joint aucun fichier. */
+  docTypes?: string[];
   /** Fiche dans la base clients (rapprochée par email/téléphone à la soumission) — permet de retrouver tous les dossiers d'un même client depuis sa fiche. */
   clientId?: string;
   // Propriétaire

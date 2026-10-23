@@ -41,7 +41,7 @@ class PublicLandFileTest extends TestCase
             'directions' => 'Derrière la station Jovenna, à 200 m de l’EPP.',
             'payment' => 'Les deux',
             'paymentDuration' => 'À discuter',
-            'docTypes' => ['Titre foncier', 'Plan du terrain'],
+            'docTypes' => ['Titre foncier (bokin-tany)', 'Plan topographique ou bornage (coordonnées Laborde)'],
             'deposit' => 'À convenir avec l’agence',
             // Faux PDF (et non une image générée par GD) : le test tourne sur
             // n'importe quelle installation PHP, et le format PDF fait partie
@@ -64,6 +64,16 @@ class PublicLandFileTest extends TestCase
         // La pièce jointe est bien rattachée au dossier (visible dans la fiche VEN).
         $this->assertNotEmpty($file->detail['idDoc']['file'] ?? null);
         $this->assertDatabaseHas('clients', ['phone' => '0341234567']);
+    }
+
+    public function test_land_file_keeps_the_whatsapp_answer(): void
+    {
+        Storage::fake('local');
+
+        $this->post('/api/v1/land-files', $this->dossier(['whatsapp' => 'Non']))->assertCreated();
+
+        $file = LandFile::firstOrFail();
+        $this->assertSame('Non', $file->detail['whatsapp'] ?? null);
     }
 
     public function test_land_file_without_identity_piece_is_rejected(): void
@@ -112,6 +122,24 @@ class PublicLandFileTest extends TestCase
         $this->post('/api/v1/land-files', $this->dossier([
             'docTypes' => ['Aucun document pour l’instant'],
         ]))->assertCreated();
+    }
+
+    /** Déclarer un titre sans joindre un seul fichier doit rester possible :
+        le dépôt part, l'agent récupère les pièces à la visite. */
+    public function test_land_file_accepts_a_declaration_without_any_uploaded_file(): void
+    {
+        Storage::fake('local');
+
+        $dossier = $this->dossier([
+            'docTypes' => ['Titre foncier (bokin-tany)'],
+        ]);
+        unset($dossier['documents']);
+
+        $this->post('/api/v1/land-files', $dossier)->assertCreated();
+
+        $file = LandFile::firstOrFail();
+        $this->assertSame(['Titre foncier (bokin-tany)'], $file->detail['docTypes']);
+        $this->assertSame([], $file->detail['documents']);
     }
 
     public function test_price_can_be_replaced_by_an_estimation_request(): void

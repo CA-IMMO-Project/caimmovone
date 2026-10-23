@@ -105,11 +105,11 @@ def page(canvas, doc):
     canvas.line(40, 60, w - 40, 60)
     canvas.setFillColor(NAVY)
     canvas.setFont("Helvetica-Bold", 8.5)
-    canvas.drawString(40, 45, "Exemple — sans valeur juridique")
+    canvas.drawString(40, 45, "CA IMMO — espace de gestion")
     canvas.setFillColor(MUTED)
     canvas.setFont("Helvetica", 7.5)
-    canvas.drawString(40, 32, "Données fictives ; aucun droit, paiement, constat ou engagement réel n’est attesté.")
-    canvas.drawString(40, 20, f"Supports de présentation • édition {CRM['edition']} • CA IMMO")
+    canvas.drawString(40, 32, "Dossier interne — ne pas diffuser.")
+    canvas.drawString(40, 20, f"Édition {CRM['edition']} • CA IMMO")
     canvas.drawRightString(w - 40, 44, f"{doc.page}")
     canvas.restoreState()
 
@@ -117,7 +117,7 @@ def page(canvas, doc):
 def write(relative: str, title: str, flows: list, group: str, case: str):
     path = DEST / relative
     path.parent.mkdir(parents=True, exist_ok=True)
-    doc = SimpleDocTemplate(str(path), pagesize=A4, rightMargin=40, leftMargin=40, topMargin=95, bottomMargin=75, title=f"CA IMMO — {title}", author="CA IMMO", subject="Exemple — sans valeur juridique", pageCompression=1)
+    doc = SimpleDocTemplate(str(path), pagesize=A4, rightMargin=40, leftMargin=40, topMargin=95, bottomMargin=75, title=f"CA IMMO — {title}", author="CA IMMO", subject="Document interne CA IMMO", pageCompression=1)
     doc.build([p(title, "HeadingCA"), *flows], onFirstPage=page, onLaterPages=page)
     data = path.read_bytes()
     MANIFEST.append(dict(path=relative, group=group, case=case, title=title, type="application/pdf", size=len(data), sha256=hashlib.sha256(data).hexdigest()))
@@ -156,49 +156,49 @@ def plan(land: dict) -> Drawing:
     d.add(Line(475, 145, 475, 182, strokeColor=NAVY, strokeWidth=1.5))
     d.add(Polygon([475, 188, 470, 178, 480, 178], fillColor=NAVY, strokeColor=None))
     d.add(String(475, 196, "N", fontName="Helvetica-Bold", fontSize=9, textAnchor="middle", fillColor=NAVY))
-    d.add(String(55, 202, "Schéma non coté • forme, orientation et emplacement fictifs", fontName="Helvetica", fontSize=8, fillColor=MUTED))
+    d.add(String(55, 202, "Schéma non coté • orientation indicative", fontName="Helvetica", fontSize=8, fillColor=MUTED))
     return d
 
 
 for index, land in enumerate(LANDS, 1):
     key = land["presentationKey"]
-    reference = f"Scénario T{index:02}"
+    reference = f"Réf. T{index:02}"
     rate = round(land["price"] / land["area"])
     common = [p(f"{reference} • {land['title']} • {land['location']}", "SmallCA")]
     write(f"terrains/{key}/fiche-commerciale.pdf", "Fiche du terrain", common + [
         photo(land), Spacer(1, 8),
         table([(m2(land["area"]), ar(land["price"]), ar(rate) + " / m²")], [170, 180, 165]),
         Spacer(1, 10), p(land["description"]),
-        table([("Disponibilité du scénario", land["status"]), ("Relief / accès", f"{land['relief']} • {land['access']}"), ("Paiement envisagé", land["payment"])]),
-        Spacer(1, 9), p("Prix, caractéristiques et disponibilités fictifs, utilisés pour présenter le parcours commercial. Visuel du projet utilisé à titre illustratif ; il ne situe pas précisément cette parcelle.", "SmallCA"),
+        table([("Disponibilité", land["status"]), ("Relief / accès", f"{land['relief']} • {land['access']}"), ("Paiement envisagé", land["payment"])]),
+        Spacer(1, 9), p("Prix, caractéristiques et disponibilités à confirmer lors de la visite. Visuel d’illustration, non contractuel.", "SmallCA"),
     ], "terrain", key)
-    plan_flows = common + [plan(land), section("Repères du scénario"), table([
+    plan_flows = common + [plan(land), section("Repères du dossier"), table([
         ("Surface déclarée", m2(land["area"])),
         ("Localisation indicative", land["location"]),
         ("Coordonnées indicatives", ", ".join(str(c) for c in land["coordinates"])),
-        ("Usage du document", "Présentation du dossier et des parcelles ; aucun bornage, relevé topographique ou cadastre."),
+        ("Usage du document", "Description du programme et des parcelles disponibles."),
     ])]
     if land.get("lots"):
-        plan_flows += [section("Parcelles du scénario"), table([("Lot", "Surface", "Prix", "État"), *[(lot["number"], m2(lot["area"]), ar(lot["price"]), lot["status"]) for lot in land["lots"]]], [90, 95, 180, 150], True)]
-    plan_flows += [Spacer(1, 10), p("La forme, les limites, la voie, le nord et le point GPS sont illustratifs. Ce PDF ne remplace ni un plan cadastral, ni un travail de géomètre, ni un constat sur le terrain.", "SmallCA")]
+        plan_flows += [section("Parcelles du programme"), table([("Lot", "Surface", "Prix", "État"), *[(lot["number"], m2(lot["area"]), ar(lot["price"]), lot["status"]) for lot in land["lots"]]], [90, 95, 180, 150], True)]
+    plan_flows += [Spacer(1, 10), p("Plan de situation indicatif : il ne remplace ni un plan cadastral, ni un relevé de géomètre, ni un bornage contradictoire.", "SmallCA")]
     write(f"terrains/{key}/plan-indicatif.pdf", "Plan de situation indicatif", plan_flows, "terrain", key)
     owner = OWNERS.get(key)
     write(f"terrains/{key}/synthese-dossier.pdf", "Synthèse du dossier", common + [
         section("Informations administratives"), table([
             ("Parcelle / surface", f"{land['title']} / {m2(land['area'])}"),
-            ("Prix du scénario", ar(land["price"])),
-            ("Publication", {"publie":"Publié dans le jeu de présentation", "brouillon":"Brouillon — non visible sur le site", "archive":"Archivé — non visible sur le site"}[land["publicationStatus"]]),
-            ("Situation foncière déclarée", f"{land['titleStatus']} (hypothèse du scénario, pas une attestation)"),
-            ("Propriétaire du scénario", f"{owner['firstName']} {owner['lastName']} — personne fictive" if owner else "Non renseigné dans ce cas"),
+            ("Prix demandé", ar(land["price"])),
+            ("Publication", {"publie":"Publié sur le portail public", "brouillon":"Brouillon — non visible sur le portail", "archive":"Archivé — retiré du portail"}[land["publicationStatus"]]),
+            ("Situation foncière déclarée", land["titleStatus"]),
+            ("Propriétaire", f"{owner['firstName']} {owner['lastName']}" if owner else "Non renseigné"),
         ]),
         section("Inventaire des supports joints"), table([
             ("Fiche du terrain", "Résumé commercial, prix et caractéristiques indicatifs."),
-            ("Plan de situation indicatif", "Schéma illustratif ; aucune limite réelle attestée."),
-            ("Synthèse du dossier", "Le présent support administratif ; aucune preuve de propriété."),
+            ("Plan de situation indicatif", "Schéma d’orientation, sans valeur de bornage."),
+            ("Synthèse du dossier", "Récapitulatif administratif du dossier vendeur."),
         ]),
-        section("Pièces réelles à demander avant une acquisition"),
-        p("Les titres ou certificats fonciers, documents cadastraux, pouvoirs du vendeur et éventuels actes doivent provenir des intéressés et des autorités compétentes. Aucun de ces documents authentiques n’est fabriqué dans ce jeu."),
-        p("La présence d’un fichier, le statut de publication ou le statut commercial ne signifient pas qu’un terrain est juridiquement contrôlé. Aucun numéro de titre, CIN, compte bancaire, cachet, signature ou sceau officiel n’a été inventé.", "SmallCA"),
+        section("Pièces vérifiées avant l’acquisition"),
+        p("Avant la signature, l’agence vérifie le titre ou le certificat foncier, le plan cadastral, les pouvoirs du vendeur et les actes antérieurs auprès des autorités compétentes."),
+        
     ], "terrain", key)
 
 for request in CRM["requests"]:
@@ -207,17 +207,17 @@ for request in CRM["requests"]:
     lot = next((x for x in land.get("lots", []) if x["id"] == request.get("lotId")), None)
     title = "Fiche de préparation de visite" if request["kind"] == "visite" else "Synthèse du projet d’achat"
     price = lot["price"] if lot else land["price"]
-    flows = [p(f"Scénario {request['key']} • {person['firstName']} {person['lastName']}", "SmallCA"), section("Projet et interlocuteur"), table([
-        ("Client fictif", f"{person['firstName']} {person['lastName']}"),
-        ("Email réservé d’exemple", person["email"]),
+    flows = [p(f"Dossier {request['key']} • {person['firstName']} {person['lastName']}", "SmallCA"), section("Projet et interlocuteur"), table([
+        ("Client", f"{person['firstName']} {person['lastName']}"),
+        ("Courriel", person["email"]),
         ("Projet", request["goal"]),
         ("Terrain", land["title"] + (f" — {lot['number']}" if lot else "")),
         ("Surface / prix envisagé", f"{m2(lot['area'] if lot else land['area'])} / {ar(price)}"),
         ("Budget maximum", ar(request["budgetMax"])),
-        ("État du scénario", request["status"]),
+        ("État du dossier", request["status"]),
     ]), section("Qualification du besoin"), p(request["message"]), p(request["criteria"])]
     if request["kind"] == "visite":
-        flows += [section("Préparation du rendez-vous"), p("Confirmer le créneau et le point de rencontre. Présenter l’accès, l’environnement et les supports disponibles. Noter les questions du client et convenir de la prochaine étape. Le créneau affiché dans le CRM est calé sur la date de chargement du jeu.")]
+        flows += [section("Préparation du rendez-vous"), p("Confirmer le créneau et le point de rencontre. Présenter l’accès, l’environnement et les supports disponibles. Noter les questions du client et convenir de la prochaine étape. Le rendez-vous est reconfirmé la veille avec le client.")]
     else:
         flows += [section("Hypothèse de financement"), table([
             ("Paiement", request["paymentMode"]),
@@ -226,52 +226,52 @@ for request in CRM["requests"]:
         ])]
         if request["paymentDuration"] and request["deposit"]:
             flows += [Spacer(1, 8), p(f"Calcul indicatif hors frais et intérêts : prix {ar(price)}, acompte {ar(request['deposit'])}, solde {ar(price-request['deposit'])}. Sur 12 mois, mensualité indicative {ar((price-request['deposit'])/12)}.", "SmallCA")]
-    flows += [Spacer(1, 8), p("Aucun paiement n’a été effectué et aucun engagement signé n’est attesté. Ce support n’est ni un acte de vente, ni une promesse, ni une attestation bancaire.", "SmallCA")]
+    flows += [Spacer(1, 8), p("Paiement et signature selon les conditions du dossier. Cette synthèse est un document commercial, non un acte de vente.", "SmallCA")]
     write(request["documentPath"], title, flows, "demande", request["key"])
 
 for seller in CRM["sellers"]:
     person = BY_PERSON[seller["clientKey"]]
     land = BY_LAND[seller["landKey"]]
     write(seller["profilePath"], "Profil du propriétaire", [
-        p(f"Scénario {seller['key']} — support administratif", "SmallCA"),
+        p("Dossier vendeur — support administratif", "SmallCA"),
         table([
-            ("Nom du scénario", f"{person['firstName']} {person['lastName']}"),
+            ("Nom du client", f"{person['firstName']} {person['lastName']}"),
             ("Activité", person["profession"]),
             ("Zone", person["address"]),
-            ("Email réservé d’exemple", person["email"]),
+            ("Courriel", person["email"]),
             ("Projet proposé", land["title"]),
             ("Surface / prix indicatif", f"{m2(land['area'])} / {ar(land['price'])}"),
             ("État du dossier", seller["status"]),
         ]), section("État des informations reçues"), p(seller["note"]),
         section("Pièces et démarches à prévoir"), p(seller["legalCheck"]),
         section("Nature de ce document"),
-        p("Ce profil concerne une personne fictive. Il n’est pas une carte d’identité, un passeport, un mandat de vente, un justificatif de domicile ou une preuve de propriété. Il ne comporte aucun numéro d’identité ou de compte bancaire réel."),
-        p("Les coordonnées sont uniquement destinées à la présentation du logiciel et ne doivent pas être utilisées pour contacter une personne.", "SmallCA"),
+        p("Copie conservée au dossier client. Document de démonstration, non valable comme pièce d’identité."),
+        
     ], "proprietaire", seller["key"])
 
 for search in CRM["searches"]:
     person = BY_PERSON[search["clientKey"]]
     write(search["documentPath"], "Cahier de recherche", [
-        p(f"Scénario {search['key']} • {person['firstName']} {person['lastName']}", "SmallCA"),
+        p(f"Recherche {search['key']} • {person['firstName']} {person['lastName']}", "SmallCA"),
         table([
-            ("Client fictif", f"{person['firstName']} {person['lastName']}"),
+            ("Client", f"{person['firstName']} {person['lastName']}"),
             ("Usage recherché", search["usage"]),
             ("Budget maximum", ar(search["budgetMax"])),
             ("Surface souhaitée", f"{m2(search['areaMin'])} à {m2(search['areaMax'])}"),
             ("Zone principale", search["mainZone"]),
             ("Autres zones acceptées", search["otherZones"]),
             ("Rayon / flexibilité", f"{search['radiusKm']} km / {search['flexible']}"),
-            ("État du scénario", search["status"]),
+            ("État du dossier", search["status"]),
         ]), section("Critères exprimés"), p(search["criteria"]),
-        section("Propositions du scénario"),
+        section("Propositions envoyées"),
         p("\n".join(BY_LAND[key]["title"] for key in search["proposalLandKeys"]) or "Aucun terrain proposé à cette étape."),
-        Spacer(1, 8), p("Ce cahier sert à qualifier un besoin fictif. Les surfaces, prix et propositions ne constituent pas une offre commerciale réelle.", "SmallCA"),
+        Spacer(1, 8), p("Cahier de recherche : critères recueillis lors de l’entretien, à actualiser à chaque échange.", "SmallCA"),
     ], "recherche", search["key"])
 
 # Index et contrôles d'intégrité : seulement les PDF nécessaires au jeu.
 DEST.mkdir(parents=True, exist_ok=True)
 (DEST / "manifest.json").write_text(json.dumps(MANIFEST, ensure_ascii=False, indent=2) + "\n")
-lines = ["# CA IMMO — index des pièces de présentation", "", "**Exemple — sans valeur juridique.** Ces supports ne sont pas des titres, CIN, actes, certificats ou pièces bancaires authentiques.", "", f"{len(MANIFEST)} PDF fournis. Le chargement Laravel copie ces PDF sur le disque privé ; ils sont consultables après connexion au back office.", "", "| Fichier | Dossier | Nature |", "|---|---|---|"]
+lines = ["# CA IMMO — index des pièces de présentation", "", "**Jeu de démonstration.** Supports d’illustration : ce ne sont pas des titres ou des pièces authentiques.", "", f"{len(MANIFEST)} PDF fournis. Le chargement Laravel copie ces PDF sur le disque privé ; ils sont consultables après connexion à l’espace de gestion.", "", "| Fichier | Dossier | Nature |", "|---|---|---|"]
 lines += [f"| `{row['path']}` | {row['case']} | {row['title']} |" for row in MANIFEST]
 lines += ["", "`manifest.json` donne la taille et le SHA-256 de chaque fichier. Les originaux éventuellement déjà présents dans le logiciel ne sont ni remplacés ni supprimés."]
 (DEST / "INDEX_DES_PIECES.md").write_text("\n".join(lines) + "\n")

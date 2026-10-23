@@ -73,7 +73,7 @@ class PresentationDataTest extends TestCase
             $this->assertNotNull($file->client);
             $this->assertPrivatePdf($file->detail['idDoc']['file']);
             $this->assertSame('Autre', $file->detail['idDoc']['type']);
-            $this->assertSame('', $file->detail['owner']['accountNumber']);
+            $this->assertMatchesRegularExpression('/^•••• [0-9]{4}$/', $file->detail['owner']['accountNumber']);
             $this->assertCount(3, $file->detail['documents']);
         }
         foreach (Search::all() as $search) {
@@ -84,7 +84,7 @@ class PresentationDataTest extends TestCase
             }
         }
         foreach (Client::all() as $client) {
-            $this->assertStringEndsWith('@example.com', $client->email);
+            $this->assertContains(substr(strrchr($client->email, '@'), 1), ['gmail.com', 'yahoo.fr', 'outlook.com', 'hotmail.fr', 'orange.fr']);
             $this->assertTrue(ctype_digit($client->toAdminArray()['age']));
         }
         $sales = Land::all()->flatMap(fn ($land) => $land->sales ?? []);
@@ -112,7 +112,7 @@ class PresentationDataTest extends TestCase
         Storage::disk('local')->put('originals/title.pdf', '%PDF-1.7 original conservé');
         $realLand = (new Land)->fillFromPublic(array_merge($first, ['price' => 987654321, 'documents' => [$realFile]]));
         $realLand->forceFill(['verified' => true])->save();
-        $realClient = Client::create(['full_name' => 'Joël Rakotondrasoa', 'phone' => '0340000001', 'email' => 'joel@example.com', 'notes' => 'Notes réelles à conserver.']);
+        $realClient = Client::create(['full_name' => 'Joël Rakotondrasoa', 'phone' => '034 00 000 01', 'email' => 'joel.rakotondrasoa@yahoo.fr', 'notes' => 'Notes réelles à conserver.']);
         $landBefore = $realLand->fresh()->getAttributes();
         $clientBefore = $realClient->fresh()->getAttributes();
 

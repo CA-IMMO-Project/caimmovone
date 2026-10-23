@@ -74,7 +74,7 @@ class AdminDemoSeeder extends Seeder
                     'areaMin' => $row['areaMin'], 'areaMax' => $row['areaMax'],
                     'goal' => $row['goal'], 'criteria' => $row['criteria'], 'message' => $row['message'],
                     'paymentMode' => $row['paymentMode'], 'deposit' => $row['deposit'], 'paymentDuration' => $row['paymentDuration'],
-                    'deadline' => 'Dans les six prochains mois', 'extraInfo' => 'Scénario fictif ; aucun engagement ou paiement réel.',
+                    'deadline' => 'Dans les six prochains mois', 'extraInfo' => 'Paiement échelonné possible sur six mois après accord de la banque.',
                     'consent' => true, 'nextFollowUp' => $follow?->toIso8601String() ?? '',
                     'visitAt' => $visit?->toIso8601String() ?? '',
                     'visitDate' => $visit?->toDateString() ?? '', 'visitTime' => $visit?->format('H:i') ?? '',
@@ -94,7 +94,7 @@ class AdminDemoSeeder extends Seeder
                         'id' => 'ex-'.$row['key'].'-visite', 'type' => 'Visite du terrain', 'at' => $visit->toIso8601String(),
                         'note' => $row['message'], 'done' => $done,
                         'doneAt' => $done ? $visit->addHour()->toIso8601String() : null,
-                        'result' => $done ? 'Visite réalisée dans le scénario ; questions enregistrées au dossier.' : '',
+                        'result' => $done ? 'Visite réalisée avec l’agent ; questions du client notées au dossier.' : '',
                     ];
                 } elseif ($follow) {
                     $detail['actions'][] = [
@@ -103,7 +103,7 @@ class AdminDemoSeeder extends Seeder
                     ];
                 }
                 if (isset($row['soldOffset'])) {
-                    $detail['history'][] = $this->entry($row['key'].'-vente', 'Achat finalisé dans le scénario — aucun acte ni paiement réel.', $row['soldOffset'], $row['agent']);
+                    $detail['history'][] = $this->entry($row['key'].'-vente', 'Achat finalisé — acte signé et paiement réceptionné.', $row['soldOffset'], $row['agent']);
                 }
 
                 return (new SiteRequest([
@@ -128,7 +128,7 @@ class AdminDemoSeeder extends Seeder
                         'phone' => $person['phone'], 'email' => $person['email'], 'address' => $person['address'],
                         'idNumber' => 'Non fourni — exemple',
                     ],
-                    'notes' => 'Scénario fictif d’achat finalisé ; aucun transfert, paiement ou acte réel.',
+                    'notes' => 'Acquéreur du lot — acte signé, mutation en cours d’enregistrement.',
                     'buyRequestId' => (string) $request->id,
                 ];
                 $land->forceFill(['sales' => $sales])->save();
@@ -178,11 +178,11 @@ class AdminDemoSeeder extends Seeder
                 $comptant = $land['paymentMode'] === 'comptant';
                 $visit = isset($row['visitOffset']) ? $this->date($row['visitOffset'], '14:30') : null;
                 $detail = [
-                    'clientId' => (string) $client->id, 'ownerId' => 'EX-PROP-'.strtoupper($person['key']),
-                    'owner' => array_merge($this->person($person), ['accountNumber' => '']),
+                    'clientId' => (string) $client->id, 'ownerId' => 'PROP-'.strtoupper($person['key']),
+                    'owner' => array_merge($this->person($person), ['accountNumber' => '•••• '.substr($person['bankAccount'], -4)]),
                     'idDoc' => [
-                        'type' => 'Autre', 'number' => 'EX-PROFIL-'.strtoupper($person['key']),
-                        'issuedAt' => $this->base->toDateString(), 'expiresAt' => '', 'authority' => 'Profil de présentation — pas une pièce d’identité', 'file' => $profile,
+                        'type' => 'Autre', 'number' => '',
+                        'issuedAt' => $this->base->toDateString(), 'expiresAt' => '', 'authority' => 'Commune urbaine d’Antananarivo', 'file' => $profile,
                     ],
                     'title' => $land['title'], 'category' => $row['landKey'] === 'brickaville' ? 'Terrain agricole' : ($row['landKey'] === 'laceo-special' ? 'Lotissement' : 'Terrain nu'),
                     'area' => $land['area'], 'price' => $land['price'], 'pricePerM2' => (int) round($land['price'] / $land['area']), 'pricePerM2Manual' => false,
@@ -194,14 +194,14 @@ class AdminDemoSeeder extends Seeder
                     'building' => 'Non', 'buildingDesc' => '', 'occupation' => 'Libre', 'immediate' => 'Oui',
                     'usage' => $row['landKey'] === 'brickaville' ? 'Agricole' : ($row['landKey'] === 'mahajanga' ? 'Commercial' : 'Résidentiel'),
                     'region' => $land['region'], 'regionOther' => '', 'district' => $land['region'] === 'Analamanga' ? 'Antananarivo' : $land['zone'],
-                    'commune' => $land['zone'], 'fokontany' => '', 'addressHint' => 'Localisation indicative du scénario ; point de rencontre à confirmer.',
+                    'commune' => $land['zone'], 'fokontany' => '', 'addressHint' => 'Point de rencontre communiqué au client avant la visite.',
                     'landmark' => 'Repère à préciser avant visite', 'lat' => $land['coordinates'][0], 'lng' => $land['coordinates'][1],
                     'photos' => array_map(fn ($url) => $this->photo($url), $land['gallery']),
                     'documents' => $documents, 'salePayment' => $comptant ? 'Comptant – paiement en une fois' : 'Les deux – comptant ou facilité',
                     'maxDuration' => $comptant ? '0–4 mois' : '10–12 mois', 'maxDurationOther' => '',
                     'depositRange' => $comptant ? 'Personnalisé' : '25–35 %', 'depositCustom' => $comptant ? 100 : 0,
                     'frequency' => 'Mensuelle', 'frequencyOther' => '', 'saleNegotiable' => 'Oui', 'negotiationMargin' => 'À convenir',
-                    'specialConditions' => 'Hypothèses de présentation sans engagement. Pièces authentiques à demander avant une acquisition.',
+                    'specialConditions' => 'Vente soumise à la vérification des pièces foncières et à la signature de l’acte.',
                     'ownerComments' => $person['message'], 'agent' => $row['agent'], 'receivedAt' => $this->date($row['receivedOffset'])->toDateString(),
                     'priority' => $row['priority'], 'status' => $row['status'], 'fieldCheck' => $row['fieldCheck'], 'legalCheck' => $row['legalCheck'],
                     'internalEstimate' => $land['price'], 'recommendedPrice' => $land['price'], 'commission' => 5,

@@ -11,6 +11,7 @@ import {
   Clock3,
   FileCheck2,
   FileText,
+  Info,
   LandPlot,
   MapPin,
   PlayCircle,
@@ -72,22 +73,48 @@ const RELIEFS = ["Plat", "Pente douce", "Pente forte"] as const;
    Une CIN expirée reste acceptée : à Madagascar elle permet encore de justifier
    son identité si la photographie est ressemblante. */
 const ID_TYPES = ["CIN", "Passeport", "Carte de résident"] as const;
-/* Pièces foncières réellement rencontrées à Madagascar : le titre foncier
-   n'est pas la règle, les papiers coutumiers (« petit papier ») et l'indivision
-   familiale (terrain hérité, acte de notoriété) sont très fréquents. Aucun
-   document n'est obligatoire pour déposer : l'agence fait le point avec le
-   vendeur. */
-const DOC_TYPES = [
-  "Titre foncier",
-  "Certificat foncier (commune)",
-  "« Petit papier » / papiers coutumiers",
-  "Lettre de vente (acte sous seing privé)",
-  "Acte de notoriété / titre en indivision (succession)",
-  "Plan du terrain",
-  "Impôt ou taxe foncière",
-  "Certificat de situation juridique (CSJ)",
-  "Aucun document pour l’instant",
-] as const;
+/* Liste calée sur la procédure officielle malgache (torolalana.gov.mg,
+   « Acheter un terrain auprès d'un particulier ») : le certificat de situation
+   juridique de moins de 3 mois, le plan topographique, le titre foncier ou
+   l'extrait cadastral, les CNI légalisées et les certificats de résidence y
+   figurent explicitement. On les range par familles, comme dans un vrai
+   dossier, au lieu d'une liste plate où tout se vaut.
+
+   « Petit papier » n'est PAS un document : c'est le nom générique donné aux
+   papiers qui prouvent une occupation SANS titre (anciens actes de vente,
+   quittances d'impôt, permis). Il ne pouvait donc pas être coché à côté d'un
+   titre foncier — c'est une situation, traitée par la case « je n'ai pas de
+   titre » plus bas. */
+type DocGroup = { titre: string; aide: string; items: string[] };
+const DOC_GROUPS: DocGroup[] = [
+  {
+    titre: "Preuve de propriété",
+    aide: "Le document qui atteste que le terrain est au vendeur.",
+    items: [
+      "Titre foncier (bokin-tany)",
+      "Certificat foncier (kara-tany — guichet foncier de la commune)",
+      "Extrait cadastral",
+      "Acte de notoriété ou acte de partage (succession, indivision)",
+      "Papiers coutumiers (anciens actes de vente, reçus, permis)",
+    ],
+  },
+  {
+    titre: "Pièces de la transaction",
+    aide: "Ce que le notaire et le service des domaines réclament.",
+    items: [
+      "Certificat de situation juridique (CSJ, moins de 3 mois)",
+      "Plan topographique ou bornage (coordonnées Laborde)",
+      "Autorisation de transaction ou prescription d’urbanisme",
+      "Lettre de vente ou acte de vente",
+      "Quittance d’impôt foncier",
+    ],
+  },
+  {
+    titre: "Identité et résidence",
+    aide: "La CIN est jointe à l’étape 1 ; le certificat de résidence arrive avec l’acte.",
+    items: ["Certificat de résidence (fokontany)"],
+  },
+];
 /* Situation du vendeur vis-à-vis du terrain — un titre est souvent resté au
    nom d'un parent décédé ; l'agence doit le savoir dès le dépôt. */
 const OWNER_STATUSES = [
@@ -249,7 +276,7 @@ export default function Sell() {
         !form.fokontany.trim()
       ) {
         setError(
-          "Indiquez le district, la commune et le fokontany : c’est ainsi que le terrain est retrouvé sur place.",
+          "Indiquez le district, la commune et le fokontany (quartier ou village) : c’est ainsi que le terrain est retrouvé sur place.",
         );
         return;
       }
@@ -338,7 +365,7 @@ export default function Sell() {
       `— Documents —`,
       photos.length
         ? `Photos : ${photos.join(", ")}`
-        : "Photos : aucune — passage de l’agence à prévoir",
+        : "Photos : non fournies — prises de vue à réaliser lors de la visite",
       video.length ? `Vidéo : ${video.join(", ")}` : "",
       `Types de documents : ${docTypes.join(", ") || "à préciser avec le propriétaire"}`,
       docs.length ? `Fichiers : ${docs.join(", ")}` : "",
@@ -539,7 +566,7 @@ export default function Sell() {
                   </p>
                   <div className="mt-6 space-y-3 border-t border-white/10 pt-6">
                     {[
-                      "Le nom du fokontany et un repère sur place",
+                      "Le nom du quartier ou du village (fokontany) et un repère sur place",
                       "Ce que vous savez du terrain : surface, limites, accès",
                       "Les papiers que vous avez, même anciens ou coutumiers",
                       "Une photo de votre pièce d’identité (demandée dès la première étape)",
@@ -720,54 +747,63 @@ export default function Sell() {
                               onChange={(e) => set("title", e.target.value)}
                             />
                           </FormField>
+                          {/* La surface et son unité forment une seule question :
+                              les mettre côte à côte évite de faire descendre
+                              l'unité sur la ligne suivante, où elle se lit comme
+                              un champ indépendant. */}
                           <FormField
                             label="Superficie totale"
                             required
                             hint={
                               areaInM2() > 0
                                 ? `Soit ${areaInM2().toLocaleString("fr-FR")} m² — c’est cette valeur qui sera enregistrée.`
-                                : "Indiquez la surface, puis son unité."
+                                : "« are » et « hectare » sont acceptés : la conversion en m² est automatique."
                             }
                           >
-                            <Input
-                              type="number"
-                              min={0}
-                              step="any"
-                              placeholder={
-                                form.areaUnit === "hectare"
-                                  ? "Ex. 3"
-                                  : form.areaUnit === "are"
-                                    ? "Ex. 50"
-                                    : "Ex. 650"
-                              }
-                              value={form.area}
-                              onChange={(e) => set("area", e.target.value)}
-                            />
-                          </FormField>
-                          <FormField
-                            label="Unité de la superficie"
-                            required
-                            hint="« are » ou « hectare » sont acceptés : la conversion en m² est automatique."
-                          >
-                            <Select
-                              value={form.areaUnit}
-                              onChange={(e) =>
-                                set(
-                                  "areaUnit",
-                                  e.target.value as (typeof AREA_UNITS)[number],
-                                )
-                              }
-                            >
-                              {AREA_UNITS.map((u) => (
-                                <option key={u}>{u}</option>
-                              ))}
-                            </Select>
+                            {/* Enveloppes explicites : Input et Select rendent
+                                chacun un div « relative », donc la largeur doit
+                                être portée par le parent, pas par le champ. */}
+                            <div className="flex items-stretch gap-2">
+                              <div className="min-w-0 flex-1">
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step="any"
+                                  placeholder={
+                                    form.areaUnit === "hectare"
+                                      ? "Ex. 3"
+                                      : form.areaUnit === "are"
+                                        ? "Ex. 50"
+                                        : "Ex. 650"
+                                  }
+                                  aria-label="Superficie totale"
+                                  value={form.area}
+                                  onChange={(e) => set("area", e.target.value)}
+                                />
+                              </div>
+                              <div className="w-28 shrink-0">
+                                <Select
+                                  aria-label="Unité de la superficie"
+                                  value={form.areaUnit}
+                                  onChange={(e) =>
+                                    set(
+                                      "areaUnit",
+                                      e.target.value as (typeof AREA_UNITS)[number],
+                                    )
+                                  }
+                                >
+                                  {AREA_UNITS.map((u) => (
+                                    <option key={u}>{u}</option>
+                                  ))}
+                                </Select>
+                              </div>
+                            </div>
                           </FormField>
                           <FormField
                             label="Prix : le connaissez-vous déjà ?"
                             required
                             className="sm:col-span-2"
-                            hint="Répondre « Je préfère que CA IMMO estime » est une réponse normale : vous n’êtes pas obligé d’avoir un chiffre."
+                            hint="Vous pouvez laisser CA IMMO estimer votre terrain si vous n’avez pas encore de prix en tête."
                           >
                             <ChoiceCards<"Oui" | "Non">
                               value={form.priceKnown}
@@ -800,10 +836,19 @@ export default function Sell() {
                               />
                             </FormField>
                           )}
-                          <FormField label="Relief du terrain" required>
+                          {/* Trois réponses courtes : elles tiennent sur une
+                              seule ligne et occupent toute la largeur. Sans le
+                              col-span, le bloc restait dans une demi-colonne et
+                              « Pente forte » basculait seul à la ligne. */}
+                          <FormField
+                            label="Relief du terrain"
+                            required
+                            className="sm:col-span-2"
+                          >
                             <ChoiceCards<(typeof RELIEFS)[number]>
                               value={form.relief}
                               onChange={(v) => set("relief", v)}
+                              columns={3}
                               options={RELIEFS.map((r) => ({
                                 value: r,
                                 label: r,
@@ -812,6 +857,10 @@ export default function Sell() {
                           </FormField>
                         </div>
 
+                        {/* Même traitement que le relief : trois réponses,
+                            même grille, même hauteur. Deux questions voisines
+                            ne doivent pas se présenter l'une en ligne et
+                            l'autre en colonne sans raison visible. */}
                         <FormField
                           label="Votre situation vis-à-vis du terrain"
                           required
@@ -819,7 +868,7 @@ export default function Sell() {
                           <ChoiceCards<string>
                             value={form.ownerStatus}
                             onChange={(v) => set("ownerStatus", v)}
-                            columns={1}
+                            columns={3}
                             options={OWNER_STATUSES.map((s) => ({
                               value: s,
                               label: s,
@@ -912,9 +961,12 @@ export default function Sell() {
                               onChange={(e) => set("commune", e.target.value)}
                             />
                           </FormField>
-                          <FormField label="Fokontany" required>
+                          <FormField
+                            label="Quartier(fokontany)"
+                            required
+                          >
                             <Input
-                              placeholder="Nom du fokontany"
+                              placeholder="Ex. Antanetibe"
                               value={form.fokontany}
                               onChange={(e) => set("fokontany", e.target.value)}
                             />
@@ -933,7 +985,7 @@ export default function Sell() {
                         >
                           <Textarea
                             rows={3}
-                            placeholder="Ex. Fokontany Ambohipo, à 200 m de l’école EPP derrière la station Jovenna, 2e portail bleu après le canal…"
+                            placeholder="Ex. Quartier Ambohipo, à 200 m de l’école EPP derrière la station Jovenna, 2e portail bleu après le canal…"
                             value={form.directions}
                             onChange={(e) => set("directions", e.target.value)}
                           />
@@ -1043,33 +1095,100 @@ export default function Sell() {
                             Documents fonciers{" "}
                             <em className="not-italic text-gold-700">*</em>
                           </h3>
-                          <div className="mt-4 space-y-2.5">
-                            {DOC_TYPES.map((d) => {
-                              const active = docTypes.includes(d);
-                              return (
-                                <label
-                                  key={d}
-                                  className={`flex cursor-pointer items-center gap-3.5 rounded-2xl border px-5 py-3.5 transition ${
-                                    active
-                                      ? "border-gold-500/60 bg-gold-500/10"
-                                      : "border-navy-900/8 bg-white hover:border-navy-900/20"
-                                  }`}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    className="peer sr-only"
-                                    checked={active}
-                                    onChange={() => toggleDocType(d)}
-                                  />
-                                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md border border-navy-900/25 transition peer-checked:border-gold-500 peer-checked:bg-gold-500 peer-focus-visible:ring-2 peer-focus-visible:ring-navy-900/60 peer-focus-visible:ring-offset-2">
-                                    <Check
-                                      className={`h-3.5 w-3.5 ${active ? "text-navy-900" : "text-transparent"}`}
-                                    />
-                                  </span>
-                                  <span className="text-xs font-normal text-navy-900">{d}</span>
-                                </label>
-                              );
-                            })}
+                          <p className="mt-1.5 text-xs font-normal leading-relaxed text-navy-900/80">
+                            Cochez ce que vous avez déjà. Un seul document suffit
+                            pour envoyer le dossier : le reste se complète avec
+                            votre conseiller.
+                          </p>
+
+                          {/* Le téléversement est FACULTATIF : ce qui est obligatoire,
+                              c'est de dire ce qu'on a. Sans cette précision, le
+                              vendeur croit devoir scanner ses papiers pour envoyer
+                              son dossier — et abandonne. */}
+                          <p className="mt-3 flex items-start gap-2.5 rounded-2xl bg-gold-500/10 px-5 py-4 text-xs font-normal leading-relaxed text-navy-900/85">
+                            <Info className="mt-0.5 h-4 w-4 shrink-0 text-gold-700" />
+                            <span>
+                              <strong className="font-semibold">Joindre les fichiers est facultatif.</strong>{" "}
+                              Si vous les avez sous la main, ajoutez-les
+                              maintenant ; sinon, votre conseiller les
+                              récupérera lors de la visite du terrain. Votre
+                              dossier est étudié dans les deux cas.
+                            </span>
+                          </p>
+
+                          <div className="mt-5 space-y-5">
+                            {DOC_GROUPS.map((groupe) => (
+                              <div key={groupe.titre}>
+                                <p className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-navy-900/55">
+                                  {groupe.titre}
+                                </p>
+                                <p className="mt-1 text-xs font-normal text-navy-900/70">
+                                  {groupe.aide}
+                                </p>
+                                <div className="mt-3 space-y-2.5">
+                                  {groupe.items.map((d) => {
+                                    const active = docTypes.includes(d);
+                                    return (
+                                      <label
+                                        key={d}
+                                        className={`flex cursor-pointer items-center gap-3.5 rounded-2xl border px-5 py-3.5 transition ${
+                                          active
+                                            ? "border-gold-500/60 bg-gold-500/10"
+                                            : "border-navy-900/8 bg-white hover:border-navy-900/20"
+                                        }`}
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          className="peer sr-only"
+                                          checked={active}
+                                          onChange={() => toggleDocType(d)}
+                                        />
+                                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md border border-navy-900/25 transition peer-checked:border-gold-500 peer-checked:bg-gold-500 peer-focus-visible:ring-2 peer-focus-visible:ring-navy-900/60 peer-focus-visible:ring-offset-2">
+                                          <Check
+                                            className={`h-3.5 w-3.5 ${active ? "text-navy-900" : "text-transparent"}`}
+                                          />
+                                        </span>
+                                        <span className="text-xs font-normal text-navy-900">
+                                          {d}
+                                        </span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
+
+                            {/* Case à part, exclusive : ce n'est pas un document,
+                                c'est une situation (terrain sans titre, papiers
+                                coutumiers). Même logique que « Je n'ai pas de
+                                photos » à l'étape précédente. */}
+                            <label
+                              className={`flex cursor-pointer items-start gap-3.5 rounded-2xl border px-5 py-4 transition ${
+                                docTypes.includes(NO_DOC)
+                                  ? "border-gold-500/60 bg-gold-500/10"
+                                  : "border-navy-900/8 bg-white hover:border-navy-900/20"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                className="peer sr-only"
+                                checked={docTypes.includes(NO_DOC)}
+                                onChange={() => toggleDocType(NO_DOC)}
+                              />
+                              <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border border-navy-900/25 transition peer-checked:border-gold-500 peer-checked:bg-gold-500 peer-focus-visible:ring-2 peer-focus-visible:ring-navy-900/60 peer-focus-visible:ring-offset-2">
+                                <Check
+                                  className={`h-3.5 w-3.5 ${docTypes.includes(NO_DOC) ? "text-navy-900" : "text-transparent"}`}
+                                />
+                              </span>
+                              <span className="text-xs font-normal leading-relaxed text-navy-900/85">
+                                <strong className="font-semibold text-navy-900">
+                                  Je n’ai encore aucun de ces documents.
+                                </strong>{" "}
+                                De nombreuses parcelles ne sont pas encore
+                                titrées : CA IMMO vous accompagne dans les
+                                démarches de régularisation.
+                              </span>
+                            </label>
                           </div>
                           <div className="mt-4">
                             <UploadZone
@@ -1084,6 +1203,18 @@ export default function Sell() {
                               files={docs}
                             />
                           </div>
+                          {/* Le vendeur a coché des documents mais n'a joint aucun
+                              fichier : on le lui dit sans le bloquer, et on nomme
+                              la suite (l'agent les récupère à la visite). */}
+                          {docTypes.length > 0 &&
+                            !docTypes.includes(NO_DOC) &&
+                            docs.length === 0 && (
+                              <p className="mt-3 text-xs font-normal leading-relaxed text-navy-900/70">
+                                Vous n’avez rien joint : votre conseiller
+                                récupérera ces pièces lors de la visite du
+                                terrain, et elles seront versées au dossier.
+                              </p>
+                            )}
                         </div>
 
                         <p className="flex items-start gap-2.5 text-xs font-normal leading-relaxed text-navy-900/80">

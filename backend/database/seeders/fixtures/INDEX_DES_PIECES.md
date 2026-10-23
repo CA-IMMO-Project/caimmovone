@@ -1,8 +1,8 @@
 # CA IMMO — index des pièces de présentation
 
-**Exemple — sans valeur juridique.** Ces supports ne sont pas des titres, CIN, actes, certificats ou pièces bancaires authentiques.
+**Jeu de démonstration.** Supports d’illustration : ce ne sont pas des titres ou des pièces authentiques.
 
-83 PDF fournis. Le chargement Laravel copie ces PDF sur le disque privé ; ils sont consultables après connexion au back office.
+83 PDF fournis. Le chargement Laravel copie ces PDF sur le disque privé ; ils sont consultables après connexion à l’espace de gestion.
 
 | Fichier | Dossier | Nature |
 |---|---|---|
