@@ -3,9 +3,11 @@
 namespace Tests\Feature\Api;
 
 use App\Models\LandFile;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 /**
@@ -152,5 +154,135 @@ class PublicLandFileTest extends TestCase
         ]))->assertCreated();
 
         $this->assertSame('Oui', LandFile::firstOrFail()->detail['estimateRequested']);
+    }
+
+    public function test_cin_recto_and_verso_are_both_attached_on_id_doc(): void
+    {
+        Storage::fake('local');
+
+        $this->post('/api/v1/land-files', $this->dossier([
+            'idType' => 'CIN',
+            'idFiles' => [
+                UploadedFile::fake()->createWithContent('cin-recto.pdf', self::PDF_MINIMAL),
+                UploadedFile::fake()->createWithContent('cin-verso.pdf', self::PDF_MINIMAL),
+            ],
+        ]))->assertCreated();
+
+        $file = LandFile::firstOrFail();
+        $this->assertSame('Nouveau', $file->status);
+        $this->assertSame('cin-recto.pdf', $file->detail['idDoc']['file']['name'] ?? null);
+        $this->assertSame('cin-verso.pdf', $file->detail['idDoc']['verso']['name'] ?? null);
+    }
+
+    public function test_identity_piece_upload_enforces_strict_file_limits(): void
+    {
+        Storage::fake('local');
+
+        // Plus de 2 fichiers refusé quelle que soit la pièce
+        $this->post('/api/v1/land-files', $this->dossier([
+            'idType' => 'CIN',
+            'idFiles' => [
+                UploadedFile::fake()->createWithContent('1.pdf', self::PDF_MINIMAL),
+                UploadedFile::fake()->createWithContent('2.pdf', self::PDF_MINIMAL),
+                UploadedFile::fake()->createWithContent('3.pdf', self::PDF_MINIMAL),
+            ],
+        ]))->assertUnprocessable()->assertJsonValidationErrors('idFiles');
+
+        // Un passeport ne comporte qu'une page d'identité (max 1 fichier)
+        $this->post('/api/v1/land-files', $this->dossier([
+            'idType' => 'Passeport',
+            'idFiles' => [
+                UploadedFile::fake()->createWithContent('passeport-1.pdf', self::PDF_MINIMAL),
+                UploadedFile::fake()->createWithContent('passeport-2.pdf', self::PDF_MINIMAL),
+            ],
+        ]))->assertUnprocessable()->assertJsonValidationErrors('idFiles');
+
+        $this->post('/api/v1/land-files', $this->dossier([
+            'idType' => 'Passeport',
+            'idFiles' => [
+                UploadedFile::fake()->createWithContent('passeport.pdf', self::PDF_MINIMAL),
+            ],
+        ]))->assertCreated();
+    }
+
+    public function test_public_vocabularies_and_fields_are_aligned_for_back_office(): void
+    {
+        Storage::fake('local');
+
+        $this->post('/api/v1/land-files', $this->dossier([
+            'firstName' => 'Jean',
+            'lastName' => 'Rakoto',
+            'region' => 'Autre région',
+            'regionOther' => 'Melaky',
+            'relief' => 'Plat',
+            'payment' => 'Comptant',
+            'paymentDuration' => 'Non concerné (comptant)',
+            'noPhoto' => '1',
+            'docTypes' => ['Titre foncier (bokin-tany)'],
+            'documents' => [
+                UploadedFile::fake()->createWithContent('titre.pdf', self::PDF_MINIMAL),
+            ],
+        ]))->assertCreated();
+
+        $file = LandFile::firstOrFail();
+        $this->assertSame('Rakoto', $file->detail['owner']['lastName']);
+        $this->assertSame('Jean', $file->detail['owner']['firstName']);
+        $this->assertSame('Autre région', $file->detail['region']);
+        $this->assertSame('Melaky', $file->detail['regionOther']);
+        $this->assertSame('Terrain plat', $file->detail['relief']);
+        $this->assertSame('Comptant – paiement en une fois', $file->detail['salePayment']);
+        $this->assertSame('', $file->detail['maxDuration']);
+        $this->assertTrue($file->detail['noPhoto']);
+        $this->assertSame(['Titre foncier (bokin-tany)'], $file->detail['docTypes']);
+        $this->assertSame('Titre foncier', $file->detail['documents'][0]['category']);
+    }
+
+    public function test_admin_stats_and_reopen_workflow_reflect_land_files(): void
+    {
+        Storage::fake('local');
+
+        $this->post('/api/v1/land-files', $this->dossier([
+            'idFiles' => [
+                UploadedFile::fake()->createWithContent('cin-recto.pdf', self::PDF_MINIMAL),
+                UploadedFile::fake()->createWithContent('cin-verso.pdf', self::PDF_MINIMAL),
+            ],
+            'noPhoto' => '1',
+            'summary' => str_repeat('Résumé détaillé du dossier vendeur. ', 120),
+        ]))->assertCreated();
+
+        Sanctum::actingAs(User::factory()->create(), ['admin']);
+
+        $this->getJson('/api/v1/admin/stats')
+            ->assertOk()
+            ->assertJsonPath('requests.vente', 1)
+            ->assertJsonPath('landFiles.total', 1)
+            ->assertJsonPath('landFiles.new', 1);
+
+        $file = LandFile::firstOrFail();
+        $adminPayload = $file->toAdminArray();
+
+        // Clôture en archive avec décision
+        $closed = array_merge($adminPayload, [
+            'status' => 'Archivé',
+            'decision' => 'Refusé',
+            'decisionReason' => 'Prix hors marché',
+            'decidedAt' => '2026-10-26T10:00:00Z',
+        ]);
+        $this->putJson("/api/v1/admin/land-files/{$file->id}", $closed)->assertOk();
+        $file->refresh();
+        $this->assertSame('Refusé', $file->detail['decision'] ?? null);
+
+        // Réouverture : efface la décision et conserve idDoc.verso + noPhoto
+        $reopened = array_merge($file->toAdminArray(), [
+            'status' => 'À examiner',
+            'decision' => null,
+            'decisionReason' => '',
+            'decidedAt' => '',
+        ]);
+        $this->putJson("/api/v1/admin/land-files/{$file->id}", $reopened)->assertOk();
+        $file->refresh();
+        $this->assertNull($file->detail['decision'] ?? null);
+        $this->assertSame('cin-verso.pdf', $file->detail['idDoc']['verso']['name'] ?? null);
+        $this->assertTrue($file->detail['noPhoto'] ?? false);
     }
 }

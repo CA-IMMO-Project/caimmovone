@@ -29,7 +29,7 @@ import { phoneError, sanitizePhone } from '../lib/validate';
 import { NotFound } from './BuyRequests';
 import { ActionPlanner, CompleteDialog, PlanDialog } from './crm/client';
 import { askConfirm } from './crm/dialog';
-import { removeFile, useFileUrl } from './crm/files';
+import { getBlob, removeFile, useFileUrl } from './crm/files';
 import {
   Badge,
   Choice,
@@ -87,6 +87,7 @@ import {
   LandFileStatus,
   MAX_DURATIONS,
   OCCUPATIONS,
+  OWNER_STATUSES,
   PRIORITIES,
   PlannedAction,
   REGIONS,
@@ -267,6 +268,47 @@ function SiteFilesBlock({
 
 const MAX_PHOTOS = 12;
 
+function idDocPieces(f: LandFile): Array<{ label: string; file: StoredFile }> {
+  const typeLabel = f.idDoc.type || 'Pièce d’identité';
+  const out: Array<{ label: string; file: StoredFile }> = [];
+  if (f.idDoc.file) {
+    out.push({
+      label: f.idDoc.verso ? `${typeLabel} — Recto` : typeLabel,
+      file: f.idDoc.file,
+    });
+  }
+  if (f.idDoc.verso) {
+    out.push({
+      label: `${typeLabel} — Verso`,
+      file: f.idDoc.verso,
+    });
+  }
+  return out;
+}
+
+const totalDocCount = (f: LandFile) =>
+  f.documents.length + idDocPieces(f).length;
+
+const formatLandPrice = (f: LandFile) =>
+  f.price > 0
+    ? fmtAr(f.price)
+    : f.estimateRequested === 'Oui'
+      ? 'À estimer'
+      : '—';
+
+function formatIdSummary(f: LandFile): string {
+  const pieces = idDocPieces(f);
+  const head = [
+    f.idDoc.type || 'Pièce d’identité',
+    f.idDoc.number ? `n° ${f.idDoc.number}` : '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  if (pieces.length >= 2) return `${head} (recto + verso ✓)`;
+  if (pieces.length === 1) return `${head} ✓`;
+  return `${head} (non fournie)`;
+}
+
 const payShort = (f: LandFile) =>
   f.salePayment ? f.salePayment.split(' –')[0] : '—';
 const place = (f: LandFile) =>
@@ -319,9 +361,18 @@ const columns: Column<LandFile>[] = [
     label: 'Prix',
     width: 170,
     align: 'right',
-    render: (f) => fmtAr(f.price),
+    render: (f) => formatLandPrice(f),
     sort: (f) => f.price,
-    csv: (f) => f.price,
+    csv: (f) => (f.price > 0 ? f.price : f.estimateRequested === 'Oui' ? 'À estimer' : 0),
+  },
+  {
+    key: 'docsCount',
+    label: 'Pièces',
+    width: 90,
+    align: 'right',
+    render: (f) => totalDocCount(f),
+    sort: (f) => totalDocCount(f),
+    csv: (f) => totalDocCount(f),
   },
   {
     key: 'owner',
@@ -436,7 +487,11 @@ export function LandFileList() {
       )
       .sort((a, b) => {
         const fresh = (r: LandFile) =>
-          r.status === 'Nouveau' || r.status === 'Dossier incomplet' ? 0 : 1;
+          r.status === 'Nouveau' ||
+          r.status === 'À examiner' ||
+          r.status === 'Dossier incomplet'
+            ? 0
+            : 1;
         return fresh(a) - fresh(b) || b.createdAt.localeCompare(a.createdAt); // à traiter d'abord, puis plus récents
       });
   }, [rows, q, view]);
@@ -624,23 +679,20 @@ function validate(f: LandFile): Errors {
   need('owner', 'phone', o.phone);
   if (o.phone.trim() && phoneError(o.phone))
     e['owner.phone'] = phoneError(o.phone) ?? undefined;
-  need('owner', 'email', o.email);
-  if (o.email && !/^\S+@\S+\.\S+$/.test(o.email))
+  if (o.email.trim() && !/^\S+@\S+\.\S+$/.test(o.email.trim()))
     e['owner.email'] = 'Adresse email invalide';
-  need('owner', 'birthDate', o.birthDate);
-  need('owner', 'profession', o.profession);
-  need('owner', 'hasBankAccount', o.hasBankAccount);
   if (o.country === 'Autre')
     need('owner', 'countryOther', o.countryOther, 'Précisez le pays');
   need('owner', 'idType', f.idDoc.type);
-  need('owner', 'idNumber', f.idDoc.number);
   if (!f.idDoc.file)
     e['owner.idFile'] = 'Le justificatif d’identité est obligatoire';
 
   need('land', 'ref', f.ref);
   need('land', 'title', f.title);
   need('land', 'area', f.area);
-  need('land', 'price', f.price);
+  if (f.estimateRequested !== 'Oui') {
+    need('land', 'price', f.price);
+  }
   need('land', 'description', f.description);
   need('land', 'relief', f.relief);
   need('land', 'water', f.water);
@@ -655,20 +707,19 @@ function validate(f: LandFile): Errors {
   need('location', 'fokontany', f.fokontany);
   need('location', 'addressHint', f.addressHint);
 
-  if (f.photos.length < MIN_PHOTOS)
-    e['media.photos'] =
-      `Au moins ${MIN_PHOTOS} photos sont requises (vue générale, accès, limites)`;
-
   need('sale', 'salePayment', f.salePayment);
-  need('sale', 'maxDuration', f.maxDuration);
-  need('sale', 'depositRange', f.depositRange);
-  if (f.maxDuration === 'Autre durée')
-    need('sale', 'maxDurationOther', f.maxDurationOther, 'Précisez la durée');
-  if (
-    f.depositRange === 'Personnalisé' &&
-    !(f.depositCustom > 0 && f.depositCustom <= 100)
-  )
-    e['sale.depositCustom'] = 'Entre 1 et 100 %';
+  const isCashOnly = f.salePayment.startsWith('Comptant');
+  if (!isCashOnly) {
+    need('sale', 'maxDuration', f.maxDuration);
+    need('sale', 'depositRange', f.depositRange);
+    if (f.maxDuration === 'Autre durée')
+      need('sale', 'maxDurationOther', f.maxDurationOther, 'Précisez la durée');
+    if (
+      f.depositRange === 'Personnalisé' &&
+      !(f.depositCustom > 0 && f.depositCustom <= 100)
+    )
+      e['sale.depositCustom'] = 'Entre 1 et 100 %';
+  }
   return e;
 }
 
@@ -781,16 +832,14 @@ export function LandFileForm() {
       label: `4. Photos & médias (${f.photos.length})`,
       badge: count('media'),
     },
-    { id: 'docs', label: `5. Documents fonciers (${f.documents.length})` },
+    { id: 'docs', label: `5. Documents (${totalDocCount(f)})` },
     { id: 'sale', label: '6. Conditions de vente', badge: count('sale') },
     { id: 'internal', label: '7. Suivi interne' },
   ];
   const tabIndex = tabs.findIndex((t) => t.id === tab);
 
-  /* Bouton « Enregistrer le dossier » grisé tant que des champs obligatoires manquent (le brouillon reste toujours possible). */
-  const incomplete = Object.values(validate(f)).some(
-    (m) => m !== 'Adresse email invalide',
-  );
+  /* Bouton « Enregistrer le dossier » grisé tant qu'une erreur de validation subsiste (le brouillon reste toujours possible). */
+  const incomplete = Object.keys(validate(f)).length > 0;
 
   return (
     <form
@@ -896,9 +945,15 @@ export function LandFileForm() {
                     options={['Oui', 'Non']}
                   />
                 </Field>
+                <Field label="Situation vis-à-vis du terrain" span="full">
+                  <Choice
+                    value={f.ownerStatus ?? ''}
+                    onChange={(v) => set('ownerStatus', v)}
+                    options={OWNER_STATUSES}
+                  />
+                </Field>
                 <Field
                   label="Adresse email"
-                  required
                   error={err('owner.email')}
                 >
                   <input
@@ -910,7 +965,6 @@ export function LandFileForm() {
                 </Field>
                 <Field
                   label="Date de naissance"
-                  required
                   error={err('owner.birthDate')}
                 >
                   <input
@@ -922,7 +976,6 @@ export function LandFileForm() {
                 </Field>
                 <Field
                   label="Profession"
-                  required
                   error={err('owner.profession')}
                 >
                   <input
@@ -960,7 +1013,6 @@ export function LandFileForm() {
                 </Field>
                 <Field
                   label="Titulaire d’un compte bancaire"
-                  required
                   error={err('owner.hasBankAccount')}
                 >
                   <Choice
@@ -1008,7 +1060,7 @@ export function LandFileForm() {
                 </Field>
                 <Field
                   label="Numéro de pièce"
-                  required
+                  hint="Peut être complété à la lecture de la pièce"
                   error={err('owner.idNumber')}
                 >
                   <input
@@ -1042,35 +1094,120 @@ export function LandFileForm() {
                 </Field>
               </Grid>
               <div className="mt-4">
-                <p className="text-xs font-medium text-gray-600 mb-1.5">
-                  Justificatif d’identité{' '}
-                  <span className="text-red-500">*</span>
-                </p>
-                {f.idDoc.file ? (
-                  <div className="flex items-center gap-4">
-                    <Thumb
-                      file={f.idDoc.file}
-                      className="w-32 h-20 rounded-lg border"
-                    />
-                    <div className="flex-1">
-                      <FileChip
-                        file={f.idDoc.file}
-                        onPreview={() => setPreview(f.idDoc.file!)}
-                        onRemove={() => {
-                          removeFile(f.idDoc.file!);
-                          setId('file', undefined);
-                        }}
-                      />
+                {f.idDoc.type === 'CIN' || f.idDoc.type === 'Carte de résident' ? (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs font-medium text-gray-600 mb-1.5">
+                        Recto — {f.idDoc.type}{' '}
+                        <span className="text-red-500">*</span>
+                      </p>
+                      {f.idDoc.file ? (
+                        <div className="flex items-center gap-3">
+                          <Thumb
+                            file={f.idDoc.file}
+                            className="w-24 h-16 rounded-lg border shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <FileChip
+                              file={f.idDoc.file}
+                              onPreview={() => setPreview(f.idDoc.file!)}
+                              onRemove={() => {
+                                removeFile(f.idDoc.file!);
+                                setId('file', undefined);
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <FileDrop
+                          accept="image/jpeg,image/png,image/webp,application/pdf"
+                          maxMb={15}
+                          label={`Téléverser le recto (${f.idDoc.type})`}
+                          hint="PDF, JPG, PNG, WEBP · 15 Mo max"
+                          onFiles={([file]) => setId('file', file)}
+                        />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-600 mb-1.5">
+                        Verso — {f.idDoc.type}
+                      </p>
+                      {f.idDoc.verso ? (
+                        <div className="flex items-center gap-3">
+                          <Thumb
+                            file={f.idDoc.verso}
+                            className="w-24 h-16 rounded-lg border shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <FileChip
+                              file={f.idDoc.verso}
+                              onPreview={() => setPreview(f.idDoc.verso!)}
+                              onRemove={() => {
+                                removeFile(f.idDoc.verso!);
+                                setId('verso', undefined);
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <FileDrop
+                          accept="image/jpeg,image/png,image/webp,application/pdf"
+                          maxMb={15}
+                          label={`Téléverser le verso (${f.idDoc.type})`}
+                          hint="PDF, JPG, PNG, WEBP · 15 Mo max"
+                          onFiles={([file]) => setId('verso', file)}
+                        />
+                      )}
                     </div>
                   </div>
                 ) : (
-                  <FileDrop
-                    accept="image/jpeg,image/png,image/webp,application/pdf"
-                    maxMb={15}
-                    label="Téléverser la pièce d’identité"
-                    hint="PDF, JPG, PNG, WEBP · 15 Mo max"
-                    onFiles={([file]) => setId('file', file)}
-                  />
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 mb-1.5">
+                      Justificatif d’identité ({f.idDoc.type || 'Passeport'}){' '}
+                      <span className="text-red-500">*</span>
+                    </p>
+                    {f.idDoc.file ? (
+                      <div className="flex items-center gap-4">
+                        <Thumb
+                          file={f.idDoc.file}
+                          className="w-32 h-20 rounded-lg border"
+                        />
+                        <div className="flex-1">
+                          <FileChip
+                            file={f.idDoc.file}
+                            onPreview={() => setPreview(f.idDoc.file!)}
+                            onRemove={() => {
+                              removeFile(f.idDoc.file!);
+                              setId('file', undefined);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <FileDrop
+                        accept="image/jpeg,image/png,image/webp,application/pdf"
+                        maxMb={15}
+                        label="Téléverser la pièce d’identité"
+                        hint="PDF, JPG, PNG, WEBP · 15 Mo max"
+                        onFiles={([file]) => setId('file', file)}
+                      />
+                    )}
+                    {f.idDoc.verso && (
+                      <div className="mt-3">
+                        <p className="text-xs font-medium text-gray-600 mb-1">
+                          Seconde face jointe
+                        </p>
+                        <FileChip
+                          file={f.idDoc.verso}
+                          onPreview={() => setPreview(f.idDoc.verso!)}
+                          onRemove={() => {
+                            removeFile(f.idDoc.verso!);
+                            setId('verso', undefined);
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 )}
                 {err('owner.idFile') && (
                   <p className="text-xs text-red-600 mt-1">
@@ -1131,10 +1268,24 @@ export function LandFileForm() {
                   suffix="m²"
                 />
               </Field>
+              <Field label="Estimation demandée à CA IMMO">
+                <Choice
+                  value={f.estimateRequested === 'Oui' ? 'Oui' : 'Non'}
+                  onChange={(v) =>
+                    set('estimateRequested', v === 'Oui' ? 'Oui' : undefined)
+                  }
+                  options={['Non', 'Oui']}
+                />
+              </Field>
               <Field
                 label="Prix total souhaité"
-                required
+                required={f.estimateRequested !== 'Oui'}
                 error={err('land.price')}
+                hint={
+                  f.estimateRequested === 'Oui'
+                    ? 'Facultatif tant que l’estimation agence est en cours'
+                    : undefined
+                }
               >
                 <NumberInput
                   value={f.price}
@@ -1453,10 +1604,19 @@ export function LandFileForm() {
               }
             >
               <p className="text-sm text-gray-600 mb-3">
-                Minimum {MIN_PHOTOS} photos : <strong>vue générale</strong>,{' '}
-                <strong>accès</strong> et <strong>limites du terrain</strong>.
-                La première photo est la photo principale.
+                Minimum {MIN_PHOTOS} photos recommandées avant publication :{' '}
+                <strong>vue générale</strong>, <strong>accès</strong> et{' '}
+                <strong>limites du terrain</strong>. La première photo est la
+                photo principale.
               </p>
+              <label className="mb-3 inline-flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!f.noPhoto}
+                  onChange={(e) => set('noPhoto', e.target.checked)}
+                />
+                Aucune photo fournie au dépôt — prises de vue à réaliser lors de la visite
+              </label>
               {f.photos.length < MAX_PHOTOS && (
                 <FileDrop
                   accept="image/jpeg,image/png,image/webp"
@@ -1467,7 +1627,12 @@ export function LandFileForm() {
                   onFiles={(files) => {
                     const room = MAX_PHOTOS - f.photos.length;
                     files.slice(room).forEach(removeFile);
-                    set('photos', [...f.photos, ...files.slice(0, room)]);
+                    const next = [...f.photos, ...files.slice(0, room)];
+                    setF((x) => ({
+                      ...x,
+                      photos: next,
+                      noPhoto: next.length > 0 ? false : x.noPhoto,
+                    }));
                   }}
                 />
               )}
@@ -1554,10 +1719,10 @@ export function LandFileForm() {
                 />
               ) : (
                 <FileDrop
-                  accept="video/mp4,video/quicktime,.mp4,.mov"
+                  accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm,.avi"
                   maxMb={100}
                   label="Ajouter une vidéo"
-                  hint="MP4 ou MOV · 100 Mo max"
+                  hint="MP4, MOV ou WEBM · 100 Mo max"
                   onFiles={([v]) => set('video', v)}
                 />
               )}
@@ -1567,16 +1732,63 @@ export function LandFileForm() {
 
         {tab === 'docs' && (
           <Section
-            title="Documents fonciers"
+            title="Pièces d’identité et documents fonciers"
             icon={<FileText className="w-4 h-4" />}
             confidential
           >
+            <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+                  Pièce d’identité du propriétaire ({formatIdSummary(f)})
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setTab('owner')}
+                  className="text-xs font-medium text-navy-900 underline"
+                >
+                  Gérer dans « 1. Propriétaire »
+                </button>
+              </div>
+              {idDocPieces(f).length > 0 ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {idDocPieces(f).map(({ label, file }) => (
+                    <div key={label}>
+                      <p className="text-xs text-gray-500 mb-1">{label}</p>
+                      <FileChip
+                        file={file}
+                        onPreview={() => setPreview(file)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-red-600">
+                  Aucune pièce d’identité jointe — ajoutez-la dans l’onglet « 1. Propriétaire ».
+                </p>
+              )}
+            </div>
+
+            {!!f.docTypes?.length && (
+              <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50/60 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-amber-900">
+                  Documents fonciers déclarés par le vendeur au dépôt
+                </p>
+                <ul className="mt-1.5 space-y-0.5">
+                  {f.docTypes.map((t) => (
+                    <li key={t} className="text-sm text-navy-900">
+                      • {t}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <FileDrop
-              accept="application/pdf,image/jpeg,image/png,image/webp"
+              accept="application/pdf,image/jpeg,image/png,image/webp,.doc,.docx"
               maxMb={15}
               multiple
               label="Ajouter des documents fonciers"
-              hint="PDF, JPG, PNG, WEBP · 15 Mo max"
+              hint="PDF, JPG, PNG, WEBP, DOC/DOCX · 15 Mo max"
               onFiles={(files) =>
                 set('documents', [
                   ...f.documents,
@@ -1681,84 +1893,90 @@ export function LandFileForm() {
                   options={SALE_PAYMENT}
                 />
               </Field>
-              <Field
-                label="Durée maximale acceptée"
-                required
-                error={err('sale.maxDuration')}
-                span="full"
-              >
-                <Choice
-                  value={f.maxDuration}
-                  onChange={(v) => set('maxDuration', v)}
-                  options={MAX_DURATIONS}
-                />
-              </Field>
-              {f.maxDuration === 'Autre durée' && (
-                <Field
-                  label="Durée personnalisée"
-                  required
-                  error={err('sale.maxDurationOther')}
-                >
-                  <input
-                    className={input}
-                    value={f.maxDurationOther}
-                    onChange={(e) => set('maxDurationOther', e.target.value)}
-                    placeholder="Ex : 18 mois"
-                  />
-                </Field>
-              )}
-              <Field
-                label="Acompte minimum demandé"
-                required
-                error={err('sale.depositRange')}
-                span="full"
-              >
-                <Choice
-                  value={f.depositRange}
-                  onChange={(v) => set('depositRange', v)}
-                  options={DEPOSITS.map(([l]) => l)}
-                />
-              </Field>
-              {f.depositRange === 'Personnalisé' && (
-                <Field
-                  label="Pourcentage personnalisé"
-                  required
-                  error={err('sale.depositCustom')}
-                >
-                  <NumberInput
-                    value={f.depositCustom}
-                    onChange={(v) => set('depositCustom', v)}
-                    suffix="%"
-                  />
-                </Field>
-              )}
-              <Field
-                label="Acompte minimum (calculé)"
-                hint={
-                  pct
-                    ? `${pct} % de ${fmtAr(f.price)}`
-                    : 'Renseignez le prix et l’acompte'
-                }
-              >
-                <div className={`${input} bg-gray-50 font-semibold`}>
-                  {fmtAr(depositAmount(f))}
-                </div>
-              </Field>
-              <Field label="Fréquence de paiement">
-                <Select
-                  value={f.frequency}
-                  onChange={(v) => set('frequency', v)}
-                  options={FREQUENCIES}
-                />
-              </Field>
-              {f.frequency === 'Personnalisée' && (
-                <Field label="Fréquence personnalisée">
-                  <input
-                    className={input}
-                    value={f.frequencyOther}
-                    onChange={(e) => set('frequencyOther', e.target.value)}
-                  />
-                </Field>
+              {!f.salePayment.startsWith('Comptant') && (
+                <>
+                  <Field
+                    label="Durée maximale acceptée"
+                    required
+                    error={err('sale.maxDuration')}
+                    span="full"
+                  >
+                    <Choice
+                      value={f.maxDuration}
+                      onChange={(v) => set('maxDuration', v)}
+                      options={MAX_DURATIONS}
+                    />
+                  </Field>
+                  {f.maxDuration === 'Autre durée' && (
+                    <Field
+                      label="Durée personnalisée"
+                      required
+                      error={err('sale.maxDurationOther')}
+                    >
+                      <input
+                        className={input}
+                        value={f.maxDurationOther}
+                        onChange={(e) =>
+                          set('maxDurationOther', e.target.value)
+                        }
+                        placeholder="Ex : 18 mois"
+                      />
+                    </Field>
+                  )}
+                  <Field
+                    label="Acompte minimum demandé"
+                    required
+                    error={err('sale.depositRange')}
+                    span="full"
+                  >
+                    <Choice
+                      value={f.depositRange}
+                      onChange={(v) => set('depositRange', v)}
+                      options={DEPOSITS.map(([l]) => l)}
+                    />
+                  </Field>
+                  {f.depositRange === 'Personnalisé' && (
+                    <Field
+                      label="Pourcentage personnalisé"
+                      required
+                      error={err('sale.depositCustom')}
+                    >
+                      <NumberInput
+                        value={f.depositCustom}
+                        onChange={(v) => set('depositCustom', v)}
+                        suffix="%"
+                      />
+                    </Field>
+                  )}
+                  <Field
+                    label="Acompte minimum (calculé)"
+                    hint={
+                      pct
+                        ? `${pct} % de ${fmtAr(f.price)}`
+                        : 'À définir avec le propriétaire ou selon pourcentage'
+                    }
+                  >
+                    <div className={`${input} bg-gray-50 font-semibold`}>
+                      {pct > 0 && f.price > 0 ? fmtAr(depositAmount(f)) : 'À convenir'}
+                    </div>
+                  </Field>
+                  <Field label="Fréquence de paiement">
+                    <Select
+                      value={f.frequency}
+                      onChange={(v) => set('frequency', v)}
+                      options={FREQUENCIES}
+                    />
+                  </Field>
+                  {f.frequency === 'Personnalisée' && (
+                    <Field label="Fréquence personnalisée">
+                      <input
+                        className={input}
+                        value={f.frequencyOther}
+                        onChange={(e) => set('frequencyOther', e.target.value)}
+                      />
+                    </Field>
+                  )}
+                </>
               )}
               <Field label="Négociation possible">
                 <Choice
@@ -2065,21 +2283,49 @@ export function LandFileDetail() {
     ? f.status
     : undefined;
   const docsToCheck = f.documents.filter((d) => d.status !== 'Reçu').length;
+  const idPieces = idDocPieces(f);
   const cur = f.photos[Math.min(photo, f.photos.length - 1)];
 
-  const printSheet = () =>
+  const blobToDataUrl = (blob: Blob): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result ?? ''));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+
+  const printSheet = async () => {
+    const photoSrcs = (
+      await Promise.all(
+        f.photos.slice(0, 3).map(async (p) => {
+          try {
+            const blob = await getBlob(p);
+            if (blob && blob.size > 0) return await blobToDataUrl(blob);
+          } catch {
+            /* fallback url si publique */
+          }
+          return p.url && !p.url.startsWith('/api/v1/admin/files/') ? p.url : '';
+        }),
+      )
+    ).filter(Boolean);
+
+    const priceHtml =
+      f.price > 0
+        ? `${escapeHtml(fmtAr(f.price))} (${escapeHtml(fmtNum(f.pricePerM2))} Ar/m²)`
+        : f.estimateRequested === 'Oui'
+          ? 'Estimation demandée à CA IMMO'
+          : '—';
+
     printHtml(
       `Fiche terrain ${f.ref}`,
       `
     <h2>${escapeHtml(f.title)}</h2>
-    ${f.photos
-      .slice(0, 3)
-      .filter((p) => p.url)
-      .map((p) => `<img src="${escapeHtml(p.url)}" alt="Photo du terrain">`)
+    ${photoSrcs
+      .map((src) => `<img src="${escapeHtml(src)}" alt="Photo du terrain">`)
       .join('')}
     <dl>
       <dt>Référence</dt><dd>${escapeHtml(f.ref)}</dd><dt>Statut</dt><dd>${escapeHtml(f.status)}</dd>
-      <dt>Superficie</dt><dd>${escapeHtml(fmtM2(f.area))}</dd><dt>Prix</dt><dd>${escapeHtml(fmtAr(f.price))} (${escapeHtml(fmtNum(f.pricePerM2))} Ar/m²)</dd>
+      <dt>Superficie</dt><dd>${escapeHtml(fmtM2(f.area))}</dd><dt>Prix</dt><dd>${priceHtml}</dd>
       <dt>Localisation</dt><dd>${escapeHtml(place(f))}</dd><dt>Indication</dt><dd>${escapeHtml(f.addressHint)}</dd>
       <dt>GPS</dt><dd>${escapeHtml(`${f.lat ?? '—'}, ${f.lng ?? '—'}`)}</dd><dt>Relief</dt><dd>${escapeHtml(f.relief)}</dd>
       <dt>Accès</dt><dd>${escapeHtml(f.accesses.join(', '))}</dd><dt>Eau / Électricité</dt><dd>${escapeHtml(`${f.water} / ${f.electricity}`)}</dd>
@@ -2087,12 +2333,13 @@ export function LandFileDetail() {
     </dl>
     <h2>Description</h2><p>${escapeHtml(f.description)}</p>
     <h2>Conditions de vente</h2><dl>
-      <dt>Paiement</dt><dd>${escapeHtml(f.salePayment)}</dd><dt>Durée max.</dt><dd>${escapeHtml(f.maxDuration === 'Autre durée' ? f.maxDurationOther : f.maxDuration)}</dd>
-      <dt>Acompte minimum</dt><dd>${escapeHtml(`${f.depositRange} · ${fmtAr(depositAmount(f))}`)}</dd><dt>Fréquence</dt><dd>${escapeHtml(f.frequency)}</dd>
+      <dt>Paiement</dt><dd>${escapeHtml(f.salePayment)}</dd><dt>Durée max.</dt><dd>${escapeHtml(f.maxDuration === 'Autre durée' ? f.maxDurationOther : f.maxDuration || '—')}</dd>
+      <dt>Acompte minimum</dt><dd>${escapeHtml(`${f.depositRange || '—'}${depositAmount(f) > 0 ? ` · ${fmtAr(depositAmount(f))}` : ''}`)}</dd><dt>Fréquence</dt><dd>${escapeHtml(f.frequency)}</dd>
       <dt>Négociable</dt><dd>${escapeHtml(`${f.saleNegotiable}${f.negotiationMargin ? ` (${f.negotiationMargin})` : ''}`)}</dd>
     </dl>
-    <h2>Propriétaire</h2><dl><dt>Nom</dt><dd>${escapeHtml(fullName(f.owner))}</dd><dt>Téléphone</dt><dd>${escapeHtml(phoneOf(f.owner))}</dd></dl>`,
+    <h2>Propriétaire</h2><dl><dt>Nom</dt><dd>${escapeHtml(fullName(f.owner))}</dd><dt>Téléphone</dt><dd>${escapeHtml(phoneOf(f.owner))}</dd><dt>Pièce d’identité</dt><dd>${escapeHtml(formatIdSummary(f))}</dd></dl>`,
     );
+  };
 
   const plan = (a: PlannedAction) => {
     update(
@@ -2140,9 +2387,9 @@ export function LandFileDetail() {
       return;
     update(
       {
-        decision: undefined,
-        decisionReason: undefined,
-        decidedAt: undefined,
+        decision: null as unknown as undefined,
+        decisionReason: '',
+        decidedAt: '',
         status: 'À examiner',
       },
       'Dossier rouvert (sorti des archives)',
@@ -2174,12 +2421,53 @@ export function LandFileDetail() {
       />
       <SummaryStrip
         facts={[
-          { label: 'Prix total', value: fmtAr(f.price) },
+          { label: 'Prix total', value: formatLandPrice(f) },
           { label: 'Surface', value: f.area ? `${fmtNum(f.area)} m²` : '' },
           { label: 'Propriétaire', value: fullName(f.owner) },
           { label: 'Agent', value: f.agent },
         ]}
       />
+
+      {/* Frise d'avancement du dossier vendeur : changement rapide d'étape en un clic */}
+      <div className="mb-5 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            Progression du dossier
+          </p>
+          {failed && <Badge value={failed} dot />}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {FLOW.map((stepStatus, idx) => {
+            const active = f.status === stepStatus;
+            const passed = stepIndex >= 0 && idx < stepIndex;
+            return (
+              <button
+                key={stepStatus}
+                type="button"
+                onClick={() => setStatus(stepStatus)}
+                className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
+                  active
+                    ? 'border-navy-900 bg-navy-900 text-white'
+                    : passed
+                      ? 'border-amber-300 bg-amber-50 text-amber-900 hover:border-amber-400'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-navy-900 hover:text-navy-900'
+                }`}
+              >
+                {FLOW_LABELS[idx]}
+              </button>
+            );
+          })}
+          {f.status !== 'Dossier incomplet' && (
+            <button
+              type="button"
+              onClick={() => setStatus('Dossier incomplet')}
+              className="rounded-lg border border-orange-200 bg-orange-50/70 px-2.5 py-1.5 text-xs font-medium text-orange-800 transition hover:border-orange-400"
+            >
+              Marquer incomplet
+            </button>
+          )}
+        </div>
+      </div>
 
       <div className="grid lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2 space-y-5">
@@ -2191,7 +2479,7 @@ export function LandFileDetail() {
               { id: 'media', label: `Photos (${f.photos.length})` },
               {
                 id: 'docs',
-                label: `Documents (${f.documents.length})`,
+                label: `Documents (${totalDocCount(f)})`,
                 badge: docsToCheck,
               },
               { id: 'notes', label: `Notes internes (${f.notes.length})` },
@@ -2228,13 +2516,16 @@ export function LandFileDetail() {
                 ) : (
                   <div className="aspect-[16/9] flex flex-col items-center justify-center text-gray-600 bg-gray-50">
                     <ImageIcon className="w-8 h-8" />
-                    <p className="text-sm mt-2">Aucune photo</p>
+                    <p className="text-sm mt-2">
+                      {f.noPhoto
+                        ? 'Aucune photo fournie au dépôt — prises de vue à réaliser lors de la visite'
+                        : 'Aucune photo'}
+                    </p>
                   </div>
                 )}
-                {f.photos.length < MIN_PHOTOS && (
+                {!f.noPhoto && f.photos.length < MIN_PHOTOS && (
                   <p className="px-4 pb-3 text-xs text-orange-600">
-                    ⚠ {f.photos.length} photo(s) sur {MIN_PHOTOS} minimum
-                    requises.
+                    ℹ {f.photos.length} photo(s) jointe(s) — {MIN_PHOTOS} recommandées avant publication au catalogue.
                   </p>
                 )}
               </div>
@@ -2379,17 +2670,43 @@ export function LandFileDetail() {
 
           {tab === 'docs' && (
             <Section
-              title="Documents fonciers"
+              title="Pièces d’identité et documents fonciers"
               icon={<FileText className="w-4 h-4" />}
               confidential
             >
-              {/* Ce que le vendeur a déclaré avoir au dépôt, même sans joindre
-                  un seul fichier : c'est la liste de ce qu'il faut réclamer à
-                  la visite. */}
+              {/* 1. Pièce d'identité du propriétaire (recto / verso) */}
+              <div className="mb-5 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+                    Pièce d’identité du propriétaire ({formatIdSummary(f)})
+                  </p>
+                </div>
+                {idPieces.length > 0 ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {idPieces.map(({ label, file }) => (
+                      <div key={label}>
+                        <p className="text-xs font-medium text-gray-600 mb-1">
+                          {label}
+                        </p>
+                        <FileChip
+                          file={file}
+                          onPreview={() => setPreview(file)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600">
+                    Aucune pièce d’identité jointe. Ajoutez-la depuis « Modifier ».
+                  </p>
+                )}
+              </div>
+
+              {/* 2. Déclaration documentaire du vendeur au dépôt */}
               {!!f.docTypes?.length && (
                 <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50/60 p-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-amber-900">
-                    Déclaré par le vendeur au dépôt
+                    Documents fonciers déclarés par le vendeur au dépôt
                   </p>
                   <ul className="mt-1.5 space-y-0.5">
                     {f.docTypes.map((t) => (
@@ -2400,14 +2717,19 @@ export function LandFileDetail() {
                   </ul>
                   {!f.documents.length && (
                     <p className="mt-1.5 text-xs text-amber-900/80">
-                      Aucun fichier joint : à réclamer lors de la visite.
+                      Aucun fichier foncier téléversé : pièces à vérifier / récupérer lors de la visite.
                     </p>
                   )}
                 </div>
               )}
+
+              {/* 3. Fichiers fonciers joints */}
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                Documents fonciers téléversés ({f.documents.length})
+              </p>
               {!f.documents.length && (
                 <p className="text-sm text-gray-600">
-                  Aucun document. Ajoutez-les depuis « Modifier ».
+                  Aucun fichier foncier téléversé pour le moment. Vous pouvez les ajouter depuis « Modifier » après réception.
                 </p>
               )}
               <div className="space-y-3">
@@ -2428,8 +2750,8 @@ export function LandFileDetail() {
                           )}
                         </p>
                         <p className="text-xs text-gray-500">
-                          Émis le {fmtDate(d.issuedAt)} · au nom de{' '}
-                          {d.ownerName || '—'}
+                          {d.issuedAt ? `Émis le ${fmtDate(d.issuedAt)} · ` : ''}
+                          au nom de {d.ownerName || '—'}
                         </p>
                       </div>
                       <Badge value={d.status} dot />
@@ -2460,18 +2782,6 @@ export function LandFileDetail() {
                   </div>
                 ))}
               </div>
-              {f.idDoc.file && (
-                <div className="mt-5 pt-4 border-t">
-                  <p className="text-xs font-medium text-gray-600 mb-2">
-                    Pièce d’identité du propriétaire ({f.idDoc.type} n°{' '}
-                    {f.idDoc.number})
-                  </p>
-                  <FileChip
-                    file={f.idDoc.file}
-                    onPreview={() => setPreview(f.idDoc.file!)}
-                  />
-                </div>
-              )}
             </Section>
           )}
 
@@ -2578,12 +2888,16 @@ export function LandFileDetail() {
               <Info
                 label="Email"
                 value={
-                  <a
-                    href={`mailto:${f.owner.email}`}
-                    className="hover:text-gold-700"
-                  >
-                    {f.owner.email}
-                  </a>
+                  f.owner.email ? (
+                    <a
+                      href={`mailto:${f.owner.email}`}
+                      className="hover:text-gold-700"
+                    >
+                      {f.owner.email}
+                    </a>
+                  ) : (
+                    ''
+                  )
                 }
               />
               <Info label="WhatsApp" value={f.whatsapp} />
@@ -2604,7 +2918,7 @@ export function LandFileDetail() {
               />
               <Info
                 label="Pièce d’identité"
-                value={`${f.idDoc.type} · ${f.idDoc.number}${f.idDoc.file ? ' ✓' : ' (non fournie)'}`}
+                value={formatIdSummary(f)}
               />
               <Info
                 label="Banque"

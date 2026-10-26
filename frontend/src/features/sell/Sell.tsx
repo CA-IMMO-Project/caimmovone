@@ -56,6 +56,32 @@ const STEP_LABELS = [
   "Prix et conditions",
 ];
 const RELIEFS = ["Plat", "Pente douce", "Pente forte"] as const;
+const REGIONS_MG = [
+  "Analamanga",
+  "Vakinankaratra",
+  "Itasy",
+  "Bongolava",
+  "Alaotra-Mangoro",
+  "Analanjirofo",
+  "Atsinanana",
+  "Boeny",
+  "Betsiboka",
+  "Melaky",
+  "Sofia",
+  "Diana",
+  "Sava",
+  "Amoron’i Mania",
+  "Haute Matsiatra",
+  "Vatovavy",
+  "Fitovinany",
+  "Atsimo-Atsinanana",
+  "Ihorombe",
+  "Menabe",
+  "Atsimo-Andrefana",
+  "Androy",
+  "Anosy",
+  "Autre",
+] as const;
 /* Pièces d'identité acceptées — liste alignée sur celle du back office
    (frontend/src/admin/crm/model.ts : ID_TYPES) et sur ce qui est exigé pour
    l'acte de vente à Madagascar (procédure officielle torolalana.gov.mg :
@@ -172,6 +198,7 @@ export default function Sell() {
     water: "Oui",
     electricity: "Oui",
     region: "Analamanga",
+    regionOther: "",
     district: "",
     commune: "",
     fokontany: "",
@@ -197,16 +224,30 @@ export default function Sell() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
     null,
   );
-  const [idFiles, setIdFiles] = useState<string[]>([]);
+  const [idRecto, setIdRecto] = useState<string[]>([]);
+  const [idVerso, setIdVerso] = useState<string[]>([]);
   const [photos, setPhotos] = useState<string[]>([]);
   const [video, setVideo] = useState<string[]>([]);
   const [docs, setDocs] = useState<string[]>([]);
   /* Objets File réellement envoyés au backend (multipart) : l'agence les
      retrouve dans le dossier VEN du back office, sans rappeler le vendeur. */
-  const [idFileObjs, setIdFileObjs] = useState<File[]>([]);
+  const [idRectoObjs, setIdRectoObjs] = useState<File[]>([]);
+  const [idVersoObjs, setIdVersoObjs] = useState<File[]>([]);
   const [photoObjs, setPhotoObjs] = useState<File[]>([]);
   const [videoObjs, setVideoObjs] = useState<File[]>([]);
   const [docObjs, setDocObjs] = useState<File[]>([]);
+  const needsVerso =
+    form.idType === "CIN" || form.idType === "Carte de résident";
+  const idFiles = needsVerso
+    ? [...idRecto.slice(0, 1), ...idVerso.slice(0, 1)]
+    : idRecto.slice(0, 1);
+  const idFileObjs = needsVerso
+    ? [...idRectoObjs.slice(0, 1), ...idVersoObjs.slice(0, 1)]
+    : idRectoObjs.slice(0, 1);
+  const idComplete =
+    Boolean(form.idType) &&
+    idRecto.length > 0 &&
+    (!needsVerso || idVerso.length > 0);
   const [docTypes, setDocTypes] = useState<string[]>([]);
   /* Trois confirmations suffisent : exactitude / droit de vendre, contact et
      étude du dossier, information sur les données personnelles. */
@@ -239,15 +280,19 @@ export default function Sell() {
         setError(phone ?? email);
         return;
       }
-      // Pièce d'identité : obligatoire, et demandée dès cette première étape.
+      // Pièce d'identité : obligatoire dès cette première étape.
       if (!form.idType) {
         setError(
           "Indiquez le type de votre pièce d’identité (CIN, passeport ou carte de résident).",
         );
         return;
       }
-      if (idFiles.length === 0) {
-        setError("Joignez une photo de votre pièce d’identité pour continuer.");
+      if (!idComplete) {
+        setError(
+          needsVerso
+            ? `Joignez le recto et le verso de votre ${form.idType.toLowerCase()} pour continuer.`
+            : "Joignez la page d’identité de votre passeport pour continuer.",
+        );
         return;
       }
     }
@@ -270,6 +315,10 @@ export default function Sell() {
       }
     }
     if (step === 2) {
+      if (form.region === "Autre" && !form.regionOther.trim()) {
+        setError("Précisez le nom de la région.");
+        return;
+      }
       if (
         !form.commune.trim() ||
         !form.district.trim() ||
@@ -323,15 +372,15 @@ export default function Sell() {
       ? !form.firstName.trim() ||
         !form.lastName.trim() ||
         !form.phone.trim() ||
-        !form.idType ||
-        idFiles.length === 0
+        !idComplete
       : step === 1
         ? !form.title.trim() ||
           !form.area.trim() ||
           !form.description.trim() ||
           (form.priceKnown === "Oui" && !form.price.trim())
         : step === 2
-          ? !form.commune.trim() ||
+          ? (form.region === "Autre" && !form.regionOther.trim()) ||
+            !form.commune.trim() ||
             !form.district.trim() ||
             !form.fokontany.trim() ||
             form.directions.trim().length < 10
@@ -341,6 +390,10 @@ export default function Sell() {
               !consents.c1 || !consents.c2 || !consents.c3;
 
   const composeMessage = () => {
+    const regionLabel =
+      form.region === "Autre" && form.regionOther.trim()
+        ? form.regionOther.trim()
+        : form.region;
     const lines = [
       `— Propriétaire —`,
       `${form.firstName} ${form.lastName} — situation : ${form.ownerStatus}`,
@@ -356,7 +409,7 @@ export default function Sell() {
       form.description.trim(),
       ``,
       `— Localisation —`,
-      `${form.fokontany}, ${form.commune}, ${form.district} (${form.region})`,
+      `${form.fokontany}, ${form.commune}, ${form.district} (${regionLabel})`,
       form.directions.trim() ? `Repère d’accès : ${form.directions.trim()}` : "",
       coords
         ? `Position GPS : ${coords.lat}, ${coords.lng}`
@@ -428,14 +481,16 @@ export default function Sell() {
     }
     if (!form.idType) {
       setError("Indiquez le type de votre pièce d’identité (CIN, passeport ou carte de résident).");
-      setStep(4);
+      setStep(0);
       return;
     }
-    if (idFiles.length === 0) {
+    if (!idComplete) {
       setError(
-        "Joignez une pièce d’identité (photo ou PDF) : c’est obligatoire pour déposer un terrain. Un souci pour l’envoyer ? Appelez-nous, nous enregistrons le dossier avec vous.",
+        needsVerso
+          ? `Joignez le recto et le verso de votre ${form.idType.toLowerCase()} : c’est obligatoire pour déposer un terrain.`
+          : "Joignez la page d’identité de votre passeport : c’est obligatoire pour déposer un terrain.",
       );
-      setStep(4);
+      setStep(0);
       return;
     }
     if (!consents.c1 || !consents.c2 || !consents.c3) {
@@ -445,7 +500,9 @@ export default function Sell() {
       return;
     }
     finalize({
-      fullName: `${form.firstName} ${form.lastName}`.trim(),
+      fullName: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim(),
       phone: form.phone,
       email: form.email || undefined,
       whatsapp: form.whatsapp,
@@ -454,13 +511,14 @@ export default function Sell() {
       idType: form.idType || undefined,
       title: form.title,
       area: areaInM2(),
-      price: Number(form.price.replace(",", ".")) || 0,
+      price: form.priceKnown === "Non" ? 0 : Number(form.price.replace(",", ".")) || 0,
       description: form.description,
       relief: form.relief,
       access: form.access,
       water: form.water,
       electricity: form.electricity,
       region: form.region,
+      regionOther: form.region === "Autre" ? form.regionOther.trim() || undefined : undefined,
       district: form.district,
       commune: form.commune,
       fokontany: form.fokontany,
@@ -474,6 +532,7 @@ export default function Sell() {
       // L'acompte et le rythme des versements se conviennent avec l'agence :
       // on l'écrit noir sur blanc plutôt que de laisser le champ vide.
       deposit: "À convenir avec l’agence",
+      noPhoto: photos.length === 0 && form.noPhoto,
       photoNames: photos,
       videoNames: video,
       docNames: docs,
@@ -703,7 +762,14 @@ export default function Sell() {
                             <FormField label="Type de pièce" required>
                               <Select
                                 value={form.idType}
-                                onChange={(e) => set("idType", e.target.value)}
+                                onChange={(e) => {
+                                  const nextType = e.target.value;
+                                  set("idType", nextType);
+                                  if (nextType === "Passeport") {
+                                    setIdVerso([]);
+                                    setIdVersoObjs([]);
+                                  }
+                                }}
                               >
                                 <option value="">— Choisir le type de pièce —</option>
                                 {ID_TYPES.map((t) => (
@@ -712,19 +778,53 @@ export default function Sell() {
                               </Select>
                             </FormField>
                           </div>
-                          <div className="mt-5">
-                            <UploadZone
-                              title="Joindre la pièce d’identité *"
-                              text="Un seul fichier suffit • PDF, JPG, PNG ou WebP • jusqu’à 4 fichiers"
-                              accept=".pdf,.jpg,.jpeg,.png,.webp"
-                              multiple
-                              maxFiles={4}
-                              maxMb={10}
-                              onFiles={setIdFiles}
-                              onPick={setIdFileObjs}
-                              files={idFiles}
-                            />
-                          </div>
+                          {!form.idType ? (
+                            <p className="mt-4 rounded-2xl border border-dashed border-navy-900/20 bg-white px-5 py-4 text-xs text-navy-900/70">
+                              Choisissez d’abord le type de pièce pour afficher les emplacements correspondants (recto et verso pour une CIN ou carte de résident, page d’identité pour un passeport).
+                            </p>
+                          ) : needsVerso ? (
+                            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                              <UploadZone
+                                compact
+                                title={`Recto — ${form.idType} *`}
+                                text="Face avant lisible • PDF, JPG, PNG ou WebP"
+                                accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                maxFiles={1}
+                                maxMb={10}
+                                onFiles={setIdRecto}
+                                onPick={setIdRectoObjs}
+                                files={idRecto}
+                                fileObjects={idRectoObjs}
+                              />
+                              <UploadZone
+                                compact
+                                title={`Verso — ${form.idType} *`}
+                                text="Face arrière lisible • PDF, JPG, PNG ou WebP"
+                                accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                maxFiles={1}
+                                maxMb={10}
+                                onFiles={setIdVerso}
+                                onPick={setIdVersoObjs}
+                                files={idVerso}
+                                fileObjects={idVersoObjs}
+                              />
+                            </div>
+                          ) : (
+                            <div className="mt-5">
+                              <UploadZone
+                                compact
+                                title="Page d’identité du passeport *"
+                                text="Un seul fichier • PDF, JPG, PNG ou WebP"
+                                accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                maxFiles={1}
+                                maxMb={10}
+                                onFiles={setIdRecto}
+                                onPick={setIdRectoObjs}
+                                files={idRecto}
+                                fileObjects={idRectoObjs}
+                              />
+                            </div>
+                          )}
                           <p className="mt-4 flex items-start gap-2.5 text-xs font-normal leading-relaxed text-navy-900/80">
                             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-green-700" />
                             <Link to="/confidentialite" className="font-semibold underline decoration-gold-500 underline-offset-2">Informations sur le traitement de vos données</Link>.
@@ -936,17 +1036,22 @@ export default function Sell() {
                               value={form.region}
                               onChange={(e) => set("region", e.target.value)}
                             >
-                              <option>Analamanga</option>
-                              <option>Vakinankaratra</option>
-                              <option>Itasy</option>
-                              <option>Atsinanana</option>
-                              <option>Boeny</option>
-                              <option>Diana</option>
-                              <option>Haute Matsiatra</option>
-                              <option>Atsimo-Andrefana</option>
-                              <option>Autre</option>
+                              {REGIONS_MG.map((reg) => (
+                                <option key={reg}>{reg}</option>
+                              ))}
                             </Select>
                           </FormField>
+                          {form.region === "Autre" && (
+                            <FormField label="Précisez la région" required>
+                              <Input
+                                placeholder="Nom de la région"
+                                value={form.regionOther}
+                                onChange={(e) =>
+                                  set("regionOther", e.target.value)
+                                }
+                              />
+                            </FormField>
+                          )}
                           <FormField label="District" required>
                             <Input
                               placeholder="Ex. Ambohidratrimo"
@@ -1059,9 +1164,15 @@ export default function Sell() {
                               multiple
                               maxFiles={12}
                               maxMb={5}
-                              onFiles={setPhotos}
+                              onFiles={(names) => {
+                                setPhotos(names);
+                                if (names.length > 0 && form.noPhoto) {
+                                  set("noPhoto", false);
+                                }
+                              }}
                               onPick={setPhotoObjs}
                               files={photos}
+                              fileObjects={photoObjs}
                             />
                           </div>
                         </div>
@@ -1085,6 +1196,7 @@ export default function Sell() {
                               onFiles={setVideo}
                               onPick={setVideoObjs}
                               files={video}
+                              fileObjects={videoObjs}
                             />
                           </div>
                         </div>
@@ -1201,6 +1313,7 @@ export default function Sell() {
                               onFiles={setDocs}
                               onPick={setDocObjs}
                               files={docs}
+                              fileObjects={docObjs}
                             />
                           </div>
                           {/* Le vendeur a coché des documents mais n'a joint aucun
@@ -1373,7 +1486,7 @@ export default function Sell() {
                               Statut après soumission
                             </small>
                             <strong className="text-sm font-medium text-navy-900">
-                              En attente de prise en charge
+                              Nouveau — en attente d’examen par un conseiller
                             </strong>
                           </div>
                         </div>

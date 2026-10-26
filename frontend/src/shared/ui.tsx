@@ -286,6 +286,8 @@ export function UploadZone({
   onFiles,
   onPick,
   files = [],
+  fileObjects,
+  compact = false,
 }: {
   title: string;
   text: string;
@@ -297,6 +299,9 @@ export function UploadZone({
   /** Reçoit les objets File retenus : ils sont réellement envoyés au backend. */
   onPick?: (picked: File[]) => void;
   files: string[];
+  /** Liste courante des File pour cumuler les ajouts et permettre le retrait unitaire. */
+  fileObjects?: File[];
+  compact?: boolean;
 }) {
   const inputId = `upload-${useId()}`;
   const hintId = `${inputId}-hint`;
@@ -310,8 +315,13 @@ export function UploadZone({
   const handleFiles = (list: FileList | null) => {
     if (!list) return;
     const picked = Array.from(list);
-    if (picked.length > fileLimit) {
-      setError(`${fileLimit} fichier${fileLimit > 1 ? "s" : ""} maximum par envoi.`);
+    const existing = multiple && fileObjects ? fileObjects : [];
+    if (!multiple && picked.length > 1) {
+      setError("Un seul fichier est attendu dans cet emplacement.");
+      return;
+    }
+    if (existing.length + picked.length > fileLimit) {
+      setError(`${fileLimit} fichier${fileLimit > 1 ? "s" : ""} maximum autorisé${fileLimit > 1 ? "s" : ""}.`);
       return;
     }
 
@@ -333,12 +343,27 @@ export function UploadZone({
         problem = `« ${file.name} » dépasse la limite de ${maxMb} Mo par fichier.`;
         continue;
       }
-      valid.push(file);
+      const alreadyPresent = existing.some(
+        (prev) => prev.name === file.name && prev.size === file.size,
+      );
+      if (!alreadyPresent) valid.push(file);
     }
     setError(problem);
     if (valid.length > 0) {
-      onFiles(valid.map((file) => file.name));
-      onPick?.(valid);
+      const merged = multiple ? [...existing, ...valid].slice(0, fileLimit) : [valid[0]];
+      onFiles(merged.map((file) => file.name));
+      onPick?.(merged);
+    }
+  };
+
+  const removeAt = (index: number) => {
+    setError(null);
+    const nextNames = files.filter((_, idx) => idx !== index);
+    onFiles(nextNames);
+    if (fileObjects && onPick) {
+      onPick(fileObjects.filter((_, idx) => idx !== index));
+    } else {
+      onPick?.([]);
     }
   };
 
@@ -346,7 +371,7 @@ export function UploadZone({
     <div>
       <label
         htmlFor={inputId}
-        className="flex cursor-pointer flex-col items-center rounded-2xl border border-dashed border-navy-900/40 bg-white px-6 py-9 text-center transition hover:border-gold-500 hover:bg-white focus-within:ring-2 focus-within:ring-navy-900 focus-within:ring-offset-2"
+        className={`flex cursor-pointer flex-col items-center rounded-2xl border border-dashed border-navy-900/40 bg-white px-6 ${compact ? "py-6" : "py-9"} text-center transition hover:border-gold-500 hover:bg-white focus-within:ring-2 focus-within:ring-navy-900 focus-within:ring-offset-2`}
       >
         <UploadCloud
           className="h-7 w-7 text-navy-900/60"
@@ -358,7 +383,11 @@ export function UploadZone({
         </strong>
         <p className="mt-1 text-xs text-navy-900/75">{text}</p>
         <span className="btn-outline mt-4 !px-4 !py-2 !text-xs">
-          Choisir des fichiers
+          {multiple
+            ? "Choisir des fichiers"
+            : files.length > 0
+              ? "Remplacer le fichier"
+              : "Choisir un fichier"}
         </span>
         <input
           id={inputId}
@@ -380,10 +409,19 @@ export function UploadZone({
       {error && <ErrorBanner className="mt-3">{error}</ErrorBanner>}
       {files.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
-          {files.map((file) => (
-            <span key={file} className="chip-off !cursor-default !bg-white">
+          {files.map((file, idx) => (
+            <span key={`${file}-${idx}`} className="chip-off !cursor-default !bg-white">
               <FileCheck2 className="h-3.5 w-3.5 text-green-700" aria-hidden />
-              {file}
+              <span className="max-w-[14rem] truncate">{file}</span>
+              <button
+                type="button"
+                onClick={() => removeAt(idx)}
+                aria-label={`Retirer ${file}`}
+                title="Retirer ce fichier"
+                className="ml-1 rounded-full p-0.5 text-navy-900/55 transition hover:bg-navy-900/10 hover:text-red-700"
+              >
+                <X className="h-3.5 w-3.5" aria-hidden />
+              </button>
             </span>
           ))}
         </div>

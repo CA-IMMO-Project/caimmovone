@@ -93,6 +93,7 @@ class SaveLandFileRequest extends FormRequest
             'negotiable' => ['nullable', 'string', 'in:Oui,Non'],
             'saleNegotiable' => ['nullable', 'string', 'in:Oui,Non'],
             'estimateRequested' => ['nullable', 'string', 'in:Oui,Non'],
+            'noPhoto' => ['nullable', 'boolean'],
             'whatsapp' => ['nullable', 'string', 'in:Oui,Non'],
             'mobile' => ['nullable', 'string', 'in:Oui,Non'],
             'internet' => ['nullable', 'string', 'in:Oui,Non'],
@@ -117,7 +118,7 @@ class SaveLandFileRequest extends FormRequest
             'fokontany' => ['nullable', 'string', 'max:120'],
             'addressHint' => ['nullable', 'string', 'max:1000'],
             'landmark' => ['nullable', 'string', 'max:500'],
-            'summary' => ['nullable', 'string', 'max:1000'],
+            'summary' => ['nullable', 'string', 'max:10000'],
             'lat' => ['nullable', 'numeric', 'between:-90,90'],
             'lng' => ['nullable', 'numeric', 'between:-180,180'],
             'photos' => ['nullable', 'array', 'max:100'],
@@ -157,7 +158,7 @@ class SaveLandFileRequest extends FormRequest
     public function after(): array
     {
         return [function (Validator $validator): void {
-            $effectiveStatus = (string) ($this->input('status') ?? "À l'étude");
+            $effectiveStatus = (string) ($this->input('status') ?? 'Nouveau');
             $isDraft = $effectiveStatus === 'Brouillon';
 
             if ($this->isMethod('post') && ! $isDraft) {

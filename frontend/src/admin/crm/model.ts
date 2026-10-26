@@ -38,6 +38,11 @@ export const BUY_STATUSES = [
 ] as const;
 
 export const ID_TYPES = ['CIN', 'Passeport', 'Carte de résident', 'Autre'];
+export const OWNER_STATUSES = [
+  'Propriétaire inscrit sur le document',
+  'Indivision familiale (terrain hérité)',
+  'Mandataire du propriétaire',
+] as const;
 export const LAND_CATEGORIES = ['Terrain nu', 'Terrain bâti', 'Terrain agricole', 'Lotissement', 'Terrain commercial', 'Autre'];
 export const RELIEFS = ['Terrain plat', 'Faible dénivelé', 'Pente douce', 'Dénivelé modéré', 'Pente forte', 'Dénivelé important'];
 export const ACCESSES = ['Route goudronnée', 'Route pavée', 'Piste carrossable', 'Accès piéton'];
@@ -45,15 +50,28 @@ export const YES_NO_NEAR = ['Oui', 'Non', 'À proximité'];
 export const OCCUPATIONS = ['Libre', 'Occupé', 'Loué', 'Exploité', 'Autre'];
 export const USAGES = ['Résidentiel', 'Commercial', 'Industriel', 'Agricole', 'Hôtelier', 'Lotissement', 'Autre'];
 export const DOC_CATEGORIES = [
-  'Titre foncier', 'Certificat foncier', 'Plan du terrain', 'Acte de vente', 'Certificat juridique',
-  'Certificat de situation juridique', 'Plan cadastral', 'Procuration', 'Autre document',
+  'Titre foncier',
+  'Certificat foncier',
+  'Extrait cadastral',
+  'Acte de notoriété / partage',
+  'Papiers coutumiers',
+  'Certificat de situation juridique',
+  'Plan du terrain',
+  'Autorisation / urbanisme',
+  'Acte de vente',
+  'Quittance d’impôt foncier',
+  'Certificat de résidence',
+  'Certificat juridique',
+  'Plan cadastral',
+  'Procuration',
+  'Autre document',
 ];
 export const DOC_STATUSES = ['Reçu', 'À examiner', 'À compléter', 'Écart signalé'] as const;
 export const SALE_PAYMENT = ['Comptant – paiement en une fois', 'Facilité – paiement échelonné', 'Les deux – comptant ou facilité'];
-export const MAX_DURATIONS = ['0–4 mois', '4–6 mois', '6–10 mois', '10–12 mois', 'Autre durée'];
+export const MAX_DURATIONS = ['0–4 mois', '4–6 mois', '6–10 mois', '10–12 mois', 'Plus de 12 mois', 'À discuter', 'Autre durée'];
 // [libellé, pourcentage minimum utilisé pour le calcul de l'acompte]
 export const DEPOSITS: [string, number][] = [
-  ['15–25 %', 15], ['25–35 %', 25], ['35–45 %', 35], ['45–55 %', 45], ['55–65 %', 55], ['65–80 %', 65], ['80–100 %', 80], ['Personnalisé', 0],
+  ['15–25 %', 15], ['25–35 %', 25], ['35–45 %', 35], ['45–55 %', 45], ['55–65 %', 55], ['65–80 %', 65], ['80–100 %', 80], ['À convenir avec l’agence', 0], ['Personnalisé', 0],
 ];
 export const FREQUENCIES = ['Mensuelle', 'Bimestrielle', 'Trimestrielle', 'Personnalisée'];
 export const LAND_STATUSES = [
@@ -173,16 +191,30 @@ export interface LandFile {
   ownerStatus?: string;
   /** Le vendeur a demandé une estimation de prix à CA IMMO (« Oui »). */
   estimateRequested?: string;
+  /** Le vendeur a indiqué ne pas avoir de photos au moment du dépôt. */
+  noPhoto?: boolean;
   /** Le numéro laissé est-il joignable sur WhatsApp ? (« Oui » / « Non »). */
   whatsapp?: string;
   /** Documents que le vendeur DÉCLARE avoir, même s'il n'a joint aucun fichier. */
   docTypes?: string[];
+  /** Récapitulatif texte reçu lors d'un dépôt depuis le portail public. */
+  summary?: string;
+  /** Origine du dossier (« Site web », « Agence », etc.). */
+  source?: string;
   /** Fiche dans la base clients (rapprochée par email/téléphone à la soumission) — permet de retrouver tous les dossiers d'un même client depuis sa fiche. */
   clientId?: string;
   // Propriétaire
   ownerId: string;
   owner: Person & { accountNumber: string };
-  idDoc: { type: string; number: string; issuedAt: string; expiresAt: string; authority: string; file?: StoredFile };
+  idDoc: {
+    type: string;
+    number: string;
+    issuedAt: string;
+    expiresAt: string;
+    authority: string;
+    file?: StoredFile;
+    verso?: StoredFile;
+  };
   // Terrain
   ref: string;
   title: string;
@@ -328,18 +360,88 @@ export async function deleteBuyRequest(id: string): Promise<void> {
   if (/^\d+$/.test(id)) await deleteApi('requests', id).catch(() => {});
 }
 
+function mapDocCategory(raw?: string): string {
+  const v = (raw ?? '').trim();
+  const map: Record<string, string> = {
+    'Titre foncier (bokin-tany)': 'Titre foncier',
+    'Certificat foncier (kara-tany — guichet foncier de la commune)': 'Certificat foncier',
+    'Extrait cadastral': 'Extrait cadastral',
+    'Acte de notoriété ou acte de partage (succession, indivision)': 'Acte de notoriété / partage',
+    'Papiers coutumiers (anciens actes de vente, reçus, permis)': 'Papiers coutumiers',
+    'Certificat de situation juridique (CSJ, moins de 3 mois)': 'Certificat de situation juridique',
+    'Plan topographique ou bornage (coordonnées Laborde)': 'Plan du terrain',
+    'Autorisation de transaction ou prescription d’urbanisme': 'Autorisation / urbanisme',
+    'Lettre de vente ou acte de vente': 'Acte de vente',
+    'Quittance d’impôt foncier': 'Quittance d’impôt foncier',
+    'Certificat de résidence (fokontany)': 'Certificat de résidence',
+    'Aucun document pour l’instant': 'Autre document',
+    "Aucun document pour l'instant": 'Autre document',
+  };
+  return map[v] ?? (v || 'Autre document');
+}
+
+/** Aligne un dossier reçu du site public sur le vocabulaire du back office. */
+export function normaliserDossierSite(raw: LandFile): LandFile {
+  const relief = raw.relief === 'Plat' ? 'Terrain plat' : raw.relief;
+  const pay = (raw.salePayment ?? '').trim();
+  const salePayment =
+    pay === 'Comptant'
+      ? SALE_PAYMENT[0]
+      : pay === 'Facilité'
+        ? SALE_PAYMENT[1]
+        : pay === 'Les deux'
+          ? SALE_PAYMENT[2]
+          : raw.salePayment;
+  const maxDuration =
+    raw.maxDuration === 'Non concerné (comptant)' ? '' : raw.maxDuration;
+
+  const idCards = [...(raw.siteFiles?.idCards ?? [])];
+  let verso = raw.idDoc?.verso;
+  if (!verso && idCards.length > 0 && typeof idCards[0] !== 'string') {
+    verso = idCards.shift() as StoredFile;
+  }
+
+  const siteVideos = [...(raw.siteFiles?.videos ?? [])];
+  let video = raw.video;
+  if (!video && siteVideos.length > 0 && typeof siteVideos[0] !== 'string') {
+    video = siteVideos.shift() as StoredFile;
+  }
+
+  return {
+    ...raw,
+    relief,
+    salePayment,
+    maxDuration,
+    video,
+    idDoc: {
+      ...(raw.idDoc ?? { type: 'CIN', number: '', issuedAt: '', expiresAt: '', authority: '' }),
+      ...(verso ? { verso } : {}),
+    },
+    siteFiles: raw.siteFiles
+      ? { ...raw.siteFiles, idCards, videos: siteVideos }
+      : undefined,
+    documents: (raw.documents ?? []).map((d) => ({
+      ...d,
+      category: mapDocCategory(d.category),
+    })),
+  };
+}
+
 export function getLandFiles(): LandFile[] {
   // Blindage : les dossiers incomplets (anciens enregistrements, dépôt public
   // partiel) reçoivent des valeurs par défaut — plus de page blanche.
-  return cache.landFiles.map((f) => ({
-    ...newLandFile(),
-    ...f,
-    owner: { ...emptyPerson(), accountNumber: '', ...(f.owner ?? {}) },
-    idDoc: { type: 'CIN', number: '', issuedAt: '', expiresAt: '', authority: '', ...(f.idDoc ?? {}) },
-    photos: f.photos ?? [], documents: f.documents ?? [], accesses: f.accesses ?? [],
-    checklist: f.checklist ?? [], history: f.history ?? [], actions: f.actions ?? [],
-    notes: f.notes ?? [], tasks: f.tasks ?? [],
-  }));
+  return cache.landFiles.map((raw) => {
+    const f = normaliserDossierSite(raw);
+    return {
+      ...newLandFile(),
+      ...f,
+      owner: { ...emptyPerson(), accountNumber: '', ...(f.owner ?? {}) },
+      idDoc: { type: 'CIN', number: '', issuedAt: '', expiresAt: '', authority: '', ...(f.idDoc ?? {}) },
+      photos: f.photos ?? [], documents: f.documents ?? [], accesses: f.accesses ?? [],
+      checklist: f.checklist ?? [], history: f.history ?? [], actions: f.actions ?? [],
+      notes: f.notes ?? [], tasks: f.tasks ?? [],
+    };
+  });
 }
 export function getLandFile(id: string) {
   return getLandFiles().find((f) => f.id === id);
@@ -395,7 +497,7 @@ export function newLandFile(): LandFile {
     ownerId: `PROP-${newId().slice(-6).toUpperCase()}`,
     owner: { ...emptyPerson(), accountNumber: '' },
     idDoc: { type: 'CIN', number: '', issuedAt: '', expiresAt: '', authority: '' },
-    ref: nextRef('TER'), title: '', category: 'Terrain nu', area: 0, price: 0, pricePerM2: 0, pricePerM2Manual: false,
+    ref: nextRef('VEN'), title: '', category: 'Terrain nu', area: 0, price: 0, pricePerM2: 0, pricePerM2Manual: false,
     negotiable: 'Non', description: '', relief: '', accesses: [], roadWidth: '', distanceMainRoad: '', water: '',
     electricity: '', mobile: '', internet: '', sanitation: '', fence: '', building: '', buildingDesc: '',
     occupation: 'Libre', immediate: '', usage: 'Résidentiel',

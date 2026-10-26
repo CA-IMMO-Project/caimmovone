@@ -28,7 +28,7 @@ class LandFileController extends Controller
         $file = LandFile::create([
             'ref' => LandFile::nextRef(), // référence définitive générée par le serveur
             'client_id' => isset($data['clientId']) ? (int) $data['clientId'] : null,
-            'status' => DossierVocabulary::status($data['status'] ?? "À l'étude"),
+            'status' => DossierVocabulary::status($data['status'] ?? 'Nouveau'),
             'full_name' => $data['fullName'] ?? null,
             'phone' => $data['phone'] ?? null,
             'detail' => $this->cleanDetail($data),
@@ -41,20 +41,28 @@ class LandFileController extends Controller
     {
         $file = LandFile::findOrFail($id);
         $data = $request->validated();
-        // Fusion (pas remplacement) avec le détail déjà en base : si le client
-        // envoie un instantané incomplet (onglet resté ouvert, dépôt concurrent
-        // depuis le site public pendant l'édition…), les champs absents de la
-        // requête restent ceux déjà enregistrés au lieu d'être effacés.
+        $newStatus = array_key_exists('status', $data) && $data['status'] !== null
+            ? DossierVocabulary::status($data['status'])
+            : $file->status;
+
+        $merged = array_merge($file->detail ?? [], $this->cleanDetail($data));
+        // Si un dossier archivé est rouvert sans nouvelle décision explicite,
+        // on efface la décision précédente pour restaurer le cycle d'étude actif.
+        if ($file->status === 'Archivé' && $newStatus !== 'Archivé' && ! array_key_exists('decision', $data)) {
+            unset($merged['decision'], $merged['decisionReason'], $merged['decidedAt']);
+        }
+        if (array_key_exists('decision', $data) && $data['decision'] === null) {
+            unset($merged['decision'], $merged['decisionReason'], $merged['decidedAt']);
+        }
+
         $file->fill([
             'client_id' => array_key_exists('clientId', $data) ? ($data['clientId'] !== null ? (int) $data['clientId'] : null) : $file->client_id,
-            'status' => array_key_exists('status', $data) && $data['status'] !== null
-                ? DossierVocabulary::status($data['status'])
-                : $file->status,
+            'status' => $newStatus,
             'full_name' => array_key_exists('fullName', $data) && $data['fullName'] !== null
                 ? $data['fullName']
                 : $file->full_name,
             'phone' => array_key_exists('phone', $data) ? $data['phone'] : $file->phone,
-            'detail' => array_merge($file->detail ?? [], $this->cleanDetail($data)),
+            'detail' => $merged,
         ])->save();
 
         return response()->json($file->toAdminArray());

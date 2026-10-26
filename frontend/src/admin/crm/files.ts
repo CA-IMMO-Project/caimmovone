@@ -39,7 +39,10 @@ export async function getBlob(f: StoredFile): Promise<Blob | undefined> {
       const raw = await fetchProtectedFileRaw(f.url);
       return new Blob([raw.data], { type: raw.type });
     }
-    return fetchProtectedFile(f.url);
+    const blob = await fetchProtectedFile(f.url);
+    return f.type && (!blob.type || blob.type === 'application/octet-stream')
+      ? new Blob([blob], { type: f.type })
+      : blob;
   }
   return tx<Blob | undefined>('readonly', (s) => s.get(f.id));
 }
@@ -100,7 +103,7 @@ export function useFileUrl(f?: StoredFile, withStatus?: true) {
     if (!f || isPdf) { setUrl(undefined); setResolved(true); return; }
     let objectUrl: string | undefined;
     let alive = true;
-    const source = f.url ? fetchProtectedFile(f.url) : tx<Blob | undefined>('readonly', (s) => s.get(f.id));
+    const source = f.url ? getBlob(f) : tx<Blob | undefined>('readonly', (s) => s.get(f.id));
     source.then((blob) => {
       if (!alive) return;
       if (blob) { objectUrl = URL.createObjectURL(blob); setUrl(objectUrl); }

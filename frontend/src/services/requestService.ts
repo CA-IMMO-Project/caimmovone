@@ -54,6 +54,8 @@ export async function createSearchRequest(payload: SearchSubmission): Promise<Su
    office (POST /api/v1/land-files : dossier VEN complet). */
 export interface LandFileSubmission {
   fullName: string;
+  firstName?: string;
+  lastName?: string;
   phone: string;
   email?: string;
   /** Le numéro est-il joignable sur WhatsApp ? (canal de contact réel). */
@@ -77,6 +79,7 @@ export interface LandFileSubmission {
   water?: string;
   electricity?: string;
   region?: string;
+  regionOther?: string;
   district?: string;
   commune?: string;
   fokontany?: string;
@@ -86,6 +89,7 @@ export interface LandFileSubmission {
   payment?: string;
   paymentDuration?: string;
   deposit?: string;
+  noPhoto?: boolean;
   photoNames?: string[];
   videoNames?: string[];
   docNames?: string[];

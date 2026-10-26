@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Public\StoreLandFileRequest;
 use App\Models\Client;
 use App\Models\LandFile;
+use App\Support\DossierVocabulary;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -13,7 +14,7 @@ use Illuminate\Support\Str;
 /**
  * POST /api/v1/land-files — dépôt de terrain (« Vendre mon terrain ») depuis
  * le site public. Crée la fiche client (rapprochée) + le dossier « VEN-… »
- * traité dans l'écran « Dossiers de vente » du back office.
+ * traité dans l'écran « Demandes de vente » du back office.
  */
 class LandFileController extends Controller
 {
@@ -25,52 +26,73 @@ class LandFileController extends Controller
         $client = Client::findOrCreateFromRequest($data);
 
         $fullName = trim($data['fullName']);
-        $parts = preg_split('/\s+/', $fullName);
-        $firstName = $parts[0] ?? '';
-        $lastName = implode(' ', array_slice($parts, 1));
+        $explicitFirst = trim((string) ($data['firstName'] ?? ''));
+        $explicitLast = trim((string) ($data['lastName'] ?? ''));
+        if ($explicitFirst !== '' || $explicitLast !== '') {
+            $firstName = $explicitFirst;
+            $lastName = $explicitLast;
+        } else {
+            $parts = preg_split('/\s+/', $fullName);
+            $firstName = $parts[0] ?? '';
+            $lastName = implode(' ', array_slice($parts, 1));
+        }
 
         $area = (int) ($data['area'] ?? 0);
         $price = (int) ($data['price'] ?? 0);
 
         // Les envois multipart (avec fichiers) transmettent lat/lng en tant
-        // que chaînes : on les force en nombre pour que le back office (qui
-        // teste `typeof lat === 'number'` pour centrer la carte et afficher
-        // le repère) les reconnaisse — sinon le pin GPS reste invisible bien
-        // que la position soit bien enregistrée.
+        // que chaînes : on les force en nombre pour le back office.
         $lat = isset($data['lat']) && $data['lat'] !== '' ? (float) $data['lat'] : null;
         $lng = isset($data['lng']) && $data['lng'] !== '' ? (float) $data['lng'] : null;
+
+        $relief = DossierVocabulary::relief($data['relief'] ?? '');
+        $salePayment = DossierVocabulary::salePayment($data['payment'] ?? '');
+        $maxDuration = DossierVocabulary::maxDuration($data['paymentDuration'] ?? '');
 
         // Anti-doublon : le même vendeur qui redépose le même terrain (même
         // intitulé, dossier encore ouvert) voit son dossier MIS À JOUR plutôt
         // qu'un second dossier VEN créé.
         $dupe = LandFile::query()
             ->where('client_id', $client->id)
-            ->whereNotIn('status', ['Publié', 'Refusé', 'Retiré', 'Vendu', 'Clôturé'])
+            ->whereNotIn('status', ['Publié', 'Rejeté', 'Archivé', 'Vendu', 'Refusé', 'Retiré', 'Clôturé'])
             ->where('created_at', '>=', now()->subDays(60))
             ->get()
             ->first(fn ($f) => mb_strtolower(trim((string) ($f->detail['title'] ?? ''))) === mb_strtolower(trim($data['title'])));
 
         if ($dupe !== null) {
             $detail = $dupe->detail ?? [];
+            $owner = array_merge($detail['owner'] ?? [], [
+                'firstName' => $firstName ?: ($detail['owner']['firstName'] ?? ''),
+                'lastName' => $lastName ?: ($detail['owner']['lastName'] ?? ''),
+                'phone' => $data['phone'],
+                'email' => $data['email'] ?? ($detail['owner']['email'] ?? ''),
+            ]);
+
             foreach ([
+                'owner' => $owner,
                 'title' => $data['title'],
                 'area' => $area,
                 'price' => $price,
                 'pricePerM2' => $area > 0 ? (int) round($price / $area) : 0,
                 'description' => $data['description'] ?? ($detail['description'] ?? ''),
-                'relief' => $data['relief'] ?? ($detail['relief'] ?? ''),
+                'relief' => $relief !== '' ? $relief : ($detail['relief'] ?? ''),
+                'accesses' => ! empty($data['access']) ? [$data['access']] : ($detail['accesses'] ?? []),
+                'water' => $data['water'] ?? ($detail['water'] ?? ''),
+                'electricity' => $data['electricity'] ?? ($detail['electricity'] ?? ''),
                 'region' => $data['region'] ?? ($detail['region'] ?? ''),
+                'regionOther' => $data['regionOther'] ?? ($detail['regionOther'] ?? ''),
                 'district' => $data['district'] ?? ($detail['district'] ?? ''),
                 'commune' => $data['commune'] ?? ($detail['commune'] ?? ''),
                 'fokontany' => $data['fokontany'] ?? ($detail['fokontany'] ?? ''),
                 'addressHint' => $data['directions'] ?? ($detail['addressHint'] ?? ''),
                 'lat' => $lat ?? ($detail['lat'] ?? null),
                 'lng' => $lng ?? ($detail['lng'] ?? null),
-                'salePayment' => $data['payment'] ?? ($detail['salePayment'] ?? ''),
-                'maxDuration' => $data['paymentDuration'] ?? ($detail['maxDuration'] ?? ''),
+                'salePayment' => $salePayment !== '' ? $salePayment : ($detail['salePayment'] ?? ''),
+                'maxDuration' => $maxDuration !== '' ? $maxDuration : ($detail['maxDuration'] ?? ''),
                 'depositRange' => $data['deposit'] ?? ($detail['depositRange'] ?? ''),
                 'ownerStatus' => $data['ownerStatus'] ?? ($detail['ownerStatus'] ?? ''),
-                'estimateRequested' => $data['estimateRequested'] ?? ($detail['estimateRequested'] ?? ''),
+                'estimateRequested' => $data['estimateRequested'] ?? '',
+                'noPhoto' => (bool) ($data['noPhoto'] ?? ($detail['noPhoto'] ?? false)),
                 'whatsapp' => $data['whatsapp'] ?? ($detail['whatsapp'] ?? ''),
                 'summary' => $data['summary'] ?? ($detail['summary'] ?? ''),
                 // Renvoi d'un dossier : la déclaration la plus récente fait foi.
@@ -79,25 +101,36 @@ class LandFileController extends Controller
                 $detail[$key] = $value;
             }
 
-            // Fichiers joints à ce nouvel envoi : ajoutés DIRECTEMENT aux
-            // photos / documents / pièce d'identité du dossier (pas dans un
-            // tiroir à part) — ils sont donc visibles tout de suite dans les
-            // onglets « Photos » et « Documents » du back office.
             $uploaded = $this->storeUploads($request, $dupe->ref, $fullName, $data['docTypes'] ?? []);
             $detail['photos'] = array_values(array_merge($detail['photos'] ?? [], $uploaded['photos']));
             $detail['documents'] = array_values(array_merge($detail['documents'] ?? [], $uploaded['documents']));
+
+            $idDoc = array_merge($detail['idDoc'] ?? [], [
+                'type' => $data['idType'] ?? ($detail['idDoc']['type'] ?? 'CIN'),
+            ]);
             if (($uploaded['idCards'][0] ?? null) !== null) {
-                $detail['idDoc'] = array_merge($detail['idDoc'] ?? [], ['file' => $uploaded['idCards'][0]]);
+                $idDoc['file'] = $uploaded['idCards'][0];
+                // Si le nouvel envoi est un passeport ou un fichier unique, on réinitialise le verso obsolète.
+                $idDoc['verso'] = $uploaded['idCards'][1] ?? null;
             }
-            // Au-delà de la 1ère pièce d'identité, et les vidéos (pas de case
-            // dédiée dans la fiche) : conservées dans « Fichiers reçus du site ».
+            $detail['idDoc'] = $idDoc;
+
+            if (($uploaded['videos'][0] ?? null) !== null) {
+                if (empty($detail['video'])) {
+                    $detail['video'] = $uploaded['videos'][0];
+                    $extraVideos = array_slice($uploaded['videos'], 1);
+                } else {
+                    $extraVideos = $uploaded['videos'];
+                }
+            } else {
+                $extraVideos = [];
+            }
+
             $site = $detail['siteFiles'] ?? ['videos' => [], 'idCards' => []];
-            if (! empty($uploaded['videos'])) {
-                $site['videos'] = array_values(array_merge($site['videos'] ?? [], $uploaded['videos']));
+            if ($extraVideos !== []) {
+                $site['videos'] = array_values(array_merge($site['videos'] ?? [], $extraVideos));
             }
-            if (count($uploaded['idCards']) > 1) {
-                $site['idCards'] = array_values(array_merge($site['idCards'] ?? [], array_slice($uploaded['idCards'], 1)));
-            }
+            $site['idCards'] = [];
             $detail['siteFiles'] = $site;
 
             $detail['history'] = array_merge($detail['history'] ?? [], [[
@@ -107,7 +140,11 @@ class LandFileController extends Controller
                 'text' => 'Dossier renvoyé depuis le site web — informations mises à jour',
             ]]);
 
-            $dupe->update(['detail' => $detail, 'phone' => $data['phone']]);
+            $dupe->update([
+                'full_name' => $fullName,
+                'phone' => $data['phone'],
+                'detail' => $detail,
+            ]);
 
             return response()->json([
                 'ref' => $dupe->ref,
@@ -123,8 +160,7 @@ class LandFileController extends Controller
             'text' => 'Dossier reçu depuis le site web',
         ]];
 
-        // Référence connue d'avance pour ranger les fichiers du vendeur,
-        // envoyés en multipart par le formulaire « Vendre » du site.
+        // Référence connue d'avance pour ranger les fichiers du vendeur.
         $ref = LandFile::nextRef();
         $uploaded = $this->storeUploads($request, $ref, $fullName, $data['docTypes'] ?? []);
 
@@ -133,7 +169,7 @@ class LandFileController extends Controller
             'owner' => [
                 'firstName' => $firstName,
                 'lastName' => $lastName,
-                'dialCode' => '+261',
+                'dialCode' => '',
                 'phone' => $data['phone'],
                 'email' => $data['email'] ?? '',
                 'birthDate' => $data['birthDate'] ?? '',
@@ -141,6 +177,8 @@ class LandFileController extends Controller
                 'country' => $data['country'] ?? 'Madagascar',
                 'countryOther' => '',
                 'address' => '',
+                'hasBankAccount' => '',
+                'bank' => '',
                 'idNumber' => $data['idNumber'] ?? '',
                 'accountNumber' => $data['bankAccount'] ?? '',
             ],
@@ -150,10 +188,11 @@ class LandFileController extends Controller
                 'issuedAt' => '',
                 'expiresAt' => '',
                 'authority' => '',
-                // Scan de la pièce d'identité envoyé par le vendeur : visible
-                // directement dans la fiche (pas besoin d'aller le chercher
-                // dans un tiroir à part).
+                // Recto (ou pièce unique pour Passeport / PDF complet) et Verso
+                // rattachés directement à `idDoc`, visibles dans l'onglet
+                // Documents et dans l'éditeur sans tiroir séparé.
                 'file' => $uploaded['idCards'][0] ?? null,
+                'verso' => $uploaded['idCards'][1] ?? null,
             ],
             'title' => $data['title'],
             'category' => 'Terrain nu',
@@ -163,49 +202,39 @@ class LandFileController extends Controller
             'pricePerM2Manual' => false,
             'negotiable' => 'Non',
             'description' => $data['description'] ?? '',
-            'relief' => $data['relief'] ?? '',
+            'relief' => $relief,
             'accesses' => ! empty($data['access']) ? [$data['access']] : [],
             'water' => $data['water'] ?? '',
             'electricity' => $data['electricity'] ?? '',
             'region' => $data['region'] ?? '',
+            'regionOther' => $data['regionOther'] ?? '',
             'district' => $data['district'] ?? '',
             'commune' => $data['commune'] ?? '',
             'fokontany' => $data['fokontany'] ?? '',
             'addressHint' => $data['directions'] ?? '',
             'lat' => $lat,
             'lng' => $lng,
-            'salePayment' => $data['payment'] ?? '',
-            'maxDuration' => $data['paymentDuration'] ?? '',
+            'salePayment' => $salePayment,
+            'maxDuration' => $maxDuration,
             'depositRange' => $data['deposit'] ?? '',
-            // Déclaré par le vendeur au dépôt (visible dans la fiche VEN).
             'ownerStatus' => $data['ownerStatus'] ?? '',
             'estimateRequested' => $data['estimateRequested'] ?? '',
-            // Le numéro laissé est-il joignable sur WhatsApp ? Même question que
-            // les autres formulaires publics — conservée dans la fiche VEN.
+            'noPhoto' => (bool) ($data['noPhoto'] ?? false),
             'whatsapp' => $data['whatsapp'] ?? '',
-            // Vidéos et éventuelles pièces d'identité au-delà de la 1ère : pas
-            // de case dédiée dans la fiche, elles restent visibles dans
-            // « Fichiers reçus du site web ».
+            'video' => $uploaded['videos'][0] ?? null,
             'siteFiles' => [
-                'videos' => $uploaded['videos'],
-                'idCards' => array_slice($uploaded['idCards'], 1),
+                'videos' => array_slice($uploaded['videos'], 1),
+                'idCards' => [],
             ],
             'summary' => $data['summary'] ?? '',
             'receivedAt' => now()->format('Y-m-d'),
             'priority' => 'Normale',
+            'agent' => 'Non assigné',
             'notes' => [],
             'tasks' => [],
             'checklist' => [],
-            // Photos et documents envoyés par le vendeur : visibles tout de
-            // suite dans les onglets « Photos » / « Documents » du dossier —
-            // l'agence n'a plus besoin d'aller les chercher dans un tiroir à
-            // part avant de pouvoir les consulter.
             'photos' => $uploaded['photos'],
             'documents' => $uploaded['documents'],
-            // Ce que le vendeur DÉCLARE avoir, même sans joindre un seul
-            // fichier. Sans cette ligne, un vendeur qui coche « titre
-            // foncier » mais n'envoie rien laissait l'agent devant un dossier
-            // muet : impossible de savoir ce qu'il faut réclamer à la visite.
             'docTypes' => array_values((array) ($data['docTypes'] ?? [])),
             'actions' => [],
             'history' => $history,
@@ -215,7 +244,7 @@ class LandFileController extends Controller
         $file = LandFile::create([
             'ref' => $ref,
             'client_id' => $client->id,
-            'status' => "À l'étude",
+            'status' => 'Nouveau',
             'full_name' => $fullName,
             'phone' => $data['phone'],
             'detail' => $detail,
@@ -229,12 +258,16 @@ class LandFileController extends Controller
 
     /**
      * Stocke les pièces du vendeur hors de la racine publique (lecture
-     * exclusivement via la route Sanctum /admin/files/{path}) et renvoie des
-     * objets directement exploitables par la fiche du back office (même forme
-     * que les fichiers déposés depuis l'admin : id, name, type, size, url).
+     * exclusivement via les routes Sanctum /admin/files et /admin/files-raw)
+     * et renvoie des objets directement exploitables par le back-office.
      */
     private function storeUploads(Request $request, string $ref, string $ownerName, array $docTypes): array
     {
+        $realDocTypes = array_values(array_filter(
+            $docTypes,
+            fn ($t) => is_string($t) && trim($t) !== '' && trim($t) !== DossierVocabulary::NO_DOC && trim($t) !== "Aucun document pour l'instant"
+        ));
+
         $out = ['photos' => [], 'videos' => [], 'documents' => [], 'idCards' => []];
         foreach (['photos' => 'photos', 'videos' => 'videos', 'documents' => 'documents', 'idFiles' => 'idCards'] as $field => $key) {
             $i = 0;
@@ -253,15 +286,12 @@ class LandFileController extends Controller
                 ];
 
                 if ($key === 'documents') {
-                    // Catégorie au mieux (le formulaire ne lie pas un type à
-                    // un fichier précis) : on fait tourner les types cochés
-                    // par le vendeur, sinon « Autre document ». L'agent peut
-                    // corriger la catégorie en un clic dans le back office.
-                    $entry['category'] = $docTypes !== [] ? $docTypes[$i % count($docTypes)] : 'Autre document';
+                    $rawCat = $realDocTypes !== [] ? $realDocTypes[$i % count($realDocTypes)] : 'Autre document';
+                    $entry['category'] = DossierVocabulary::docCategory($rawCat);
                     $entry['number'] = '';
                     $entry['issuedAt'] = '';
                     $entry['ownerName'] = $ownerName;
-                    $entry['status'] = 'À vérifier';
+                    $entry['status'] = 'À examiner';
                 }
 
                 $out[$key][] = $entry;
@@ -284,6 +314,8 @@ class LandFileController extends Controller
             'webm' => 'video/webm',
             'avi' => 'video/x-msvideo',
             'pdf' => 'application/pdf',
+            'doc' => 'application/msword',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             default => 'application/octet-stream',
         };
     }

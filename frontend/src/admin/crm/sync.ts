@@ -11,7 +11,7 @@
 import { bootstrap } from '../../services/adminService';
 import type { ContactMessage, Land } from '../../types';
 import { notice } from './dialog';
-import { normaliserDemandeSite } from './model';
+import { normaliserDemandeSite, normaliserDossierSite } from './model';
 import type { BuyRequest, LandFile } from './model';
 import type { Client, Realisation, SpecificSearch } from './people';
 
@@ -77,7 +77,9 @@ export function hydrate(data: {
   );
   cache.clients = data.clients ?? [];
   cache.searches = data.searches ?? [];
-  cache.landFiles = data.landFiles ?? [];
+  cache.landFiles = (data.landFiles ?? []).map((f) =>
+    normaliserDossierSite(f as LandFile),
+  );
   cache.realisations = data.realisations ?? [];
   cache.messages = data.messages ?? [];
   hydrated = true;

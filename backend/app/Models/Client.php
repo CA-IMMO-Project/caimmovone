@@ -36,6 +36,11 @@ class Client extends Model
         return $this->hasMany(Search::class);
     }
 
+    public function landFiles()
+    {
+        return $this->hasMany(LandFile::class);
+    }
+
     /** Rapprochement par téléphone ou email (insensible à la casse). */
     public static function findOrCreateFromRequest(array $data): self
     {

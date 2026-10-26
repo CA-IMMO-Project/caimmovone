@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Mail,
   ShoppingBag,
+  Tag,
   Wallet,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -106,6 +107,9 @@ export default function Dashboard() {
   const visitsToConfirm = visits.filter((r) =>
     ['Demandée', 'Nouvelle'].includes(r.status),
   ).length;
+  const salesToReview = files.filter((f) =>
+    ['Nouveau', 'À examiner', 'Dossier incomplet'].includes(f.status),
+  ).length;
   const unread = messages.filter((m) => m.status === 'nouveau').length;
 
   const stats = [
@@ -140,6 +144,14 @@ export default function Dashboard() {
       icon: CalendarCheck,
       tint: 'bg-amber-50 text-amber-700',
       to: '/admin/visites?status=Demand%C3%A9e',
+    },
+    {
+      label: 'Ventes à examiner',
+      value: salesToReview,
+      sub: `${files.length} dossier(s) vendeur`,
+      icon: Tag,
+      tint: 'bg-purple-50 text-purple-700',
+      to: '/admin/dossiers-terrains',
     },
     {
       label: 'Messages non lus',
@@ -208,7 +220,7 @@ export default function Dashboard() {
         </p>
       )}
       {/* — Cartes statistiques — */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         {stats.map(({ label, value, sub, icon: Icon, tint, to }) => (
           <Link key={label} to={to} className="group">
             <Card className="p-5 h-full transition-all group-hover:border-slate-400">
