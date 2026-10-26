@@ -13,7 +13,13 @@ import {
   WalletCards,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import {
+  Link,
+  Navigate,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 import LandCard from '../features/catalog/LandCard';
 import { formatArea, formatAriary } from '../lib/format';
 import { getLands, saveLand } from '../lib/store';
@@ -28,7 +34,7 @@ import {
   Tabs,
   btnOutline,
 } from './crm/kit';
-import type { StoredFile } from './crm/model';
+import { getLandFile, type LandFile, type StoredFile } from './crm/model';
 import {
   LAND_STATUSES,
   PAYMENT_MODES,
@@ -126,44 +132,125 @@ function MediaThumb({
   );
 }
 
+function draftLandFromDossier(dossier: LandFile): Land {
+  const base = createEmptyLand();
+  const docLabels = [
+    ...(dossier.docTypes ?? []),
+    ...dossier.documents.map((d) => d.category),
+  ].join(' ');
+  const titleStatus: Land['titleStatus'] = /titre foncier/i.test(docLabels)
+    ? 'Titre Foncier'
+    : /cadastr/i.test(docLabels)
+      ? 'Cadastré'
+      : 'Titre en cours';
+  const relief: NonNullable<Land['relief']> = /forte|important/i.test(
+    dossier.relief,
+  )
+    ? 'Pente forte'
+    : /douce|modéré|faible/i.test(dossier.relief)
+      ? 'Pente douce'
+      : 'Plat';
+  const paymentMode: NonNullable<Land['paymentMode']> =
+    dossier.salePayment.startsWith('Les deux')
+      ? 'comptant-ou-facilite'
+      : dossier.salePayment.startsWith('Facilité')
+        ? 'facilite'
+        : 'comptant';
+  const location = [
+    dossier.fokontany,
+    dossier.commune,
+    dossier.district,
+    dossier.region,
+  ]
+    .filter(Boolean)
+    .join(', ');
+  return {
+    ...base,
+    title: dossier.title,
+    description: dossier.description,
+    price: dossier.recommendedPrice > 0 ? dossier.recommendedPrice : dossier.price,
+    region: dossier.region,
+    zone: dossier.commune || dossier.district,
+    location,
+    area: dossier.area,
+    titleStatus,
+    relief,
+    access: [dossier.accesses.join(', '), dossier.addressHint]
+      .filter(Boolean)
+      .join(' — '),
+    water: dossier.water === 'Oui',
+    electricity: dossier.electricity === 'Oui',
+    payment: dossier.salePayment,
+    paymentMode,
+    downPayment:
+      paymentMode === 'comptant'
+        ? ''
+        : dossier.depositRange === 'Personnalisé' && dossier.depositCustom
+          ? `${dossier.depositCustom} %`
+          : dossier.depositRange !== 'À convenir avec l’agence'
+            ? dossier.depositRange
+            : '',
+    installments:
+      paymentMode === 'comptant'
+        ? ''
+        : dossier.maxDuration === 'Autre durée'
+          ? dossier.maxDurationOther
+          : dossier.maxDuration,
+    coordinates:
+      dossier.lat != null && dossier.lng != null
+        ? [dossier.lat, dossier.lng]
+        : undefined,
+  };
+}
+
 export default function LandEditor() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const fromDossierId = !id ? searchParams.get('fromDossier') : null;
   const navigate = useNavigate();
   const existing = useMemo(
     () => (id ? getLands().find((land) => land.id === id) : undefined),
     [id],
   );
+  const initialLand = useMemo(() => {
+    if (existing) return existing;
+    const dossier = fromDossierId ? getLandFile(fromDossierId) : undefined;
+    return dossier ? draftLandFromDossier(dossier) : createEmptyLand();
+  }, [existing, fromDossierId]);
   const isNew = !id;
 
-  const [form, setForm] = useState<Land>(() => existing ?? createEmptyLand());
+  const [form, setForm] = useState<Land>(() => initialLand);
   const [featuresText, setFeaturesText] = useState(
-    joinLines(existing?.features),
+    joinLines(initialLand.features),
   );
   const [galleryItems, setGalleryItems] = useState<string[]>(
-    (existing?.gallery ?? []).filter((src) => src !== existing?.imageUrl),
+    (initialLand.gallery ?? []).filter((src) => src !== initialLand.imageUrl),
   );
   const [documents, setDocuments] = useState<LandDocument[]>(
-    existing?.documents ?? [],
+    initialLand.documents ?? [],
   );
   const [docPreview, setDocPreview] = useState<StoredFile | null>(null);
-  const [lat, setLat] = useState(existing?.coordinates?.[0]?.toString() ?? '');
-  const [lng, setLng] = useState(existing?.coordinates?.[1]?.toString() ?? '');
-  const [lots, setLots] = useState<Lot[]>(existing?.lots ?? []);
+  const [lat, setLat] = useState(
+    initialLand.coordinates?.[0]?.toString() ?? '',
+  );
+  const [lng, setLng] = useState(
+    initialLand.coordinates?.[1]?.toString() ?? '',
+  );
+  const [lots, setLots] = useState<Lot[]>(initialLand.lots ?? []);
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState<TabId>('identite');
 
   useEffect(() => {
-    const next = existing ?? createEmptyLand();
-    setForm(next);
-    setFeaturesText(joinLines(next.features));
+    setForm(initialLand);
+    setFeaturesText(joinLines(initialLand.features));
     setGalleryItems(
-      (next.gallery ?? []).filter((src) => src !== next.imageUrl),
+      (initialLand.gallery ?? []).filter((src) => src !== initialLand.imageUrl),
     );
-    setDocuments(next.documents ?? []);
-    setLat(next.coordinates?.[0]?.toString() ?? '');
-    setLng(next.coordinates?.[1]?.toString() ?? '');
-    setLots(next.lots ?? []);
-  }, [existing?.id, isNew]);
+    setDocuments(initialLand.documents ?? []);
+    setLat(initialLand.coordinates?.[0]?.toString() ?? '');
+    setLng(initialLand.coordinates?.[1]?.toString() ?? '');
+    setLots(initialLand.lots ?? []);
+  }, [existing?.id, isNew, fromDossierId]);
 
   const set = <K extends keyof Land>(key: K, value: Land[K]) =>
     setForm((current) => ({ ...current, [key]: value }));

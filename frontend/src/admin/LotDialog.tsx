@@ -232,9 +232,15 @@ export function LotDialog({
   if (!lot) return null;
 
   const sale = land.sales?.find((s) => s.lotId === lot.id);
-  const interested = requests.filter((r) => r.lotId === lot.id);
+  const interested = requests.filter(
+    (r) =>
+      r.lotId === lot.id &&
+      !['Achat finalisé', 'Refusée', 'Archivée'].includes(r.status),
+  );
   const landLevel = requests.filter(
-    (r) => !r.lotId && r.status !== 'Achat finalisé',
+    (r) =>
+      !r.lotId &&
+      !['Achat finalisé', 'Refusée', 'Archivée'].includes(r.status),
   );
   const history = [
     ...(lot.history ?? []),

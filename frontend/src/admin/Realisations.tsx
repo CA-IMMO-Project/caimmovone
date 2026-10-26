@@ -1,7 +1,6 @@
 import {
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
   Globe,
   LayoutGrid,
   List,
@@ -179,24 +178,13 @@ export default function Realisations() {
         title="Réalisations"
         subtitle="Galerie de projets et suivi de leur publication sur le portail public."
         action={
-          <>
-            <a
-              href="/realisations"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={btnOutline}
-            >
-              <ExternalLink size={15} />
-              Voir sur le portail public
-            </a>
-            <button
-              className={btnPrimary}
-              onClick={() => setEditing(newRealisation())}
-            >
-              <Plus size={15} />
-              Nouvelle réalisation
-            </button>
-          </>
+          <button
+            className={btnPrimary}
+            onClick={() => setEditing(newRealisation())}
+          >
+            <Plus size={15} />
+            Nouvelle réalisation
+          </button>
         }
       />
       <div className="grid grid-cols-3 gap-3 mb-5">
@@ -227,7 +215,9 @@ export default function Realisations() {
             </select>
           </label>
         }
-        exportRows={() => shown}
+        exportRows={() =>
+          selected.length ? shown.filter((r) => selected.includes(r.id)) : shown
+        }
         exportColumns={columns}
         exportName="realisations"
         extra={

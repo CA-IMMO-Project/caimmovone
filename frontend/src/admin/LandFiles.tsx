@@ -7,6 +7,7 @@ import {
   FileDown,
   FileText,
   Film,
+  History,
   IdCard,
   Image as ImageIcon,
   Landmark,
@@ -14,6 +15,7 @@ import {
   MessageSquarePlus,
   Pencil,
   Phone,
+  PhoneCall,
   Plus,
   Save,
   Star,
@@ -23,11 +25,17 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { PHONE_PLACEHOLDER, formatPhone, phoneHref } from '../lib/phone';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { PHONE_PLACEHOLDER, formatPhone, normalizePhone, phoneHref } from '../lib/phone';
 import { phoneError, sanitizePhone } from '../lib/validate';
 import { NotFound } from './BuyRequests';
-import { ActionPlanner, CompleteDialog, PlanDialog } from './crm/client';
+import {
+  ActionPlanner,
+  CompleteDialog,
+  DoneActions,
+  PlanDialog,
+  StatusFlowBar,
+} from './crm/client';
 import { askConfirm } from './crm/dialog';
 import { getBlob, removeFile, useFileUrl } from './crm/files';
 import {
@@ -106,6 +114,7 @@ import {
   pricePerM2,
   saveLandFile,
 } from './crm/model';
+import { getClient, getClients } from './crm/people';
 import { refreshCache, subscribeCache } from './crm/sync';
 import {
   FormFooter,
@@ -441,12 +450,19 @@ const columns: Column<LandFile>[] = [
 // ======================= LISTE =======================
 export function LandFileList() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const [rows, setRows] = useState(getLandFiles);
   useEffect(() => {
     refreshCache().then(() => setRows(getLandFiles()));
     return subscribeCache(() => setRows(getLandFiles()));
   }, []); // resync à l'ouverture + mise à jour auto sans F5
   const [q, setQ] = useCollectionState(BASE, 'q', '');
+  const [statusFilter, setStatusFilter] = useCollectionState(
+    BASE,
+    'status',
+    '',
+  );
+  const [agentFilter, setAgentFilter] = useCollectionState(BASE, 'agent', '');
   const [selected, setSelected] = useCollectionState<string[]>(
     BASE,
     'selected',
@@ -459,6 +475,20 @@ export function LandFileList() {
     'active',
   );
 
+  useEffect(() => {
+    const urlStatus = params.get('status');
+    if (urlStatus && urlStatus !== statusFilter) {
+      setStatusFilter(urlStatus);
+    }
+  }, [params]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const activeFilters = Number(!!statusFilter) + Number(!!agentFilter);
+  const resetFilters = () => {
+    setQ('');
+    setStatusFilter('');
+    setAgentFilter('');
+  };
+
   const filtered = useMemo(() => {
     const s = q.toLowerCase().trim();
     return rows
@@ -467,6 +497,8 @@ export function LandFileList() {
           (view === 'archive'
             ? r.status === 'Archivé'
             : r.status !== 'Archivé') &&
+          (!statusFilter || r.status === statusFilter) &&
+          (!agentFilter || r.agent === agentFilter) &&
           (!s ||
             [
               r.ref,
@@ -494,7 +526,7 @@ export function LandFileList() {
             : 1;
         return fresh(a) - fresh(b) || b.createdAt.localeCompare(a.createdAt); // à traiter d'abord, puis plus récents
       });
-  }, [rows, q, view]);
+  }, [rows, q, view, statusFilter, agentFilter]);
 
   const applyBulk = () => {
     if (!bulkStatus) return;
@@ -568,9 +600,26 @@ export function LandFileList() {
 
       <ListToolbar
         q={q}
-        onReset={() => setQ('')}
+        onReset={resetFilters}
         onQ={setQ}
-        placeholder="Rechercher : référence, titre, propriétaire, téléphone, région, commune, statut, agent…"
+        activeFilters={activeFilters}
+        placeholder="Rechercher : référence, titre, propriétaire, téléphone, région, commune…"
+        filters={
+          <>
+            <Select
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={LAND_STATUSES}
+              placeholder="Toutes étapes"
+            />
+            <Select
+              value={agentFilter}
+              onChange={setAgentFilter}
+              options={AGENTS}
+              placeholder="Tous agents"
+            />
+          </>
+        }
         bulk={
           selected.length > 0 && (
             <>
@@ -616,8 +665,8 @@ export function LandFileList() {
       />
       <DataTable
         entityLabel="dossiers"
-        filtered={!!q}
-        onClearFilters={() => setQ('')}
+        filtered={!!q || activeFilters > 0}
+        onClearFilters={resetFilters}
         key={view}
         rows={filtered}
         columns={columns}
@@ -625,6 +674,7 @@ export function LandFileList() {
         onSelect={setSelected}
         rowClass={(r) =>
           r.status === 'Nouveau' ||
+          r.status === 'À examiner' ||
           r.status === "À l'étude" ||
           r.status === 'Dossier incomplet'
             ? 'bg-blue-50/60'
@@ -2051,6 +2101,14 @@ export function LandFileForm() {
                   options={LAND_STATUSES}
                 />
               </Field>
+              <Field label="Visite terrain (date et heure)">
+                <input
+                  type="datetime-local"
+                  className={input}
+                  value={f.visitAt ? f.visitAt.slice(0, 16) : ''}
+                  onChange={(e) => set('visitAt', e.target.value)}
+                />
+              </Field>
               <Field label="Compte rendu de visite" span={2}>
                 <textarea
                   rows={2}
@@ -2238,14 +2296,13 @@ function VideoPlayer({
 }
 
 // ======================= FICHE DÉTAILLÉE =======================
-type Dialog = null | 'plan' | 'Validé' | 'Refusé';
+type Dialog = null | 'plan' | 'assign' | 'review' | 'Validé' | 'Refusé';
 
 export function LandFileDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [f, setF] = useState(() => (id ? getLandFile(id) : undefined));
   const [tab, setTab] = useState<
-    'overview' | 'media' | 'docs' | 'notes' | 'history'
+    'overview' | 'media' | 'docs' | 'notes' | 'suivi'
   >('overview');
   const [completing, setCompleting] = useState<PlannedAction | null>(null);
   const [photo, setPhoto] = useState(0);
@@ -2278,13 +2335,19 @@ export function LandFileDetail() {
       { status },
       `Statut changé : ${f.status} → ${status}${extra ? ` — ${extra}` : ''}`,
     );
-  const stepIndex = FLOW.indexOf(f.status);
   const failed = ['Rejeté', 'Archivé', 'Dossier incomplet'].includes(f.status)
     ? f.status
     : undefined;
   const docsToCheck = f.documents.filter((d) => d.status !== 'Reçu').length;
   const idPieces = idDocPieces(f);
   const cur = f.photos[Math.min(photo, f.photos.length - 1)];
+  const isCashOnly = f.salePayment.startsWith('Comptant');
+  const ownerPhoneNorm = normalizePhone(phoneOf(f.owner));
+  const ownerClient =
+    (f.clientId ? getClient(String(f.clientId)) : undefined) ??
+    (ownerPhoneNorm
+      ? getClients().find((c) => normalizePhone(c.phone) === ownerPhoneNorm)
+      : undefined);
 
   const blobToDataUrl = (blob: Blob): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -2333,8 +2396,11 @@ export function LandFileDetail() {
     </dl>
     <h2>Description</h2><p>${escapeHtml(f.description)}</p>
     <h2>Conditions de vente</h2><dl>
-      <dt>Paiement</dt><dd>${escapeHtml(f.salePayment)}</dd><dt>Durée max.</dt><dd>${escapeHtml(f.maxDuration === 'Autre durée' ? f.maxDurationOther : f.maxDuration || '—')}</dd>
-      <dt>Acompte minimum</dt><dd>${escapeHtml(`${f.depositRange || '—'}${depositAmount(f) > 0 ? ` · ${fmtAr(depositAmount(f))}` : ''}`)}</dd><dt>Fréquence</dt><dd>${escapeHtml(f.frequency)}</dd>
+      <dt>Paiement</dt><dd>${escapeHtml(f.salePayment)}</dd>${
+        isCashOnly
+          ? ''
+          : `<dt>Durée max.</dt><dd>${escapeHtml(f.maxDuration === 'Autre durée' ? f.maxDurationOther : f.maxDuration || '—')}</dd><dt>Acompte minimum</dt><dd>${escapeHtml(`${f.depositRange || '—'}${depositAmount(f) > 0 ? ` · ${fmtAr(depositAmount(f))}` : ''}`)}</dd>`
+      }
       <dt>Négociable</dt><dd>${escapeHtml(`${f.saleNegotiable}${f.negotiationMargin ? ` (${f.negotiationMargin})` : ''}`)}</dd>
     </dl>
     <h2>Propriétaire</h2><dl><dt>Nom</dt><dd>${escapeHtml(fullName(f.owner))}</dd><dt>Téléphone</dt><dd>${escapeHtml(phoneOf(f.owner))}</dd><dt>Pièce d’identité</dt><dd>${escapeHtml(formatIdSummary(f))}</dd></dl>`,
@@ -2396,9 +2462,26 @@ export function LandFileDetail() {
     );
   };
 
+  const declaredDocs = (f.docTypes ?? []).filter(
+    (t) =>
+      t !== 'Aucun document pour l’instant' &&
+      t !== "Aucun document pour l'instant",
+  );
+  const hasStudyNotes = Boolean(
+    f.visitAt ||
+      f.fieldCheck ||
+      f.legalCheck ||
+      f.internalEstimate > 0 ||
+      f.recommendedPrice > 0,
+  );
+  const needsOwnerAttention = Boolean(
+    !idPieces.length ||
+      (f.ownerStatus &&
+        f.ownerStatus !== 'Propriétaire inscrit sur le document'),
+  );
+
   return (
     <>
-      {/* En-tête / résumé */}
       <RecordHeader
         module="Demandes de vente"
         backTo={BASE}
@@ -2408,6 +2491,24 @@ export function LandFileDetail() {
         subtitle={`${place(f) || 'Localisation non renseignée'} · reçu le ${fmtDate(f.receivedAt)}`}
         action={
           <>
+            {(f.decision === 'Validé' ||
+              f.status === 'Prêt à publier' ||
+              f.status === 'Publié') && (
+              <Link
+                to={`/admin/terrains/nouveau?fromDossier=${f.id}`}
+                className={btnPrimary}
+              >
+                <Plus size={15} />
+                Créer la fiche catalogue
+              </Link>
+            )}
+            <button
+              className={btnOutline}
+              onClick={() => setDialog('assign')}
+            >
+              <User size={15} />
+              Affecter
+            </button>
             <Link to={`${BASE}/${f.id}/modifier`} className={btnOutline}>
               <Pencil size={15} />
               Modifier
@@ -2421,43 +2522,32 @@ export function LandFileDetail() {
       />
       <SummaryStrip
         facts={[
-          { label: 'Prix total', value: formatLandPrice(f) },
+          { label: 'Prix demandé', value: formatLandPrice(f) },
           { label: 'Surface', value: f.area ? `${fmtNum(f.area)} m²` : '' },
-          { label: 'Propriétaire', value: fullName(f.owner) },
-          { label: 'Agent', value: f.agent },
+          { label: 'Paiement accepté', value: payShort(f) },
+          {
+            label: 'Agent & priorité',
+            value:
+              f.priority !== 'Normale' ? (
+                <span className="inline-flex items-center gap-2">
+                  <span>{f.agent}</span>
+                  <Badge value={f.priority} />
+                </span>
+              ) : (
+                f.agent
+              ),
+          },
         ]}
       />
 
-      {/* Frise d'avancement du dossier vendeur : changement rapide d'étape en un clic */}
-      <div className="mb-5 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-            Progression du dossier
-          </p>
-          {failed && <Badge value={failed} dot />}
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {FLOW.map((stepStatus, idx) => {
-            const active = f.status === stepStatus;
-            const passed = stepIndex >= 0 && idx < stepIndex;
-            return (
-              <button
-                key={stepStatus}
-                type="button"
-                onClick={() => setStatus(stepStatus)}
-                className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
-                  active
-                    ? 'border-navy-900 bg-navy-900 text-white'
-                    : passed
-                      ? 'border-amber-300 bg-amber-50 text-amber-900 hover:border-amber-400'
-                      : 'border-gray-200 bg-white text-gray-600 hover:border-navy-900 hover:text-navy-900'
-                }`}
-              >
-                {FLOW_LABELS[idx]}
-              </button>
-            );
-          })}
-          {f.status !== 'Dossier incomplet' && (
+      <StatusFlowBar
+        steps={FLOW}
+        labels={FLOW_LABELS}
+        current={f.status}
+        onSelect={(s) => setStatus(s)}
+        failedBadge={failed}
+        extra={
+          f.status !== 'Dossier incomplet' && (
             <button
               type="button"
               onClick={() => setStatus('Dossier incomplet')}
@@ -2465,31 +2555,279 @@ export function LandFileDetail() {
             >
               Marquer incomplet
             </button>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
+
+      <Tabs
+        value={tab}
+        onChange={(t) => setTab(t)}
+        tabs={[
+          { id: 'overview', label: 'Résumé' },
+          {
+            id: 'media',
+            label: `Photos (${f.photos.length}${f.video ? ' + vidéo' : ''})`,
+          },
+          {
+            id: 'docs',
+            label: `Documents (${totalDocCount(f)})`,
+            badge: docsToCheck,
+          },
+          { id: 'notes', label: `Notes (${f.notes.length})` },
+          { id: 'suivi', label: 'Suivi & historique' },
+        ]}
+      />
 
       <div className="grid lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2 space-y-5">
-          <Tabs
-            value={tab}
-            onChange={(t) => setTab(t)}
-            tabs={[
-              { id: 'overview', label: 'Résumé' },
-              { id: 'media', label: `Photos (${f.photos.length})` },
-              {
-                id: 'docs',
-                label: `Documents (${totalDocCount(f)})`,
-                badge: docsToCheck,
-              },
-              { id: 'notes', label: `Notes internes (${f.notes.length})` },
-              { id: 'history', label: 'Historique' },
-            ]}
-          />
+        <div className="lg:col-span-2 min-w-0 space-y-5">
+          {tab === 'overview' && (
+            <>
+              {/* Synthèse visuelle immédiate des 3 points clés de vérification */}
+              <div className="grid sm:grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setTab('docs')}
+                  className={`text-left rounded-xl border p-3.5 transition hover:border-navy-900 ${
+                    needsOwnerAttention
+                      ? 'border-amber-200 bg-amber-50/60'
+                      : 'border-gray-200 bg-white'
+                  }`}
+                >
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                    Qualité & identité vendeur
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-navy-900 truncate">
+                    {formatIdSummary(f)}
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-600 truncate">
+                    {f.ownerStatus || 'Situation juridique à préciser'}
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTab('docs')}
+                  className={`text-left rounded-xl border p-3.5 transition hover:border-navy-900 ${
+                    declaredDocs.length > 0 && f.documents.length === 0
+                      ? 'border-amber-200 bg-amber-50/60'
+                      : 'border-gray-200 bg-white'
+                  }`}
+                >
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                    Documents fonciers
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-navy-900 truncate">
+                    {f.documents.length > 0
+                      ? `${f.documents.length} fichier(s) téléversé(s)`
+                      : declaredDocs.length > 0
+                        ? `${declaredDocs.length} déclaré(s) · 0 fichier joint`
+                        : 'Aucun document foncier'}
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-600 truncate">
+                    {f.documents.length > 0
+                      ? docsToCheck > 0
+                        ? `${docsToCheck} pièce(s) à examiner`
+                        : 'Toutes les pièces reçues'
+                      : declaredDocs.length > 0
+                        ? 'À contrôler lors de la visite'
+                        : 'Situation coutumière / à qualifier'}
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTab('media')}
+                  className={`text-left rounded-xl border p-3.5 transition hover:border-navy-900 ${
+                    f.photos.length === 0
+                      ? 'border-slate-200 bg-slate-50/70'
+                      : 'border-gray-200 bg-white'
+                  }`}
+                >
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                    Visuels du terrain
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-navy-900 truncate">
+                    {f.photos.length > 0
+                      ? `${f.photos.length} photo(s)${f.video ? ' + 1 vidéo' : ''}`
+                      : f.video
+                        ? '1 vidéo jointe'
+                        : 'Aucune photo jointe'}
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-600 truncate">
+                    {f.photos.length >= MIN_PHOTOS
+                      ? 'Prêt pour publication'
+                      : f.noPhoto
+                        ? 'Prises de vue prévues à la visite'
+                        : `${MIN_PHOTOS} photos recommandées pour publier`}
+                  </p>
+                </button>
+              </div>
+
+              <Section
+                title="Terrain & caractéristiques"
+                icon={<Landmark className="w-4 h-4" />}
+              >
+                <div className="flex flex-col sm:flex-row gap-4">
+                  {f.photos[0] && (
+                    <button
+                      type="button"
+                      onClick={() => setPreview(f.photos[0])}
+                      className="shrink-0 sm:w-44 overflow-hidden rounded-xl border border-gray-200"
+                    >
+                      <Thumb
+                        file={f.photos[0]}
+                        className="w-full h-32 object-cover"
+                      />
+                    </button>
+                  )}
+                  <p className="flex-1 text-sm whitespace-pre-line leading-relaxed text-slate-700">
+                    {f.description || 'Aucune description renseignée.'}
+                  </p>
+                </div>
+
+                <dl className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-5 pt-4 border-t border-gray-100">
+                  <Info label="Catégorie" value={f.category} />
+                  <Info label="Relief" value={f.relief} />
+                  <Info label="Accès" value={f.accesses.join(', ')} />
+                  <Info label="Eau" value={f.water} />
+                  <Info label="Électricité" value={f.electricity} />
+                  <Info label="Usage recommandé" value={f.usage} />
+                  {/* Champs complémentaires d'agence : affichés uniquement s'ils ont été renseignés */}
+                  {f.roadWidth && (
+                    <Info label="Largeur de voie" value={f.roadWidth} />
+                  )}
+                  {f.distanceMainRoad && (
+                    <Info
+                      label="Distance route principale"
+                      value={f.distanceMainRoad}
+                    />
+                  )}
+                  {f.sanitation && (
+                    <Info label="Assainissement" value={f.sanitation} />
+                  )}
+                  {(f.mobile || f.internet) && (
+                    <Info
+                      label="Réseau mobile / internet"
+                      value={`${f.mobile || '—'} / ${f.internet || '—'}`}
+                    />
+                  )}
+                  {f.fence && <Info label="Clôture" value={f.fence} />}
+                  {f.building && (
+                    <Info
+                      label="Construction"
+                      value={
+                        f.building === 'Oui' && f.buildingDesc
+                          ? `Oui — ${f.buildingDesc}`
+                          : f.building
+                      }
+                    />
+                  )}
+                  {f.immediate && (
+                    <Info
+                      label="Disponibilité immédiate"
+                      value={f.immediate}
+                    />
+                  )}
+                </dl>
+              </Section>
+
+              <Section
+                title="Localisation"
+                icon={<MapPin className="w-4 h-4" />}
+              >
+                <dl className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                  <Info label="Secteur" value={place(f)} />
+                  <Info label="Indication d’accès" value={f.addressHint} />
+                  {f.landmark && <Info label="Repère" value={f.landmark} />}
+                  <Info
+                    label="Coordonnées GPS"
+                    value={
+                      f.lat != null ? `${f.lat}, ${f.lng}` : 'Non renseignées'
+                    }
+                  />
+                </dl>
+                {f.lat != null && f.lng != null && (
+                  <MapPicker lat={f.lat} lng={f.lng} readOnly />
+                )}
+              </Section>
+
+              <Section
+                title="Conditions souhaitées par le vendeur"
+                icon={<Wallet className="w-4 h-4" />}
+              >
+                <dl className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Info
+                    label="Prix demandé"
+                    value={
+                      f.price > 0
+                        ? `${fmtAr(f.price)}${f.pricePerM2 > 0 ? ` (${fmtNum(f.pricePerM2)} Ar/m²)` : ''}`
+                        : f.estimateRequested === 'Oui'
+                          ? 'Estimation demandée à CA IMMO'
+                          : ''
+                    }
+                  />
+                  <Info label="Mode de paiement" value={f.salePayment} />
+                  <Info
+                    label="Négociation"
+                    value={
+                      f.saleNegotiable === 'Oui'
+                        ? `Oui${f.negotiationMargin ? ` (${f.negotiationMargin})` : ''}`
+                        : f.negotiable === 'Oui'
+                          ? 'Oui'
+                          : 'Non'
+                    }
+                  />
+                  {!isCashOnly && (
+                    <>
+                      <Info
+                        label="Durée maximale"
+                        value={
+                          f.maxDuration === 'Autre durée'
+                            ? f.maxDurationOther
+                            : f.maxDuration
+                        }
+                      />
+                      <Info
+                        label="Acompte minimum"
+                        value={
+                          f.depositRange
+                            ? `${f.depositRange === 'Personnalisé' ? `${f.depositCustom} %` : f.depositRange}${depositAmount(f) > 0 ? ` · ${fmtAr(depositAmount(f))}` : ''}`
+                            : ''
+                        }
+                      />
+                      {f.frequency &&
+                        f.depositRange !== 'À convenir avec l’agence' && (
+                          <Info
+                            label="Fréquence"
+                            value={
+                              f.frequency === 'Personnalisée'
+                                ? f.frequencyOther
+                                : f.frequency
+                            }
+                          />
+                        )}
+                    </>
+                  )}
+                </dl>
+                {f.specialConditions && (
+                  <p className="mt-4 text-sm bg-gray-50 rounded-lg p-3">
+                    <strong>Conditions particulières : </strong>
+                    {f.specialConditions}
+                  </p>
+                )}
+                {f.ownerComments && (
+                  <p className="mt-2 text-sm bg-gray-50 rounded-lg p-3">
+                    <strong>Commentaires du propriétaire : </strong>
+                    {f.ownerComments}
+                  </p>
+                )}
+              </Section>
+              <SiteFilesBlock f={f} onPreview={setPreview} />
+            </>
+          )}
 
           {tab === 'media' && (
             <>
-              {/* Galerie */}
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                 {cur ? (
                   <>
@@ -2525,143 +2863,16 @@ export function LandFileDetail() {
                 )}
                 {!f.noPhoto && f.photos.length < MIN_PHOTOS && (
                   <p className="px-4 pb-3 text-xs text-orange-600">
-                    ℹ {f.photos.length} photo(s) jointe(s) — {MIN_PHOTOS} recommandées avant publication au catalogue.
+                    ℹ {f.photos.length} photo(s) jointe(s) — {MIN_PHOTOS}{' '}
+                    recommandées avant publication au catalogue.
                   </p>
                 )}
               </div>
-            </>
-          )}
-
-          {tab === 'overview' && (
-            <>
-              <Section
-                title="Description"
-                icon={<Landmark className="w-4 h-4" />}
-              >
-                <p className="text-sm whitespace-pre-line leading-relaxed">
-                  {f.description || '—'}
-                </p>
-                <dl className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-5">
-                  <Info label="Catégorie" value={f.category} />
-                  <Info label="Relief" value={f.relief} />
-                  <Info label="Usage recommandé" value={f.usage} />
-                  <Info label="Accès" value={f.accesses.join(', ')} />
-                  <Info label="Largeur de voie" value={f.roadWidth} />
-                  <Info
-                    label="Distance route principale"
-                    value={f.distanceMainRoad}
-                  />
-                  <Info label="Eau" value={f.water} />
-                  <Info label="Électricité" value={f.electricity} />
-                  <Info label="Assainissement" value={f.sanitation} />
-                  <Info
-                    label="Réseau mobile / internet"
-                    value={`${f.mobile || '—'} / ${f.internet || '—'}`}
-                  />
-                  <Info label="Clôture" value={f.fence} />
-                  <Info
-                    label="Construction"
-                    value={
-                      f.building === 'Oui'
-                        ? `Oui — ${f.buildingDesc}`
-                        : f.building
-                    }
-                  />
-                  <Info label="Occupation" value={f.occupation} />
-                  <Info label="Disponibilité immédiate" value={f.immediate} />
-                  <Info label="Prix négociable" value={f.negotiable} />
-                </dl>
-              </Section>
-              <Section
-                title="Localisation"
-                icon={<MapPin className="w-4 h-4" />}
-              >
-                <dl className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                  <Info label="Indication" value={f.addressHint} />
-                  <Info label="Repère" value={f.landmark} />
-                  <Info
-                    label="Coordonnées GPS"
-                    value={
-                      f.lat != null ? `${f.lat}, ${f.lng}` : 'Non renseignées'
-                    }
-                  />
-                </dl>
-                {f.lat != null && f.lng != null && (
-                  <MapPicker lat={f.lat} lng={f.lng} readOnly />
-                )}
-              </Section>
-              <Section
-                title="Conditions financières"
-                icon={<Wallet className="w-4 h-4" />}
-              >
-                <dl className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <Info label="Mode de paiement" value={f.salePayment} />
-                  <Info
-                    label="Durée maximale"
-                    value={
-                      f.maxDuration === 'Autre durée'
-                        ? f.maxDurationOther
-                        : f.maxDuration
-                    }
-                  />
-                  {/* Le montant n'est affiché que s'il est connu : le dépôt en
-                      ligne ne demande plus d'acompte en %, il indique
-                      simplement « à convenir avec l'agence ». */}
-                  <Info
-                    label="Acompte minimum"
-                    value={`${f.depositRange === 'Personnalisé' ? `${f.depositCustom} %` : f.depositRange}${depositAmount(f) > 0 ? ` · ${fmtAr(depositAmount(f))}` : ''}`}
-                  />
-                  {f.estimateRequested === 'Oui' && (
-                    <Info
-                      label="Prix"
-                      value="Estimation demandée à CA IMMO"
-                    />
-                  )}
-                  <Info
-                    label="Fréquence"
-                    value={
-                      f.frequency === 'Personnalisée'
-                        ? f.frequencyOther
-                        : f.frequency
-                    }
-                  />
-                  <Info
-                    label="Négociation"
-                    value={
-                      f.saleNegotiable === 'Oui'
-                        ? `Oui${f.negotiationMargin ? ` (${f.negotiationMargin})` : ''}`
-                        : 'Non'
-                    }
-                  />
-                  <Info
-                    label="Estimation interne"
-                    value={fmtAr(f.internalEstimate)}
-                  />
-                  <Info
-                    label="Prix recommandé agence"
-                    value={fmtAr(f.recommendedPrice)}
-                  />
-                  <Info
-                    label="Commission"
-                    value={f.commission ? `${f.commission} %` : '—'}
-                  />
-                </dl>
-                {f.specialConditions && (
-                  <p className="mt-4 text-sm bg-gray-50 rounded-lg p-3">
-                    <strong>Conditions particulières : </strong>
-                    {f.specialConditions}
-                  </p>
-                )}
-                {f.ownerComments && (
-                  <p className="mt-2 text-sm bg-gray-50 rounded-lg p-3">
-                    <strong>Commentaires du propriétaire : </strong>
-                    {f.ownerComments}
-                  </p>
-                )}
-              </Section>
-              <SiteFilesBlock f={f} onPreview={setPreview} />
               {f.video && (
-                <Section title="Vidéo" icon={<Film className="w-4 h-4" />}>
+                <Section
+                  title="Vidéo du terrain"
+                  icon={<Film className="w-4 h-4" />}
+                >
                   <VideoPlayer file={f.video} />
                 </Section>
               )}
@@ -2793,7 +3004,7 @@ export function LandFileDetail() {
             >
               {f.internalComments && (
                 <p className="mb-4 text-sm bg-gray-50 rounded-lg p-3 whitespace-pre-line">
-                  <strong>Commentaires internes : </strong>
+                  <strong>Commentaires d’étude : </strong>
                   {f.internalComments}
                 </p>
               )}
@@ -2806,15 +3017,97 @@ export function LandFileDetail() {
             </Section>
           )}
 
-          {tab === 'history' && (
-            <Section title="Historique complet des actions">
-              <Timeline items={f.history} />
-            </Section>
+          {tab === 'suivi' && (
+            <>
+              <Section
+                title="Actions effectuées"
+                icon={<PhoneCall className="w-4 h-4" />}
+              >
+                <DoneActions actions={f.actions} />
+              </Section>
+              <Section
+                title="Historique complet du dossier"
+                icon={<History className="w-4 h-4" />}
+              >
+                <Timeline items={f.history} />
+              </Section>
+            </>
           )}
         </div>
 
-        {/* Colonne latérale */}
+        {/* Colonne latérale : 1. Étude & qualification → 2. Décision → 3. Actions → 4. Propriétaire */}
         <aside className="space-y-4">
+          <Section
+            title={`Étude du dossier (${f.checklist.length}/${CHECKLIST.length})`}
+            icon={<ClipboardCheck className="w-4 h-4" />}
+            action={
+              <button
+                type="button"
+                className={btnOutline}
+                onClick={() => setDialog('review')}
+              >
+                <Pencil size={13} /> Qualifier
+              </button>
+            }
+          >
+            <Checklist
+              value={f.checklist}
+              onChange={(v) =>
+                update(
+                  { checklist: v },
+                  'Suivi de complétude du dossier mis à jour',
+                )
+              }
+            />
+
+            {hasStudyNotes ? (
+              <dl className="space-y-2.5 mt-4 pt-4 border-t border-gray-100">
+                {f.visitAt && (
+                  <Info
+                    label="Visite terrain"
+                    value={fmtDateTime(f.visitAt)}
+                  />
+                )}
+                {f.internalEstimate > 0 && (
+                  <Info
+                    label="Estimation interne"
+                    value={fmtAr(f.internalEstimate)}
+                  />
+                )}
+                {f.recommendedPrice > 0 && (
+                  <Info
+                    label="Prix recommandé"
+                    value={`${fmtAr(f.recommendedPrice)}${f.commission ? ` (${f.commission} %)` : ''}`}
+                  />
+                )}
+                {f.fieldCheck && (
+                  <Info
+                    label="Compte rendu terrain"
+                    value={
+                      <span className="font-normal whitespace-pre-line">
+                        {f.fieldCheck}
+                      </span>
+                    }
+                  />
+                )}
+                {f.legalCheck && (
+                  <Info
+                    label="Analyse des pièces"
+                    value={
+                      <span className="font-normal whitespace-pre-line">
+                        {f.legalCheck}
+                      </span>
+                    }
+                  />
+                )}
+              </dl>
+            ) : (
+              <p className="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500">
+                Aucune note de visite ou d’estimation saisie — cliquez sur « Qualifier » pour renseigner l’étude.
+              </p>
+            )}
+          </Section>
+
           <Section title="Décision">
             {f.decision ? (
               <div className="space-y-3">
@@ -2829,9 +3122,19 @@ export function LandFileDetail() {
                     {f.decisionReason}
                   </p>
                 )}
-                <button className={btnOutline} onClick={reopen}>
-                  Rouvrir le dossier
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  {f.decision === 'Validé' && (
+                    <Link
+                      to={`/admin/terrains/nouveau?fromDossier=${f.id}`}
+                      className={btnPrimary}
+                    >
+                      <Plus size={15} /> Créer la fiche catalogue
+                    </Link>
+                  )}
+                  <button className={btnOutline} onClick={reopen}>
+                    Rouvrir le dossier
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2">
@@ -2839,7 +3142,7 @@ export function LandFileDetail() {
                   className={btnPrimary}
                   onClick={() => setDialog('Validé')}
                 >
-                  <BadgeCheck className="w-4 h-4" /> Accepter le dossier
+                  <BadgeCheck className="w-4 h-4" /> Accepter
                 </button>
                 <button
                   className={btnDanger}
@@ -2847,21 +3150,11 @@ export function LandFileDetail() {
                 >
                   <XCircle className="w-4 h-4" /> Refuser
                 </button>
-                <p className="col-span-2 text-xs text-gray-600">
-                  La décision est inscrite dans l’historique et le dossier passe
-                  dans les archives.
+                <p className="col-span-2 text-xs text-gray-500">
+                  Inscrit la décision à l’historique et archive le dossier.
                 </p>
               </div>
             )}
-          </Section>
-
-          <Section title="Actions rapides">
-            <button
-              className={`${btnOutline} w-full`}
-              onClick={() => setTab('notes')}
-            >
-              <MessageSquarePlus className="w-4 h-4" /> Ajouter une note
-            </button>
           </Section>
 
           <ActionPlanner
@@ -2871,9 +3164,32 @@ export function LandFileDetail() {
             onDelete={cancelAction}
           />
 
-          <Section title="Propriétaire" icon={<User className="w-4 h-4" />}>
+          <Section
+            title="Propriétaire"
+            icon={<User className="w-4 h-4" />}
+            action={
+              ownerClient && (
+                <Link
+                  to={`/admin/clients/${ownerClient.id}`}
+                  className="text-xs font-semibold text-gold-700 hover:underline"
+                >
+                  Fiche client →
+                </Link>
+              )
+            }
+          >
             <dl className="space-y-3">
-              <Info label="Nom" value={`${fullName(f.owner)} (${f.ownerId})`} />
+              <Info
+                label="Nom"
+                value={
+                  f.ownerId
+                    ? `${fullName(f.owner)} (${f.ownerId})`
+                    : fullName(f.owner)
+                }
+              />
+              {f.ownerStatus && (
+                <Info label="Situation du vendeur" value={f.ownerStatus} />
+              )}
               <Info
                 label="Téléphone"
                 value={
@@ -2885,72 +3201,44 @@ export function LandFileDetail() {
                   </a>
                 }
               />
-              <Info
-                label="Email"
-                value={
-                  f.owner.email ? (
+              {f.whatsapp && <Info label="WhatsApp" value={f.whatsapp} />}
+              {f.owner.email && (
+                <Info
+                  label="Email"
+                  value={
                     <a
                       href={`mailto:${f.owner.email}`}
                       className="hover:text-gold-700"
                     >
                       {f.owner.email}
                     </a>
-                  ) : (
-                    ''
-                  )
-                }
-              />
-              <Info label="WhatsApp" value={f.whatsapp} />
-              {/* Situation déclarée par le vendeur au dépôt : un titre resté au
-                  nom d'un parent ou une indivision familiale explique la suite
-                  des démarches à prévoir. */}
-              {f.ownerStatus && (
-                <Info label="Situation du vendeur" value={f.ownerStatus} />
+                  }
+                />
               )}
-              <Info label="Profession" value={f.owner.profession} />
-              <Info
-                label="Pays de résidence"
-                value={
-                  f.owner.country === 'Autre'
-                    ? f.owner.countryOther
-                    : f.owner.country
-                }
-              />
-              <Info
-                label="Pièce d’identité"
-                value={formatIdSummary(f)}
-              />
-              <Info
-                label="Banque"
-                value={
-                  f.owner.hasBankAccount === 'Oui'
-                    ? f.owner.bank || 'Oui'
-                    : f.owner.hasBankAccount
-                }
-              />
-            </dl>
-          </Section>
-
-          <Section
-            title="Étude du dossier"
-            icon={<ClipboardCheck className="w-4 h-4" />}
-          >
-            <Checklist
-              value={f.checklist}
-              onChange={(v) =>
-                update(
-                  { checklist: v },
-                  'Suivi de complétude du dossier mise à jour',
-                )
-              }
-            />
-            <dl className="space-y-3 mt-4 pt-4 border-t">
-              <Info
-                label="Visite terrain"
-                value={f.visitAt ? fmtDateTime(f.visitAt) : '—'}
-              />
-              <Info label="Compte rendu de visite" value={f.fieldCheck} />
-              <Info label="Analyse des pièces" value={f.legalCheck} />
+              <Info label="Pièce d’identité" value={formatIdSummary(f)} />
+              {f.owner.profession && (
+                <Info label="Profession" value={f.owner.profession} />
+              )}
+              {f.owner.country && (
+                <Info
+                  label="Pays de résidence"
+                  value={
+                    f.owner.country === 'Autre'
+                      ? f.owner.countryOther
+                      : f.owner.country
+                  }
+                />
+              )}
+              {f.owner.hasBankAccount && (
+                <Info
+                  label="Banque"
+                  value={
+                    f.owner.hasBankAccount === 'Oui'
+                      ? f.owner.bank || 'Oui'
+                      : f.owner.hasBankAccount
+                  }
+                />
+              )}
               <Info
                 label="Dernière modification"
                 value={fmtDateTime(f.updatedAt)}
@@ -2962,6 +3250,30 @@ export function LandFileDetail() {
 
       {dialog === 'plan' && (
         <PlanDialog onClose={() => setDialog(null)} onSave={plan} />
+      )}
+      {dialog === 'assign' && (
+        <AssignLandFileDialog
+          agent={f.agent}
+          priority={f.priority}
+          onClose={() => setDialog(null)}
+          onSave={(agent, priority) => {
+            update(
+              { agent, priority },
+              `Affectation : ${agent} · priorité ${priority}`,
+            );
+            setDialog(null);
+          }}
+        />
+      )}
+      {dialog === 'review' && (
+        <ReviewLandFileDialog
+          file={f}
+          onClose={() => setDialog(null)}
+          onSave={(patch) => {
+            update(patch, 'Étude du dossier mise à jour');
+            setDialog(null);
+          }}
+        />
       )}
       {completing && (
         <CompleteDialog
@@ -2982,6 +3294,166 @@ export function LandFileDetail() {
       )}
       <Preview file={preview} onClose={() => setPreview(null)} />
     </>
+  );
+}
+
+function AssignLandFileDialog({
+  agent: initialAgent,
+  priority: initialPriority,
+  onClose,
+  onSave,
+}: {
+  agent: string;
+  priority: LandFile['priority'];
+  onClose: () => void;
+  onSave: (agent: string, priority: LandFile['priority']) => void;
+}) {
+  const [agent, setAgent] = useState(initialAgent);
+  const [priority, setPriority] = useState(initialPriority);
+  return (
+    <Modal
+      title="Affecter le dossier"
+      onClose={onClose}
+      footer={
+        <>
+          <button className={btnOutline} onClick={onClose}>
+            Annuler
+          </button>
+          <button
+            className={btnPrimary}
+            onClick={() => onSave(agent, priority)}
+          >
+            Enregistrer
+          </button>
+        </>
+      }
+    >
+      <Field label="Agent responsable">
+        <Select value={agent} onChange={setAgent} options={AGENTS} />
+      </Field>
+      <Field label="Priorité">
+        <Select
+          value={priority}
+          onChange={(v) => setPriority(v as LandFile['priority'])}
+          options={PRIORITIES}
+        />
+      </Field>
+    </Modal>
+  );
+}
+
+function ReviewLandFileDialog({
+  file,
+  onClose,
+  onSave,
+}: {
+  file: LandFile;
+  onClose: () => void;
+  onSave: (patch: Partial<LandFile>) => void;
+}) {
+  const [visitAt, setVisitAt] = useState(
+    file.visitAt ? file.visitAt.slice(0, 16) : '',
+  );
+  const [internalEstimate, setInternalEstimate] = useState(
+    file.internalEstimate,
+  );
+  const [recommendedPrice, setRecommendedPrice] = useState(
+    file.recommendedPrice,
+  );
+  const [commission, setCommission] = useState(file.commission);
+  const [fieldCheck, setFieldCheck] = useState(file.fieldCheck);
+  const [legalCheck, setLegalCheck] = useState(file.legalCheck);
+  const [internalComments, setInternalComments] = useState(
+    file.internalComments,
+  );
+
+  return (
+    <Modal
+      title={`Étude du dossier — ${file.ref}`}
+      wide
+      onClose={onClose}
+      footer={
+        <>
+          <button className={btnOutline} onClick={onClose}>
+            Annuler
+          </button>
+          <button
+            className={btnPrimary}
+            onClick={() =>
+              onSave({
+                visitAt,
+                internalEstimate,
+                recommendedPrice,
+                commission,
+                fieldCheck: fieldCheck.trim(),
+                legalCheck: legalCheck.trim(),
+                internalComments: internalComments.trim(),
+              })
+            }
+          >
+            Enregistrer l’étude
+          </button>
+        </>
+      }
+    >
+      <div className="grid sm:grid-cols-2 gap-3">
+        <Field label="Visite terrain (date et heure)">
+          <input
+            type="datetime-local"
+            className={input}
+            value={visitAt}
+            onChange={(e) => setVisitAt(e.target.value)}
+          />
+        </Field>
+        <Field label="Commission agence (%)">
+          <NumberInput
+            value={commission}
+            onChange={setCommission}
+            suffix="%"
+          />
+        </Field>
+        <Field label="Estimation interne (Ar)">
+          <NumberInput
+            value={internalEstimate}
+            onChange={setInternalEstimate}
+            suffix="Ar"
+          />
+        </Field>
+        <Field label="Prix recommandé par l’agence (Ar)">
+          <NumberInput
+            value={recommendedPrice}
+            onChange={setRecommendedPrice}
+            suffix="Ar"
+          />
+        </Field>
+      </div>
+      <Field label="Compte rendu de visite terrain">
+        <textarea
+          rows={2}
+          className={input}
+          value={fieldCheck}
+          onChange={(e) => setFieldCheck(e.target.value)}
+          placeholder="Accès constaté, bornage, voisinage, faisabilité…"
+        />
+      </Field>
+      <Field label="Analyse des pièces foncières & identité">
+        <textarea
+          rows={2}
+          className={input}
+          value={legalCheck}
+          onChange={(e) => setLegalCheck(e.target.value)}
+          placeholder="Concordance CIN / titre, indivision, CSJ…"
+        />
+      </Field>
+      <Field label="Commentaires internes">
+        <textarea
+          rows={2}
+          className={input}
+          value={internalComments}
+          onChange={(e) => setInternalComments(e.target.value)}
+        />
+      </Field>
+    </Modal>
   );
 }
 

@@ -18,6 +18,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
+import { fetchProtectedFile } from '../services/adminService';
 import { useBodyScrollLock } from '../shared/overlay';
 import { adminStatusClass } from './status';
 import {
@@ -26,6 +27,56 @@ import {
   ADMIN_BUTTON_OUTLINE,
   ADMIN_BUTTON_PRIMARY,
 } from './tokens';
+
+const protectedThumbCache = new Map<string, string>();
+const protectedThumbPending = new Map<string, Promise<string | undefined>>();
+
+function useResolvedImageSrc(src?: string): string | undefined {
+  const isProtected = !!src && src.startsWith('/api/v1/admin/files/');
+  const [resolved, setResolved] = useState<string | undefined>(() =>
+    !src ? undefined : isProtected ? protectedThumbCache.get(src) : src,
+  );
+
+  useEffect(() => {
+    if (!src) {
+      setResolved(undefined);
+      return;
+    }
+    if (!isProtected) {
+      setResolved(src);
+      return;
+    }
+    const cached = protectedThumbCache.get(src);
+    if (cached) {
+      setResolved(cached);
+      return;
+    }
+    let cancelled = false;
+    let pending = protectedThumbPending.get(src);
+    if (!pending) {
+      pending = fetchProtectedFile(src)
+        .then((blob) => {
+          if (!blob || blob.size === 0) return undefined;
+          const objUrl = URL.createObjectURL(blob);
+          protectedThumbCache.set(src, objUrl);
+          return objUrl;
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          protectedThumbPending.delete(src);
+        });
+      protectedThumbPending.set(src, pending);
+    }
+    pending.then((objUrl) => {
+      if (!cancelled) setResolved(objUrl);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [src, isProtected]);
+
+  return resolved;
+}
 
 /** Préférences de navigation temporaires : pas de données métier persistées. */
 const viewState = new Map<string, unknown>();
@@ -106,11 +157,17 @@ export function RecordIdentity({
   image?: string;
   media?: boolean;
 }) {
+  const resolvedImage = useResolvedImageSrc(media ? image : undefined);
   return (
     <div className="record-identity">
       {media &&
-        (image ? (
-          <img src={image} alt="" className="record-thumb" loading="lazy" />
+        (resolvedImage ? (
+          <img
+            src={resolvedImage}
+            alt=""
+            className="record-thumb"
+            loading="lazy"
+          />
         ) : (
           <span className="record-thumb record-thumb-empty">
             <ImageOff size={16} />
@@ -478,12 +535,17 @@ export function RecordCard({
   onOpen: () => void;
   children?: ReactNode;
 }) {
+  const resolvedImage = useResolvedImageSrc(media ? image : undefined);
   return (
     <article className="record-card">
       {media && (
         <div className="record-card-cover">
-          {image ? (
-            <img src={image} alt={`Visuel de ${title}`} loading="lazy" />
+          {resolvedImage ? (
+            <img
+              src={resolvedImage}
+              alt={`Visuel de ${title}`}
+              loading="lazy"
+            />
           ) : (
             <span>
               <ImageOff size={24} />

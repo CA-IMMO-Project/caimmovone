@@ -16,21 +16,22 @@ import {
   CalendarDays,
   CalendarPlus,
   FileText,
-  Mail,
-  MapPin,
-  Phone,
+  History,
+  Pencil,
   User,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { formatPhone, phoneHref } from '../lib/phone';
 import { getLands } from '../lib/store';
+import { LinkedLandCard, StatusFlowBar } from './crm/client';
 import {
   Badge,
   Column,
   DataTable,
   Field,
   FileChip,
+  Info,
   ListToolbar,
   Modal,
   PageHeader,
@@ -44,10 +45,12 @@ import {
   Timeline,
   btnOutline,
   btnPrimary,
-  fmtAr,
   fmtDate,
+  fmtDateTime,
+  input,
 } from './crm/kit';
 import {
+  AGENTS,
   BuyRequest,
   StoredFile,
   fullName,
@@ -172,6 +175,7 @@ export function VisitList() {
     'selected',
     [],
   );
+  const [bulkStatus, setBulkStatus] = useState('');
 
   const filtered = rows
     .filter((r) => {
@@ -191,6 +195,29 @@ export function VisitList() {
         visitStatusOf(r) === 'Demandée' ? 0 : 1;
       return fresh(a) - fresh(b) || b.createdAt.localeCompare(a.createdAt); // à confirmer d'abord, puis plus récentes
     });
+
+  const applyBulk = async () => {
+    if (!bulkStatus || !selected.length) return;
+    await Promise.all(
+      filtered
+        .filter((r) => selected.includes(r.id))
+        .map((r) =>
+          saveBuyRequest({
+            ...r,
+            status: bulkStatus as BuyRequest['status'],
+            history: [
+              ...r.history,
+              historyEntry(
+                `Statut changé en lot : ${visitStatusOf(r)} → ${bulkStatus}`,
+              ),
+            ],
+          }),
+        ),
+    );
+    setRows(getVisitRequests());
+    setSelected([]);
+    setBulkStatus('');
+  };
 
   const demandees = rows.filter((r) => visitStatusOf(r) === 'Demandée').length;
   const confirmees = rows.filter(
@@ -231,7 +258,31 @@ export function VisitList() {
           />
         }
         activeFilters={status ? 1 : 0}
-        exportRows={() => filtered}
+        bulk={
+          selected.length > 0 && (
+            <>
+              <Select
+                value={bulkStatus}
+                onChange={setBulkStatus}
+                options={[...VISIT_STATUSES]}
+                placeholder={`État pour ${selected.length} visite(s)…`}
+                className="w-auto"
+              />
+              <button
+                className={btnPrimary}
+                onClick={applyBulk}
+                disabled={!bulkStatus}
+              >
+                Appliquer
+              </button>
+            </>
+          )
+        }
+        exportRows={() =>
+          selected.length
+            ? filtered.filter((r) => selected.includes(r.id))
+            : filtered
+        }
         exportColumns={columns}
         exportName="visites"
         exportTitle="Demandes de visite"
@@ -260,15 +311,17 @@ export function VisitList() {
 // ======================= FICHE =======================
 export function VisitDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [r, setR] = useState(() => (id ? getBuyRequest(id) : undefined));
   const [tab, setTab] = useState<'overview' | 'documents' | 'history'>(
     'overview',
   );
   const [editing, setEditing] = useState(false);
-  const [draftStatus, setDraftStatus] = useState<string>(
-    r ? visitStatusOf(r) : 'Demandée',
-  );
+  const [rescheduling, setRescheduling] = useState<{
+    markReported: boolean;
+  } | null>(null);
+  const [draftAgent, setDraftAgent] = useState<string>(r?.agent ?? AGENTS[0]);
+  const [draftDate, setDraftDate] = useState<string>(r?.visitDate ?? '');
+  const [draftTime, setDraftTime] = useState<string>(r?.visitTime ?? '');
   const [preview, setPreview] = useState<StoredFile | null>(null);
 
   // Resync à l'ouverture de la fiche + mise à jour auto sans F5 : sans ce bloc,
@@ -295,20 +348,76 @@ export function VisitDetail() {
   }
 
   const land = getLands().find((l) => l.id === r.landId);
+  const lot = land?.lots?.find((l) => l.id === r.lotId);
   const client = r.clientId ? getClient(String(r.clientId)) : undefined;
+  const currentStatus = visitStatusOf(r);
 
-  /** Change le statut et l'inscrit dans l'historique. */
   const changeStatus = (status: VisitStatus) => {
-    if (status === visitStatusOf(r)) return;
+    if (status === currentStatus) return;
     void saveBuyRequest({
       ...r,
       status: status as BuyRequest['status'],
       history: [
         ...r.history,
-        historyEntry(`Statut changé : ${visitStatusOf(r)} → ${status}`),
+        historyEntry(`Statut changé : ${currentStatus} → ${status}`),
       ],
     }).then(setR);
   };
+
+  const openScheduleModal = (markReported: boolean) => {
+    setDraftDate(r.visitDate ?? '');
+    setDraftTime(r.visitTime ?? '');
+    setRescheduling({ markReported });
+  };
+
+  const saveSchedule = () => {
+    const nextStatus = rescheduling?.markReported
+      ? ('Reportée' as BuyRequest['status'])
+      : r.status;
+    const slotLabel = draftDate
+      ? `${fmtDate(draftDate)}${draftTime ? ` à ${draftTime}` : ''}`
+      : 'date à définir';
+    void saveBuyRequest({
+      ...r,
+      visitDate: draftDate,
+      visitTime: draftTime,
+      status: nextStatus,
+      history: [
+        ...r.history,
+        historyEntry(
+          rescheduling?.markReported
+            ? `Visite reportée au ${slotLabel}`
+            : `Créneau de visite fixé au ${slotLabel}`,
+        ),
+      ],
+    }).then(setR);
+    setRescheduling(null);
+  };
+
+  const changeAgent = (agent: string) => {
+    if (agent === r.agent) return;
+    void saveBuyRequest({
+      ...r,
+      agent,
+      history: [...r.history, historyEntry(`Visite affectée à ${agent}`)],
+    }).then(setR);
+  };
+
+  const detailTabs: {
+    id: 'overview' | 'documents' | 'history';
+    label: string;
+  }[] = [
+    { id: 'overview', label: 'Résumé' },
+    ...(r.attachments.length > 0
+      ? [
+          {
+            id: 'documents' as const,
+            label: `Documents (${r.attachments.length})`,
+          },
+        ]
+      : []),
+    { id: 'history', label: 'Historique' },
+  ];
 
   return (
     <>
@@ -317,35 +426,128 @@ export function VisitDetail() {
         backTo={BASE}
         title={client?.fullName ?? fullName(r)}
         reference={r.ref}
-        status={visitStatusOf(r)}
+        status={currentStatus}
         subtitle={`Demande reçue le ${fmtDate(r.createdAt)}`}
         action={
-          <button className={btnOutline} onClick={() => setEditing(true)}>
-            Modifier le suivi
-          </button>
+          <>
+            <button
+              className={btnOutline}
+              onClick={() => openScheduleModal(false)}
+            >
+              <Pencil size={15} />
+              Modifier le créneau
+            </button>
+            <button
+              className={btnOutline}
+              onClick={() => {
+                setDraftAgent(r.agent);
+                setEditing(true);
+              }}
+            >
+              <User size={15} />
+              Affecter
+            </button>
+          </>
         }
       />
       <SummaryStrip
         facts={[
           { label: 'Visite prévue', value: fmtVisitDate(r) },
-          { label: 'Terrain', value: land?.title },
-          { label: 'Téléphone', value: formatPhone(r.phone, r.dialCode) },
-          { label: 'WhatsApp', value: r.whatsapp },
+          {
+            label: 'Terrain',
+            value: land ? `${land.title}${lot ? ` — ${lot.number}` : ''}` : '',
+          },
           { label: 'Agent', value: r.agent },
+          { label: 'Origine', value: r.source || 'Site web' },
         ]}
       />
-      <Tabs
-        value={tab}
-        onChange={setTab}
-        tabs={[
-          { id: 'overview', label: 'Résumé' },
-          { id: 'documents', label: `Documents (${r.attachments.length})` },
-          { id: 'history', label: 'Historique' },
-        ]}
+
+      <StatusFlowBar
+        steps={['Demandée', 'Confirmée', 'Effectuée'] as const}
+        current={currentStatus}
+        onSelect={changeStatus}
+        failedBadge={
+          currentStatus === 'Reportée' || currentStatus === 'Annulée'
+            ? currentStatus
+            : undefined
+        }
+        title="État de la visite"
+        extra={
+          <>
+            {currentStatus !== 'Reportée' && (
+              <button
+                type="button"
+                onClick={() => openScheduleModal(true)}
+                className="rounded-lg border border-amber-200 bg-amber-50/70 px-2.5 py-1.5 text-xs font-medium text-amber-900 transition hover:border-amber-400"
+              >
+                Reporter
+              </button>
+            )}
+            {currentStatus !== 'Annulée' && (
+              <button
+                type="button"
+                onClick={() => changeStatus('Annulée')}
+                className="rounded-lg border border-red-200 bg-red-50/70 px-2.5 py-1.5 text-xs font-medium text-red-700 transition hover:border-red-400"
+              >
+                Annuler
+              </button>
+            )}
+          </>
+        }
       />
+
+      <Tabs value={tab} onChange={setTab} tabs={detailTabs} />
+
+      {rescheduling && (
+        <Modal
+          title={
+            rescheduling.markReported
+              ? 'Reporter la visite'
+              : 'Modifier le créneau de visite'
+          }
+          onClose={() => setRescheduling(null)}
+          footer={
+            <>
+              <button
+                className={btnOutline}
+                onClick={() => setRescheduling(null)}
+              >
+                Annuler
+              </button>
+              <button
+                className={btnPrimary}
+                disabled={!draftDate}
+                onClick={saveSchedule}
+              >
+                Enregistrer
+              </button>
+            </>
+          }
+        >
+          <div className="grid sm:grid-cols-2 gap-3">
+            <Field label="Date de visite" required>
+              <input
+                type="date"
+                className={input}
+                value={draftDate}
+                onChange={(e) => setDraftDate(e.target.value)}
+              />
+            </Field>
+            <Field label="Créneau / heure">
+              <input
+                className={input}
+                value={draftTime}
+                onChange={(e) => setDraftTime(e.target.value)}
+                placeholder="Ex : 10h00 ou Matin"
+              />
+            </Field>
+          </div>
+        </Modal>
+      )}
+
       {editing && (
         <Modal
-          title="Modifier la visite"
+          title="Affecter un agent à la visite"
           onClose={() => setEditing(false)}
           footer={
             <>
@@ -355,7 +557,7 @@ export function VisitDetail() {
               <button
                 className={btnPrimary}
                 onClick={() => {
-                  changeStatus(draftStatus as VisitStatus);
+                  changeAgent(draftAgent);
                   setEditing(false);
                 }}
               >
@@ -364,132 +566,140 @@ export function VisitDetail() {
             </>
           }
         >
-          <Field label="État de la visite">
+          <Field label="Agent responsable">
             <Select
-              value={draftStatus}
-              onChange={setDraftStatus}
-              options={[...VISIT_STATUSES]}
+              value={draftAgent}
+              onChange={setDraftAgent}
+              options={AGENTS}
             />
           </Field>
         </Modal>
       )}
-      {tab === 'overview' && (
-        <>
-          <div className="grid lg:grid-cols-2 gap-4">
-            {/* Visite */}
-            <Section
-              title="Visite souhaitée"
-              icon={<CalendarDays className="w-4 h-4" />}
-            >
-              <div className="space-y-2 text-sm">
-                <p className="flex items-center gap-2">
-                  <CalendarPlus className="w-4 h-4 text-gold-700" />
-                  <span className="font-medium text-navy-900">
-                    {fmtVisitDate(r)}
-                  </span>
-                </p>
-                {r.message && (
-                  <p className="text-gray-600 whitespace-pre-line mt-3">
-                    « {r.message} »
-                  </p>
-                )}
-              </div>
-            </Section>
 
-            {/* Client */}
-            <Section title="Client" icon={<User className="w-4 h-4" />}>
-              <div className="space-y-2 text-sm">
-                <p className="font-medium text-navy-900">
-                  {client?.fullName ?? fullName(r)}
-                </p>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-gray-600">
-                  <a
-                    href={phoneHref(r.phone, r.dialCode)}
-                    className="flex items-center gap-1 hover:text-navy-900"
-                  >
-                    <Phone className="w-3.5 h-3.5" />{' '}
-                    {formatPhone(r.phone, r.dialCode)}
-                  </a>
-                  {r.email && (
-                    <a
-                      href={`mailto:${r.email}`}
-                      className="flex items-center gap-1 hover:text-navy-900"
-                    >
-                      <Mail className="w-3.5 h-3.5" /> {r.email}
-                    </a>
+      <div className="grid lg:grid-cols-3 gap-5">
+        <div className="lg:col-span-2 min-w-0 space-y-5">
+          {tab === 'overview' && (
+            <>
+              <LinkedLandCard
+                landId={r.landId}
+                lotId={r.lotId}
+                title="Terrain à visiter"
+                emptyHint="Aucun terrain rattaché à cette visite."
+              />
+
+              <Section
+                title="Créneau et précisions"
+                icon={<CalendarDays className="w-4 h-4" />}
+              >
+                <div className="space-y-3 text-sm">
+                  <p className="flex items-center gap-2">
+                    <CalendarPlus className="w-4 h-4 text-gold-700" />
+                    <span className="font-medium text-navy-900">
+                      {fmtVisitDate(r)}
+                    </span>
+                  </p>
+                  {r.message ? (
+                    <div className="rounded-lg bg-gray-50 p-3 text-slate-600">
+                      <strong className="block mb-1 text-slate-800">
+                        Précisions du visiteur
+                      </strong>
+                      <p className="whitespace-pre-line">{r.message}</p>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500">
+                      Aucune précision complémentaire laissée lors de la demande.
+                    </p>
                   )}
                 </div>
-                {client && (
-                  <Link
-                    to={`/admin/clients/${client.id}`}
-                    className="inline-block mt-2 text-xs font-semibold text-gold-700 hover:underline"
-                  >
-                    Voir la fiche client →
-                  </Link>
-                )}
-              </div>
-            </Section>
-          </div>
-
-          {/* Terrain */}
-          {land && (
-            <div className="mt-4">
-              <Section
-                title="Terrain concerné"
-                icon={<MapPin className="w-4 h-4" />}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-navy-900">{land.title}</p>
-                    <p className="text-sm text-gray-500">
-                      {land.location} · {fmtAr(land.price)}
-                    </p>
-                  </div>
-                  <Link
-                    to={`/terrains/${land.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={btnOutline}
-                  >
-                    Voir sur le portail public
-                  </Link>
-                </div>
               </Section>
-            </div>
+            </>
           )}
-        </>
-      )}
-      {tab === 'documents' && (
-        <div className="mt-4">
-          <Section
-            title="Documents de la visite"
-            icon={<FileText className="w-4 h-4" />}
-          >
-            <div className="grid gap-2 sm:grid-cols-2">
-              {r.attachments.map((file) => (
-                <FileChip
-                  key={file.id}
-                  file={file}
-                  onPreview={() => setPreview(file)}
-                />
-              ))}
-            </div>
-          </Section>
-        </div>
-      )}
-      <Preview file={preview} onClose={() => setPreview(null)} />
 
-      {/* Historique */}
-      {tab === 'history' && (
-        <div className="mt-4">
-          <Section
-            title="Historique"
-            icon={<CalendarDays className="w-4 h-4" />}
-          >
-            <Timeline items={r.history} />
-          </Section>
+          {tab === 'documents' && (
+            <Section
+              title="Documents de la visite"
+              icon={<FileText className="w-4 h-4" />}
+            >
+              {!r.attachments.length ? (
+                <p className="text-sm text-gray-600">
+                  Aucun document joint à cette visite.
+                </p>
+              ) : (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {r.attachments.map((file) => (
+                    <FileChip
+                      key={file.id}
+                      file={file}
+                      onPreview={() => setPreview(file)}
+                    />
+                  ))}
+                </div>
+              )}
+            </Section>
+          )}
+
+          {tab === 'history' && (
+            <Section
+              title="Historique de la visite"
+              icon={<History className="w-4 h-4" />}
+            >
+              <Timeline items={r.history} />
+            </Section>
+          )}
         </div>
-      )}
+
+        <aside className="space-y-4">
+          <Section
+            title="Client"
+            icon={<User className="w-4 h-4" />}
+            action={
+              client && (
+                <Link
+                  to={`/admin/clients/${client.id}`}
+                  className="text-xs font-semibold text-gold-700 hover:underline"
+                >
+                  Fiche client →
+                </Link>
+              )
+            }
+          >
+            <dl className="space-y-3">
+              <Info label="Nom" value={client?.fullName ?? fullName(r)} />
+              <Info
+                label="Téléphone"
+                value={
+                  <a
+                    href={phoneHref(r.phone, r.dialCode)}
+                    className="hover:text-gold-700"
+                  >
+                    {formatPhone(r.phone, r.dialCode)}
+                  </a>
+                }
+              />
+              {r.whatsapp && <Info label="WhatsApp" value={r.whatsapp} />}
+              {r.email && (
+                <Info
+                  label="Email"
+                  value={
+                    <a
+                      href={`mailto:${r.email}`}
+                      className="hover:text-gold-700"
+                    >
+                      {r.email}
+                    </a>
+                  }
+                />
+              )}
+              <Info
+                label="Dernière modification"
+                value={fmtDateTime(r.updatedAt)}
+              />
+            </dl>
+          </Section>
+        </aside>
+      </div>
+
+      <Preview file={preview} onClose={() => setPreview(null)} />
     </>
   );
 }

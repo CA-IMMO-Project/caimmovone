@@ -2,14 +2,14 @@
 import { ReactNode, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  CalendarClock, Check, CheckCircle2, Clock, FileCheck, FileText, MapPin, Phone, Plus, Square, Trash2, Users, CalendarDays,
+  ArrowRight, CalendarClock, Check, Clock, FileCheck, MapPin, Phone, Plus, Trash2, CalendarDays,
   Mail, MessageCircle, Repeat, PenLine, Eye, MoreHorizontal,
 } from 'lucide-react';
 import { Land } from '../../types';
 import { getLands } from '../../lib/store';
 import { newId } from '../../lib/store';
-import { ACTION_TYPES, ActionType, PlannedAction, getBuyRequests, fullName } from './model';
-import { Badge, Choice, Field, FileChip, Info, MapPicker, Modal, Preview, Section, btnGold, btnIcon, btnOutline, btnPrimary, fmtAr, fmtDate, fmtDateTime, fmtM2, fmtNum, input } from './kit';
+import { ACTION_TYPES, ActionType, PlannedAction } from './model';
+import { Badge, Choice, Field, Modal, Section, btnGold, btnIcon, btnOutline, btnPrimary, fmtAr, fmtDateTime, fmtM2, input } from './kit';
 
 // ---------- Choix du terrain (et de la parcelle) ----------
 export function LandPicker({ landId, lotId, onChange, error }: {
@@ -52,145 +52,158 @@ export function LandPicker({ landId, lotId, onChange, error }: {
 function LandMini({ land, lotId }: { land: Land; lotId?: string }) {
   const lot = land.lots?.find((l) => l.id === lotId);
   return (
-    <div className="flex gap-3 p-3 rounded-xl bg-gray-50 border border-gray-200">
-      <img src={lot?.imageUrl || land.imageUrl} alt="" className="w-24 h-20 rounded-lg object-cover shrink-0" referrerPolicy="no-referrer" loading="lazy" decoding="async" />
-      <div className="min-w-0 text-sm">
-        <p className="font-semibold text-navy-900 truncate">{land.title}{lot && ` — ${lot.number}`}</p>
-        <p className="text-gray-500 truncate">{land.location}</p>
-        <p className="mt-1">{fmtM2(lot?.area ?? land.area)} · <strong>{fmtAr(lot?.price ?? land.price)}</strong> · <Badge value={lot?.status ?? land.status} /></p>
+    <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 border border-gray-200">
+      <div className="flex gap-3 min-w-0">
+        <img src={lot?.imageUrl || land.imageUrl} alt="" className="w-24 h-20 rounded-lg object-cover shrink-0" referrerPolicy="no-referrer" loading="lazy" decoding="async" />
+        <div className="min-w-0 text-sm">
+          <p className="font-semibold text-navy-900 truncate">{land.title}{lot && ` — ${lot.number}`}</p>
+          <p className="text-gray-500 truncate">{land.location} · <span className="font-mono text-xs">#{land.id}</span></p>
+          <p className="mt-1">{fmtM2(lot?.area ?? land.area)} · <strong>{fmtAr(lot?.price ?? land.price)}</strong> · <Badge value={lot?.status ?? land.status} /></p>
+        </div>
       </div>
+      <Link to={`/admin/terrains/${land.id}`} className={`${btnOutline} shrink-0`}>
+        Voir la fiche terrain <ArrowRight className="w-3.5 h-3.5" />
+      </Link>
     </div>
   );
 }
 
-// ---------- Fiche complète du terrain ----------
-export function LandDetails({ landId, lotId }: { landId: string; lotId?: string }) {
-  const [docPreview, setDocPreview] = useState<import('./model').StoredFile | null>(null);
-  const land = getLands().find((l) => l.id === landId);
+/** Carte compacte et unifiée de renvoi vers la fiche terrain du catalogue back-office
+    (utilisée à l'identique dans Demandes d'achat et Visites, sans dupliquer le catalogue). */
+export function LinkedLandCard({
+  landId,
+  lotId,
+  title = 'Terrain concerné',
+  emptyHint = 'Aucun terrain rattaché (ou terrain retiré du catalogue).',
+}: {
+  landId?: string;
+  lotId?: string;
+  title?: string;
+  emptyHint?: string;
+}) {
+  const land = landId ? getLands().find((l) => l.id === landId) : undefined;
   if (!land) {
     return (
-      <Section title="Terrain souhaité" icon={<MapPin className="w-4 h-4" />}>
-        <p className="text-sm text-red-600">Aucun terrain rattaché (ou terrain supprimé du catalogue). Modifiez le dossier pour choisir le terrain.</p>
+      <Section title={title} icon={<MapPin className="w-4 h-4" />}>
+        <p className="text-sm text-gray-600">{emptyHint}</p>
       </Section>
     );
   }
   const lot = land.lots?.find((l) => l.id === lotId);
-  const lots = land.lots ?? [];
-  const sold = lots.filter((l) => l.status === 'vendu').length;
-  const interested = getBuyRequests().filter((r) => r.landId === land.id);
+  const cover = lot?.imageUrl || land.imageUrl;
+  const shownArea = lot?.area ?? land.area;
+  const shownPrice = lot?.price ?? land.price;
+  const shownStatus = lot?.status ?? land.status;
 
   return (
-    <div className="space-y-5">
-      <Section
-        title="Terrain souhaité"
-        icon={<MapPin className="w-4 h-4" />}
-        action={<Link to="/admin/terrains" className="text-xs text-gold-700 hover:underline">Voir dans le catalogue</Link>}
-      >
-        <div className="grid md:grid-cols-5 gap-5">
-          <img src={land.imageUrl} alt={land.title} className="md:col-span-2 w-full aspect-[4/3] rounded-xl object-cover" referrerPolicy="no-referrer" loading="lazy" decoding="async" />
-          <div className="md:col-span-3">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <h3 className="text-lg font-bold text-navy-900">{land.title}</h3>
-              <Badge value={land.status} dot />
-            </div>
-            <p className="flex items-center gap-1 text-sm text-gray-500 mt-1"><MapPin className="w-3.5 h-3.5" /> {land.location} · {land.region}</p>
-            <p className="text-sm mt-3 leading-relaxed whitespace-pre-line">{land.description}</p>
-            <dl className="grid grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
-              <Info label="Prix total" value={fmtAr(land.price)} />
-              <Info label="Surface totale" value={fmtM2(land.area)} />
-              <Info label="Prix au m²" value={land.area ? `${fmtNum(Math.round(land.price / land.area))} Ar` : '—'} />
-              <Info label="Statut juridique" value={<span className="inline-flex items-center gap-1"><FileCheck className="w-3.5 h-3.5 text-gold-700" /> {land.titleStatus}</span>} />
-              <Info label="Référence catalogue" value={`#${land.id}`} />
-              <Info label="Parcelles" value={lots.length ? `${lots.length} lots · ${sold} vendu(s)` : 'Terrain non loti'} />
-            </dl>
-            {land.features.length > 0 && (
-              <ul className="flex flex-wrap gap-1.5 mt-4">
-                {land.features.map((f) => <li key={f} className="px-2.5 py-1 rounded-full bg-gold-400/15 text-navy-900 text-xs">{f}</li>)}
-              </ul>
+    <Section
+      title={title}
+      icon={<MapPin className="w-4 h-4" />}
+      action={
+        <Link to={`/admin/terrains/${land.id}`} className={btnOutline}>
+          Voir la fiche terrain <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+      }
+    >
+      <div className="flex flex-col sm:flex-row gap-4 items-start">
+        {cover && (
+          <Link to={`/admin/terrains/${land.id}`} className="shrink-0 block">
+            <img
+              src={cover}
+              alt={land.title}
+              className="w-full sm:w-36 h-24 rounded-xl object-cover border border-gray-200 hover:opacity-95 transition"
+              referrerPolicy="no-referrer"
+              loading="lazy"
+              decoding="async"
+            />
+          </Link>
+        )}
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              to={`/admin/terrains/${land.id}`}
+              className="text-base font-semibold text-navy-900 hover:text-gold-700 transition-colors"
+            >
+              {land.title}
+              {lot && ` — ${lot.number}`}
+            </Link>
+            <span className="font-mono text-xs text-gray-500">#{land.id}</span>
+            <Badge value={shownStatus} dot />
+          </div>
+          <p className="text-sm text-gray-600 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>{land.location}</span>
+            <span>·</span>
+            <span className="font-medium text-navy-900">{fmtM2(shownArea)}</span>
+            <span>·</span>
+            <span className="font-semibold text-navy-900">{fmtAr(shownPrice)}</span>
+            {land.titleStatus && (
+              <>
+                <span>·</span>
+                <span className="inline-flex items-center gap-1 text-xs text-gray-600">
+                  <FileCheck className="w-3.5 h-3.5 text-gold-700" /> {land.titleStatus}
+                </span>
+              </>
             )}
-          </div>
+          </p>
+          {lot?.details && (
+            <p className="text-xs text-gray-500 line-clamp-2">{lot.details}</p>
+          )}
         </div>
-      </Section>
+      </div>
+    </Section>
+  );
+}
 
-      {lot && (
-        <Section title={`Parcelle choisie : ${lot.number}`} icon={<Square className="w-4 h-4" />}>
-          <div className="flex flex-col sm:flex-row gap-4">
-            {lot.imageUrl && <img src={lot.imageUrl} alt={lot.number} className="sm:w-48 aspect-[4/3] rounded-xl object-cover" referrerPolicy="no-referrer" loading="lazy" decoding="async" />}
-            <div className="flex-1">
-              <dl className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <Info label="Surface" value={fmtM2(lot.area)} />
-                <Info label="Prix" value={fmtAr(lot.price)} />
-                <Info label="Prix au m²" value={lot.area ? `${fmtNum(Math.round(lot.price / lot.area))} Ar` : '—'} />
-                <Info label="Statut" value={<Badge value={lot.status} />} />
-              </dl>
-              {lot.details && <p className="text-sm mt-3 bg-gray-50 rounded-lg p-3">{lot.details}</p>}
-            </div>
-          </div>
-        </Section>
-      )}
-
-      {lots.length > 0 && (
-        <Section title="Toutes les parcelles du terrain" icon={<Square className="w-4 h-4" />}>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {lots.map((l) => (
-              <div key={l.id} className={`flex gap-2 p-2 rounded-lg border ${l.id === lotId ? 'border-gold-500 bg-gold-400/10' : 'border-gray-200'}`}>
-                {l.imageUrl && <img src={l.imageUrl} alt="" className="w-14 h-12 rounded object-cover shrink-0" referrerPolicy="no-referrer" loading="lazy" decoding="async" />}
-                <div className="min-w-0 text-sm">
-                  <p className="font-medium">{l.number} · {fmtM2(l.area)}</p>
-                  <p className="text-xs text-gray-500">{fmtAr(l.price)}</p>
-                  <Badge value={l.status} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {(land.documents?.length ?? 0) > 0 && (
-        <Section title="Documents du terrain" icon={<FileText className="w-4 h-4" />}>
-          <p className="mb-3 text-xs text-gray-500">Pièces déposées sur la fiche catalogue (titre foncier, plan, certificat…) — consultables ici sans quitter le dossier.</p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {land.documents!.map((doc) => (
-              <FileChip key={doc.id} file={doc} onPreview={() => setDocPreview(doc)} />
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {land.coordinates && (
-        <Section title="Localisation" icon={<MapPin className="w-4 h-4" />}>
-          <p className="text-sm text-gray-500 mb-3">GPS : {land.coordinates[0]}, {land.coordinates[1]}</p>
-          <MapPicker lat={land.coordinates[0]} lng={land.coordinates[1]} readOnly height="h-72" />
-        </Section>
-      )}
-
-      {(land.sales?.length ?? 0) > 0 && (
-        <Section title="Ventes déjà réalisées sur ce terrain" icon={<CheckCircle2 className="w-4 h-4" />}>
-          <ul className="divide-y divide-gray-100 text-sm">
-            {land.sales!.map((s) => (
-              <li key={s.id} className="py-2 flex flex-wrap justify-between gap-2">
-                <span>{s.lotId ? land.lots?.find((l) => l.id === s.lotId)?.number ?? 'Parcelle' : 'Terrain entier'} · {s.buyer.firstName} {s.buyer.lastName}</span>
-                <span className="text-gray-500">{fmtDate(s.date)} · {fmtAr(s.price)}</span>
-              </li>
-            ))}
-          </ul>
-        </Section>
-      )}
-
-      {interested.length > 1 && (
-        <Section title="Autres clients intéressés par ce terrain" icon={<Users className="w-4 h-4" />}>
-          <ul className="divide-y divide-gray-100 text-sm">
-            {interested.map((r) => (
-              <li key={r.id} className="py-2 flex justify-between gap-2">
-                <Link to={`/admin/achats/${r.id}`} className="hover:text-gold-700">{fullName(r)} <span className="text-gray-600 font-mono text-xs">{r.ref}</span></Link>
-                <Badge value={r.status} />
-              </li>
-            ))}
-          </ul>
-        </Section>
-      )}
-
-      <Preview file={docPreview} onClose={() => setDocPreview(null)} />
+/** Frise horizontale unifiée de progression d'un dossier (Achats, Visites, Demandes de vente). */
+export function StatusFlowBar<S extends string>({
+  steps,
+  labels,
+  current,
+  onSelect,
+  failedBadge,
+  extra,
+  title = 'Progression du dossier',
+}: {
+  steps: readonly S[];
+  labels?: readonly string[];
+  current: string;
+  onSelect: (step: S) => void;
+  failedBadge?: string;
+  extra?: ReactNode;
+  title?: string;
+}) {
+  const stepIndex = steps.indexOf(current as S);
+  return (
+    <div className="mb-5 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+          {title}
+        </p>
+        {failedBadge && <Badge value={failedBadge} dot />}
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {steps.map((stepStatus, idx) => {
+          const active = current === stepStatus;
+          const passed = stepIndex >= 0 && idx < stepIndex;
+          return (
+            <button
+              key={stepStatus}
+              type="button"
+              onClick={() => onSelect(stepStatus)}
+              className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
+                active
+                  ? 'border-navy-900 bg-navy-900 text-white'
+                  : passed
+                    ? 'border-amber-300 bg-amber-50 text-amber-900 hover:border-amber-400'
+                    : 'border-gray-200 bg-white text-gray-600 hover:border-navy-900 hover:text-navy-900'
+              }`}
+            >
+              {labels?.[idx] ?? stepStatus}
+            </button>
+          );
+        })}
+        {extra}
+      </div>
     </div>
   );
 }

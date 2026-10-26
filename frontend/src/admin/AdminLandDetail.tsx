@@ -71,6 +71,16 @@ export default function AdminLandDetail() {
   );
   const requests = useMemo(() => getBuyRequests(), [lands]);
 
+  const activeInterested = useMemo(
+    () =>
+      requests.filter(
+        (request) =>
+          request.landId === land?.id &&
+          !['Achat finalisé', 'Refusée', 'Archivée'].includes(request.status),
+      ),
+    [requests, land?.id],
+  );
+
   if (!land) return <Navigate to="/admin/terrains" replace />;
 
   const refresh = () => setLands(getLands());
@@ -151,7 +161,7 @@ export default function AdminLandDetail() {
           { id: 'docs', label: `Documents (${land.documents?.length ?? 0})` },
           {
             id: 'sales',
-            label: `Ventes & clients intéressés (${(land.sales?.length ?? 0) + requests.filter((request) => request.landId === land.id && request.status !== 'Achat finalisé').length})`,
+            label: `Ventes & clients intéressés (${(land.sales?.length ?? 0) + activeInterested.length})`,
           },
         ]}
       />
@@ -215,30 +225,48 @@ export default function AdminLandDetail() {
       {tab === 'overview' && (
         <div className="space-y-5">
           <Section title="Présentation" icon={<Sparkles className="w-4 h-4" />}>
-            <p className="whitespace-pre-line text-sm leading-relaxed text-gray-700">
-              {land.description || 'Aucune description renseignée.'}
-            </p>
-            {land.features.length > 0 && (
-              <ul className="mt-4 flex flex-wrap gap-1.5">
-                {land.features.map((f) => (
-                  <li
-                    key={f}
-                    className="rounded-full bg-gold-400/15 px-2.5 py-1 text-xs text-navy-900"
-                  >
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            )}
+            <div className="flex flex-col sm:flex-row gap-4">
+              {summary.gallery[0] && (
+                <button
+                  type="button"
+                  onClick={() => setLightbox(0)}
+                  className="shrink-0 sm:w-44 overflow-hidden rounded-xl border border-gray-200"
+                >
+                  <img
+                    src={summary.gallery[0]}
+                    alt={land.title}
+                    className="h-32 w-full object-cover"
+                    referrerPolicy="no-referrer"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </button>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="whitespace-pre-line text-sm leading-relaxed text-gray-700">
+                  {land.description || 'Aucune description renseignée.'}
+                </p>
+                {land.features.length > 0 && (
+                  <ul className="mt-4 flex flex-wrap gap-1.5">
+                    {land.features.map((f) => (
+                      <li
+                        key={f}
+                        className="rounded-full bg-gold-400/15 px-2.5 py-1 text-xs text-navy-900"
+                      >
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
           </Section>
 
           <Section
-            title="Caractéristiques"
+            title="Caractéristiques & paiement"
             icon={<Ruler className="w-4 h-4" />}
           >
             <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Info label="Surface" value={formatArea(land.area)} />
-              <Info label="Prix total" value={formatAriary(land.price)} />
               <Info
                 label="Prix au m²"
                 value={
@@ -257,7 +285,7 @@ export default function AdminLandDetail() {
                 }
               />
               <Info label="Relief" value={land.relief || 'Non précisé'} />
-              <Info label="Localisation affichée" value={land.location} />
+              <Info label="Accès au terrain" value={summary.access} />
               <Info
                 label="Eau"
                 value={
@@ -276,24 +304,16 @@ export default function AdminLandDetail() {
                   </span>
                 }
               />
-            </dl>
-          </Section>
-
-          <Section
-            title="Prix, accès et paiement"
-            icon={<Wallet className="w-4 h-4" />}
-          >
-            <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Info label="Modalités de paiement" value={summary.payment} />
-              <Info
-                label="Acompte"
-                value={land.downPayment || 'Non renseigné'}
-              />
-              <Info
-                label="Durée maximale / échéancier"
-                value={land.installments || 'Non renseigné'}
-              />
-              <Info label="Accès au terrain" value={summary.access} />
+              {land.downPayment && (
+                <Info label="Acompte" value={land.downPayment} />
+              )}
+              {land.installments && (
+                <Info
+                  label="Durée maximale / échéancier"
+                  value={land.installments}
+                />
+              )}
             </dl>
           </Section>
 
@@ -356,11 +376,8 @@ export default function AdminLandDetail() {
                         </p>
                       )}
                       {(() => {
-                        const count = requests.filter(
-                          (request) =>
-                            request.landId === land.id &&
-                            request.lotId === lot.id &&
-                            request.status !== 'Achat finalisé',
+                        const count = activeInterested.filter(
+                          (request) => request.lotId === lot.id,
                         ).length;
                         const buyer = land.sales?.find(
                           (sale) => sale.lotId === lot.id,
@@ -486,18 +503,13 @@ export default function AdminLandDetail() {
               )}
             </div>
             {(() => {
-              const list = requests.filter(
-                (request) =>
-                  request.landId === land.id &&
-                  request.status !== 'Achat finalisé',
-              );
-              if (!list.length)
+              if (!activeInterested.length)
                 return (
                   <p className="text-sm text-gray-600">
                     Aucun client intéressé pour l’instant.
                   </p>
                 );
-              return <ClientRows rows={list} />;
+              return <ClientRows rows={activeInterested} />;
             })()}
           </Card>
         </div>

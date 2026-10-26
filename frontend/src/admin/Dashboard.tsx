@@ -261,7 +261,7 @@ export default function Dashboard() {
             {pipeline.map(({ status, count }) => (
               <Link
                 key={status}
-                to="/admin/achats"
+                to={`/admin/achats?status=${encodeURIComponent(status)}`}
                 className="flex items-center gap-3 group"
               >
                 <span className="w-36 shrink-0 text-xs text-gray-600 group-hover:text-navy-900 truncate">

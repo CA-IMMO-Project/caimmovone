@@ -558,8 +558,8 @@ export function ClientDetail() {
       <SummaryStrip
         facts={[
           { label: 'Téléphone', value: c.phone ? formatPhone(c.phone) : '' },
-          { label: 'Email', value: c.email },
           { label: 'Budget', value: budgetValue },
+          { label: 'Origine', value: c.source },
           { label: 'Dossiers liés', value: related.length },
         ]}
       />
@@ -575,7 +575,7 @@ export function ClientDetail() {
       {tab === 'overview' && (
         <div className="grid lg:grid-cols-3 gap-5">
           <div className="lg:col-span-2 space-y-5">
-            <Section title="Coordonnées du client" icon={<User size={16} />}>
+            <Section title="Profil & coordonnées" icon={<User size={16} />} confidential>
               <dl className="grid sm:grid-cols-2 gap-5">
                 <Info label="Nom complet" value={c.fullName} />
                 <Info
@@ -595,16 +595,13 @@ export function ClientDetail() {
                   }
                 />
                 <Info label="Profession" value={c.profession} />
-                <Info label="Âge" value={c.age} />
-                <Info label="Nationalité" value={c.nationality} />
-              </dl>
-            </Section>
-            <Section title="Informations complémentaires" confidential>
-              <dl className="grid sm:grid-cols-2 gap-5">
-                <Info label="Budget approximatif" value={budgetValue} />
-                <Info label="Compte bancaire" value={c.bankAccount} />
-                <Info label="Origine de la fiche" value={c.source} />
-                <Info label="Date d’inscription" value={fmtDate(c.createdAt)} />
+                {c.age && <Info label="Âge" value={c.age} />}
+                {c.nationality && (
+                  <Info label="Nationalité" value={c.nationality} />
+                )}
+                {c.bankAccount && (
+                  <Info label="Compte bancaire" value={c.bankAccount} />
+                )}
               </dl>
             </Section>
           </div>
@@ -655,11 +652,35 @@ export function ClientDetail() {
           {purchases.length > 0 && (
             <div className="mt-6">
               <h3 className="text-sm font-medium mb-3">Achats finalisés</h3>
-              {purchases.map(({ land, sale }) => (
-                <p key={sale.id} className="text-sm py-2">
-                  {land.title} · {fmtDate(sale.date)} · {fmtAr(sale.price)}
-                </p>
-              ))}
+              <ul className="divide-y divide-slate-100">
+                {purchases.map(({ land, sale }) => (
+                  <li
+                    key={sale.id}
+                    className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm"
+                  >
+                    <div>
+                      <Link
+                        to={`/admin/terrains/${land.id}`}
+                        className="font-medium text-navy-900 hover:text-gold-700"
+                      >
+                        {land.title}
+                      </Link>
+                      <span className="text-slate-500">
+                        {' '}
+                        · {fmtDate(sale.date)} · {fmtAr(sale.price)}
+                      </span>
+                    </div>
+                    {sale.buyRequestId && (
+                      <Link
+                        to={`/admin/achats/${sale.buyRequestId}`}
+                        className="text-xs font-semibold text-gold-700 hover:underline"
+                      >
+                        Dossier d’achat →
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </Section>

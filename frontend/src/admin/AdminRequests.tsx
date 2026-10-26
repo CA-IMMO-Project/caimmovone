@@ -1,7 +1,7 @@
-import { Mail, Pencil, Trash2 } from 'lucide-react';
+import { Mail, Pencil, Trash2, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { formatPhone, phoneHref } from '../lib/phone';
+import { formatPhone, normalizePhone, phoneHref } from '../lib/phone';
 import {
   ContactMessage,
   RequestStatus,
@@ -22,12 +22,12 @@ import {
   Section,
   Select,
   Stat,
-  Tabs,
   btnIcon,
   btnOutline,
   btnPrimary,
   fmtDateTime,
 } from './crm/kit';
+import { getClients } from './crm/people';
 import { refreshCache, subscribeCache } from './crm/sync';
 import {
   RecordHeader,
@@ -147,6 +147,16 @@ export function AdminMessages() {
       }
     }
   };
+  const markSelectedDone = async () => {
+    if (!selected.length) return;
+    await Promise.all(
+      shown
+        .filter((m) => selected.includes(m.id) && m.status !== 'traité')
+        .map((m) => updateMessage(m.id, { status: 'traité' })),
+    );
+    setItems(getMessages());
+    setSelected([]);
+  };
   const reset = () => {
     setQ('');
     setFilter('');
@@ -181,6 +191,13 @@ export function AdminMessages() {
             options={REQUEST_STATUSES}
             placeholder="Tous les états"
           />
+        }
+        bulk={
+          selected.length > 0 && (
+            <button className={btnPrimary} onClick={markSelectedDone}>
+              Marquer {selected.length} message(s) traité(s)
+            </button>
+          )
         }
         exportRows={() =>
           selected.length ? shown.filter((m) => selected.includes(m.id)) : shown
@@ -293,7 +310,6 @@ export function MessageDetail() {
       getMessages().find((m) => m.id === id),
     ),
     [editing, setEditing] = useState(false);
-  const [tab, setTab] = useState<'overview' | 'contact'>('overview');
   useEffect(() => {
     refreshCache(true).then(() =>
       setMessage(getMessages().find((m) => m.id === id)),
@@ -308,6 +324,15 @@ export function MessageDetail() {
         Message introuvable. <Link to={BASE}>Retour à la liste</Link>
       </p>
     );
+
+  const msgPhoneNorm = normalizePhone(message.phone ?? '');
+  const msgEmail = (message.email ?? '').trim().toLowerCase();
+  const matchedClient = getClients().find(
+    (c) =>
+      (msgPhoneNorm !== '' && normalizePhone(c.phone) === msgPhoneNorm) ||
+      (msgEmail !== '' && c.email.trim().toLowerCase() === msgEmail),
+  );
+
   return (
     <>
       <RecordHeader
@@ -355,59 +380,68 @@ export function MessageDetail() {
       <SummaryStrip
         facts={[
           { label: 'Expéditeur', value: nameOf(message) },
-          {
-            label: 'Téléphone',
-            value: message.phone ? formatPhone(message.phone) : '',
-          },
-          { label: 'Email', value: message.email },
+          { label: 'État', value: labelOf(message.status) },
           { label: 'Reçu le', value: fmtDateTime(message.createdAt) },
+          { label: 'Origine', value: 'Portail public' },
         ]}
       />
-      <Tabs
-        value={tab}
-        onChange={setTab}
-        tabs={[
-          { id: 'overview', label: 'Résumé' },
-          { id: 'contact', label: 'Coordonnées' },
-        ]}
-      />
-      {tab === 'overview' && (
-        <Section title="Contenu du message" icon={<Mail size={16} />}>
-          <p className="whitespace-pre-line text-sm leading-7 text-slate-600">
-            {message.message || 'Aucun contenu renseigné.'}
-          </p>
-        </Section>
-      )}
-      {tab === 'contact' && (
-        <Section title="Coordonnées de l’expéditeur">
-          <dl className="grid sm:grid-cols-2 gap-5">
-            <Info label="Nom" value={nameOf(message)} />
-            <Info
-              label="Téléphone"
-              value={
-                message.phone ? (
-                  <a href={phoneHref(message.phone)}>
-                    {formatPhone(message.phone)}
-                  </a>
-                ) : (
-                  ''
-                )
-              }
-            />
-            <Info
-              label="Email"
-              value={
-                message.email ? (
-                  <a href={`mailto:${message.email}`}>{message.email}</a>
-                ) : (
-                  ''
-                )
-              }
-            />
-            <Info label="Origine" value="Formulaire de contact du site" />
-          </dl>
-        </Section>
-      )}
+      <div className="grid lg:grid-cols-3 gap-5">
+        <div className="lg:col-span-2 min-w-0">
+          <Section title="Contenu du message" icon={<Mail size={16} />}>
+            <p className="whitespace-pre-line text-sm leading-7 text-slate-700">
+              {message.message || 'Aucun contenu renseigné.'}
+            </p>
+          </Section>
+        </div>
+        <aside className="space-y-4">
+          <Section
+            title="Expéditeur"
+            icon={<User size={16} />}
+            action={
+              matchedClient && (
+                <Link
+                  to={`/admin/clients/${matchedClient.id}`}
+                  className="text-xs font-semibold text-gold-700 hover:underline"
+                >
+                  Fiche client →
+                </Link>
+              )
+            }
+          >
+            <dl className="space-y-3">
+              <Info label="Nom" value={nameOf(message)} />
+              <Info
+                label="Téléphone"
+                value={
+                  message.phone ? (
+                    <a
+                      href={phoneHref(message.phone)}
+                      className="hover:text-gold-700"
+                    >
+                      {formatPhone(message.phone)}
+                    </a>
+                  ) : (
+                    ''
+                  )
+                }
+              />
+              {message.email && (
+                <Info
+                  label="Email"
+                  value={
+                    <a
+                      href={`mailto:${message.email}`}
+                      className="hover:text-gold-700"
+                    >
+                      {message.email}
+                    </a>
+                  }
+                />
+              )}
+            </dl>
+          </Section>
+        </aside>
+      </div>
       {editing && (
         <MessageStatusForm
           message={message}

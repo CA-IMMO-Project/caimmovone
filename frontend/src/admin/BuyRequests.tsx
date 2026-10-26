@@ -35,9 +35,10 @@ import {
   ActionPlanner,
   CompleteDialog,
   DoneActions,
-  LandDetails,
   LandPicker,
+  LinkedLandCard,
   PlanDialog,
+  StatusFlowBar,
   lateCount,
   nextAction,
 } from './crm/client';
@@ -983,13 +984,13 @@ export function BuyRequestForm() {
 }
 
 // ======================= FICHE DÉTAILLÉE =======================
-type Dialog = null | 'status' | 'plan' | 'agent';
+type Dialog = null | 'plan' | 'agent';
 
 export function BuyRequestDetail() {
   const { id } = useParams();
   const [r, setR] = useState(() => (id ? getBuyRequest(id) : undefined));
   const [tab, setTab] = useState<
-    'overview' | 'suivi' | 'terrain' | 'client' | 'notes' | 'documents'
+    'overview' | 'documents' | 'notes' | 'suivi'
   >('overview');
   const [dialog, setDialog] = useState<Dialog>(null);
   const [completing, setCompleting] = useState<PlannedAction | null>(null);
@@ -1019,11 +1020,11 @@ export function BuyRequestDetail() {
   const changeStatus = (status: BuyStatus) =>
     status !== r.status &&
     update({ status }, `Statut changé : ${r.status} → ${status}`);
-  const stepIndex = FLOW.indexOf(r.status);
   const failed =
     r.status === 'Refusée' || r.status === 'Archivée' ? r.status : undefined;
   const land = getLands().find((l) => l.id === r.landId);
   const lot = land?.lots?.find((l) => l.id === r.lotId);
+  const client = r.clientId ? getClient(String(r.clientId)) : undefined;
   const next = nextAction(r.actions);
   const late = lateCount(r.actions);
 
@@ -1081,23 +1082,20 @@ export function BuyRequestDetail() {
         subtitle={`${r.source} · reçue le ${fmtDate(r.createdAt)}`}
         action={
           <>
-            <Link to={`${BASE}/${r.id}/modifier`} className={btnOutline}>
-              <Pencil size={15} />
-              Modifier
-            </Link>
             <button className={btnOutline} onClick={() => setDialog('agent')}>
               <User size={15} />
               Affecter
             </button>
-            <button className={btnPrimary} onClick={() => setDialog('status')}>
-              Changer le statut
-            </button>
+            <Link to={`${BASE}/${r.id}/modifier`} className={btnOutline}>
+              <Pencil size={15} />
+              Modifier
+            </Link>
           </>
         }
       />
       <SummaryStrip
         facts={[
-          { label: 'Budget max.', value: fmtAr(r.budgetMax || r.budgetMin) },
+          { label: 'Budget', value: budget(r) },
           {
             label: 'Terrain souhaité',
             value: land ? `${land.title}${lot ? ` — ${lot.number}` : ''}` : '',
@@ -1110,53 +1108,105 @@ export function BuyRequestDetail() {
         ]}
       />
 
-      <div className="grid lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2 min-w-0">
-          <Tabs
-            value={tab}
-            onChange={(t) => setTab(t)}
-            tabs={[
-              { id: 'overview', label: 'Résumé' },
-              { id: 'suivi', label: 'Suivi & historique' },
-              { id: 'terrain', label: 'Terrain' },
-              { id: 'client', label: 'Client' },
-              { id: 'notes', label: `Notes (${r.notes.length})` },
-              { id: 'documents', label: `Documents (${r.attachments.length})` },
-            ]}
-          />
+      <StatusFlowBar
+        steps={FLOW}
+        labels={FLOW_LABELS}
+        current={r.status}
+        onSelect={changeStatus}
+        failedBadge={failed}
+        extra={
+          <>
+            {r.status !== 'Refusée' && (
+              <button
+                type="button"
+                onClick={() => changeStatus('Refusée')}
+                className="rounded-lg border border-red-200 bg-red-50/70 px-2.5 py-1.5 text-xs font-medium text-red-700 transition hover:border-red-400"
+              >
+                Refuser
+              </button>
+            )}
+            {r.status !== 'Archivée' && (
+              <button
+                type="button"
+                onClick={() => changeStatus('Archivée')}
+                className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:border-slate-400"
+              >
+                Archiver
+              </button>
+            )}
+          </>
+        }
+      />
 
+      <Tabs
+        value={tab}
+        onChange={(t) => setTab(t)}
+        tabs={[
+          { id: 'overview', label: 'Résumé' },
+          { id: 'documents', label: `Documents (${r.attachments.length})` },
+          { id: 'notes', label: `Notes (${r.notes.length})` },
+          { id: 'suivi', label: 'Suivi & historique' },
+        ]}
+      />
+
+      <div className="grid lg:grid-cols-3 gap-5">
+        <div className="lg:col-span-2 min-w-0 space-y-5">
           {tab === 'overview' && (
-            <div className="space-y-5">
-              <Section title="Projet du client">
-                <dl className="grid sm:grid-cols-2 gap-5">
+            <>
+              <LinkedLandCard
+                landId={r.landId}
+                lotId={r.lotId}
+                title="Terrain souhaité"
+                emptyHint="Aucun terrain rattaché. Utilisez « Modifier » pour associer un terrain du catalogue."
+              />
+
+              <Section
+                title="Projet & financement"
+                icon={<Wallet className="w-4 h-4" />}
+              >
+                <dl className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <Info label="Objectif" value={r.goal} />
                   <Info label="Budget" value={budget(r)} />
                   <Info label="Mode de paiement" value={r.paymentMode} />
-                  <Info label="Priorité" value={<Badge value={r.priority} />} />
+                  {isInstalment(r) && (
+                    <Info label="Durée souhaitée" value={r.paymentDuration} />
+                  )}
+                  {isInstalment(r) && r.downPaymentRange && (
+                    <Info label="Tranche d’apport" value={r.downPaymentRange} />
+                  )}
+                  {r.deposit > 0 && (
+                    <Info
+                      label="Montant exact de l’apport"
+                      value={fmtAr(r.deposit)}
+                    />
+                  )}
                   <Info label="Délai envisagé" value={r.deadline} />
+                  <Info label="Priorité" value={<Badge value={r.priority} />} />
+                  {r.hasBankAccount && (
+                    <Info
+                      label="Compte bancaire"
+                      value={
+                        r.hasBankAccount === 'Oui'
+                          ? `Oui${r.bank ? ` · ${r.bank}` : ''}`
+                          : r.hasBankAccount
+                      }
+                    />
+                  )}
                 </dl>
                 {r.message && (
-                  <div className="mt-5 rounded-lg bg-gray-50 p-3 text-sm text-slate-600">
-                    <strong className="block mb-1 text-slate-800">Description du projet</strong>
+                  <div className="mt-4 rounded-lg bg-gray-50 p-3 text-sm text-slate-600">
+                    <strong className="block mb-1 text-slate-800">
+                      Description du projet
+                    </strong>
                     <p className="whitespace-pre-line">{r.message}</p>
                   </div>
                 )}
               </Section>
-              <Section title="Coordonnées">
-                <dl className="grid sm:grid-cols-2 gap-5">
-                  <Info label="Téléphone" value={phoneOf(r)} />
-                  <Info label="Email" value={r.email} />
-                  <Info
-                    label="Meilleur moment pour rappeler"
-                    value={r.callTime}
-                  />
-                </dl>
-              </Section>
-            </div>
+            </>
           )}
 
           {tab === 'suivi' && (
-            <div className="space-y-5">
+            <>
               <Section
                 title="Actions effectuées"
                 icon={<PhoneCall className="w-4 h-4" />}
@@ -1169,75 +1219,7 @@ export function BuyRequestDetail() {
               >
                 <Timeline items={r.history} />
               </Section>
-            </div>
-          )}
-
-          {tab === 'terrain' && (
-            <LandDetails landId={r.landId} lotId={r.lotId} />
-          )}
-
-          {tab === 'client' && (
-            <div className="space-y-5">
-              <Section title="Coordonnées" icon={<User className="w-4 h-4" />}>
-                <dl className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <Info label="Téléphone" value={phoneOf(r)} />
-                  <Info label="WhatsApp" value={r.whatsapp} />
-                  <Info label="Email" value={r.email} />
-                  <Info
-                    label="Meilleur moment pour appeler"
-                    value={r.callTime}
-                  />
-                  <Info
-                    label="Date de naissance"
-                    value={fmtDate(r.birthDate)}
-                  />
-                  <Info label="Profession" value={r.profession} />
-                  <Info
-                    label="Pays de résidence"
-                    value={r.country === 'Autre' ? r.countryOther : r.country}
-                  />
-                  <Info label="Adresse" value={r.address} />
-                  <Info
-                    label="Compte bancaire"
-                    value={
-                      r.hasBankAccount === 'Oui'
-                        ? `Oui${r.bank ? ` · ${r.bank}` : ''}`
-                        : r.hasBankAccount
-                    }
-                  />
-                  <Info
-                    label="Consentement données"
-                    value={r.consent ? 'Oui' : 'Non'}
-                  />
-                </dl>
-              </Section>
-              <Section
-                title="Financement et calendrier"
-                icon={<Wallet className="w-4 h-4" />}
-              >
-                <dl className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <Info label="Mode de paiement" value={r.paymentMode} />
-                  {isInstalment(r) && (
-                    <Info label="Durée souhaitée" value={r.paymentDuration} />
-                  )}
-                  {isInstalment(r) && r.downPaymentRange && (
-                    <Info label="Tranche d’apport" value={r.downPaymentRange} />
-                  )}
-                  <Info label="Budget" value={budget(r)} />
-                  {/* La tranche d'apport (ci-dessus) est le choix principal du
-                      client ; le montant exact n'est saisi que s'il le connaît.
-                      On masque donc la ligne au lieu d'afficher « — ». */}
-                  {r.deposit > 0 && (
-                    <Info
-                      label="Montant exact de l’apport"
-                      value={fmtAr(r.deposit)}
-                    />
-                  )}
-                  <Info label="Délai" value={r.deadline} />
-                </dl>
-
-              </Section>
-            </div>
+            </>
           )}
 
           {tab === 'notes' && (
@@ -1303,34 +1285,69 @@ export function BuyRequestDetail() {
         </div>
 
         <aside className="space-y-4">
-          <Section title="Actions rapides">
-            <div className="grid gap-2">
-              <button className={btnOutline} onClick={() => setTab('notes')}>
-                <MessageSquarePlus className="w-4 h-4" /> Ajouter une note
-              </button>
-              <button
-                className={btnOutline}
-                onClick={() => setTab('documents')}
-              >
-                <Paperclip className="w-4 h-4" /> Ajouter un document
-              </button>
-            </div>
-          </Section>
           <ActionPlanner
             actions={r.actions}
             onPlan={() => setDialog('plan')}
             onComplete={setCompleting}
             onDelete={cancel}
           />
-          <Section title="Suivi">
+          {late > 0 && (
+            <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+              {late} action(s) en retard sur ce dossier.
+            </p>
+          )}
+          <Section
+            title="Client"
+            icon={<User className="w-4 h-4" />}
+            action={
+              client && (
+                <Link
+                  to={`/admin/clients/${client.id}`}
+                  className="text-xs font-semibold text-gold-700 hover:underline"
+                >
+                  Fiche client →
+                </Link>
+              )
+            }
+          >
             <dl className="space-y-3">
-              <Info label="Prochaine action" value={<ActionLabel a={next} />} />
-              {late > 0 && (
+              <Info label="Nom" value={fullName(r)} />
+              <Info
+                label="Téléphone"
+                value={
+                  <a
+                    href={phoneHref(r.phone, r.dialCode)}
+                    className="hover:text-gold-700"
+                  >
+                    {phoneOf(r)}
+                  </a>
+                }
+              />
+              {r.whatsapp && <Info label="WhatsApp" value={r.whatsapp} />}
+              {r.email && (
                 <Info
-                  label="En retard"
-                  value={<span className="text-red-600">{late} action(s)</span>}
+                  label="Email"
+                  value={
+                    <a
+                      href={`mailto:${r.email}`}
+                      className="hover:text-gold-700"
+                    >
+                      {r.email}
+                    </a>
+                  }
                 />
               )}
+              {r.callTime && (
+                <Info label="Créneau de rappel" value={r.callTime} />
+              )}
+              {r.profession && <Info label="Profession" value={r.profession} />}
+              {r.country && (
+                <Info
+                  label="Pays de résidence"
+                  value={r.country === 'Autre' ? r.countryOther : r.country}
+                />
+              )}
+              {r.address && <Info label="Adresse" value={r.address} />}
               <Info
                 label="Dernière modification"
                 value={fmtDateTime(r.updatedAt)}
@@ -1340,16 +1357,6 @@ export function BuyRequestDetail() {
         </aside>
       </div>
 
-      {dialog === 'status' && (
-        <StatusDialog
-          current={r.status}
-          onClose={() => setDialog(null)}
-          onSave={(s) => {
-            changeStatus(s);
-            setDialog(null);
-          }}
-        />
-      )}
       {dialog === 'agent' && (
         <AgentDialog
           current={r.agent}
@@ -1376,47 +1383,6 @@ export function BuyRequestDetail() {
 }
 
 // ======================= Boîtes de dialogue =======================
-function StatusDialog({
-  current,
-  onClose,
-  onSave,
-}: {
-  current: BuyStatus;
-  onClose: () => void;
-  onSave: (s: BuyStatus) => void;
-}) {
-  const [s, setS] = useState(current);
-  return (
-    <Modal
-      title="Changer le statut"
-      onClose={onClose}
-      footer={
-        <>
-          <button className={btnOutline} onClick={onClose}>
-            Annuler
-          </button>
-          <button className={btnPrimary} onClick={() => onSave(s)}>
-            Enregistrer
-          </button>
-        </>
-      }
-    >
-      <div className="grid grid-cols-2 gap-2">
-        {BUY_STATUSES.map((x) => (
-          <button
-            key={x}
-            type="button"
-            onClick={() => setS(x)}
-            className={`p-2 rounded-lg border text-left text-sm ${s === x ? 'border-navy-900 ring-2 ring-gold-500' : 'border-gray-200 hover:border-gray-400'}`}
-          >
-            <Badge value={x} dot />
-          </button>
-        ))}
-      </div>
-    </Modal>
-  );
-}
-
 export function AgentDialog({
   current,
   onClose,
@@ -1443,47 +1409,6 @@ export function AgentDialog({
       }
     >
       <Select value={a} onChange={setA} options={AGENTS} />
-    </Modal>
-  );
-}
-
-export function VisitDialog({
-  current,
-  onClose,
-  onSave,
-}: {
-  current: string;
-  onClose: () => void;
-  onSave: (at: string) => void;
-}) {
-  const [at, setAt] = useState(current ? current.slice(0, 16) : '');
-  return (
-    <Modal
-      title="Programmer une visite"
-      onClose={onClose}
-      footer={
-        <>
-          <button className={btnOutline} onClick={onClose}>
-            Annuler
-          </button>
-          <button
-            className={btnPrimary}
-            disabled={!at}
-            onClick={() => onSave(new Date(at).toISOString())}
-          >
-            Programmer
-          </button>
-        </>
-      }
-    >
-      <Field label="Date et heure de la visite" required>
-        <input
-          type="datetime-local"
-          className={input}
-          value={at}
-          onChange={(e) => setAt(e.target.value)}
-        />
-      </Field>
     </Modal>
   );
 }

@@ -2,6 +2,7 @@ import {
   FileText,
   History,
   MapPin,
+  Pencil,
   Plus,
   Send,
   Target,
@@ -13,6 +14,7 @@ import { PHONE_PLACEHOLDER, normalizePhone } from '../lib/phone';
 import { getLands, newId } from '../lib/store';
 import { phoneError, sanitizePhone } from '../lib/validate';
 import { Land } from '../types';
+import { StatusFlowBar } from './crm/client';
 import { askConfirm } from './crm/dialog';
 import {
   Badge,
@@ -57,6 +59,7 @@ import {
   createSearch,
   deleteSearch,
   emptySearchFields,
+  getClient,
   getSearch,
   getSearches,
   saveSearch,
@@ -528,6 +531,7 @@ export function SearchDetail() {
     );
 
   const lands = getLands();
+  const client = s.clientId ? getClient(String(s.clientId)) : undefined;
   const update = (patch: Partial<SpecificSearch>, log?: string) =>
     void saveSearch({
       ...s,
@@ -535,6 +539,36 @@ export function SearchDetail() {
       history: log ? [...s.history, historyEntry(log)] : s.history,
     }).then(setS);
   const landOf = (p: Proposal) => lands.find((l) => l.id === p.landId);
+
+  const changeStatus = (nextStatus: SearchStatus) =>
+    nextStatus !== s.status &&
+    update(
+      { status: nextStatus },
+      `Statut changé : ${s.status} → ${nextStatus}`,
+    );
+  const searchSteps = [
+    'Nouvelle',
+    'En recherche',
+    'Terrains proposés',
+    'Visite programmée',
+    'Trouvé',
+  ] as const;
+  const attachmentCount = s.attachments?.length ?? 0;
+  const detailTabs: {
+    id: 'overview' | 'documents' | 'history';
+    label: string;
+  }[] = [
+    { id: 'overview', label: 'Résumé' },
+    ...(attachmentCount > 0
+      ? [
+          {
+            id: 'documents' as const,
+            label: `Documents (${attachmentCount})`,
+          },
+        ]
+      : []),
+    { id: 'history', label: 'Historique' },
+  ];
 
   return (
     <>
@@ -548,19 +582,9 @@ export function SearchDetail() {
         action={
           <>
             <button className={btnOutline} onClick={() => setEditing(true)}>
+              <Pencil size={15} />
               Modifier
             </button>
-            <Select
-              value={s.status}
-              onChange={(v) =>
-                update(
-                  { status: v as SearchStatus },
-                  `Statut changé : ${s.status} → ${v}`,
-                )
-              }
-              options={SEARCH_STATUSES}
-              className="w-auto"
-            />
             <button
               className={btnIcon}
               aria-label="Supprimer la recherche"
@@ -580,22 +604,36 @@ export function SearchDetail() {
         facts={[
           { label: 'Zone recherchée', value: s.mainZone },
           { label: 'Budget max.', value: fmtAr(s.budgetMax) },
-          { label: 'Surface max.', value: fmtM2(s.areaMax) },
+          {
+            label: 'Surface souhaitée',
+            value:
+              s.areaMin || s.areaMax
+                ? `${fmtM2(s.areaMin)} – ${fmtM2(s.areaMax)}`
+                : '',
+          },
           { label: 'Terrains proposés', value: s.proposals.length },
         ]}
       />
-      <Tabs
-        value={tab}
-        onChange={setTab}
-        tabs={[
-          { id: 'overview', label: 'Résumé' },
-          {
-            id: 'documents',
-            label: `Documents (${s.attachments?.length ?? 0})`,
-          },
-          { id: 'history', label: 'Historique' },
-        ]}
+
+      <StatusFlowBar
+        steps={searchSteps}
+        current={s.status}
+        onSelect={changeStatus}
+        failedBadge={s.status === 'Clôturée' ? 'Clôturée' : undefined}
+        extra={
+          s.status !== 'Clôturée' && (
+            <button
+              type="button"
+              onClick={() => changeStatus('Clôturée')}
+              className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:border-slate-400"
+            >
+              Clôturer
+            </button>
+          )
+        }
       />
+
+      <Tabs value={tab} onChange={setTab} tabs={detailTabs} />
       {editing && (
         <SearchEditDialog
           initial={s}
@@ -670,24 +708,44 @@ export function SearchDetail() {
                         className="flex flex-col sm:flex-row gap-3 p-3 rounded-xl border border-gray-200"
                       >
                         {land && (
-                          <img
-                            src={lot?.imageUrl || land.imageUrl}
-                            alt=""
-                            className="sm:w-32 h-24 rounded-lg object-cover"
-                            referrerPolicy="no-referrer"
-                            loading="lazy"
-                            decoding="async"
-                          />
+                          <Link
+                            to={`/admin/terrains/${land.id}`}
+                            className="shrink-0 block"
+                          >
+                            <img
+                              src={lot?.imageUrl || land.imageUrl}
+                              alt=""
+                              className="sm:w-32 h-24 rounded-lg object-cover hover:opacity-95 transition"
+                              referrerPolicy="no-referrer"
+                              loading="lazy"
+                              decoding="async"
+                            />
+                          </Link>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-navy-900">
-                            {land ? land.title : 'Terrain supprimé'}
-                            {lot && ` — ${lot.number}`}
-                          </p>
+                          {land ? (
+                            <Link
+                              to={`/admin/terrains/${land.id}`}
+                              className="font-semibold text-navy-900 hover:text-gold-700 transition-colors"
+                            >
+                              {land.title}
+                              {lot && ` — ${lot.number}`}
+                            </Link>
+                          ) : (
+                            <p className="font-semibold text-gray-500">
+                              Terrain supprimé
+                            </p>
+                          )}
                           {land && (
                             <p className="text-sm text-gray-500">
                               {land.location} · {fmtM2(lot?.area ?? land.area)}{' '}
-                              · {fmtAr(lot?.price ?? land.price)}
+                              · {fmtAr(lot?.price ?? land.price)} ·{' '}
+                              <Link
+                                to={`/admin/terrains/${land.id}`}
+                                className="text-xs font-medium text-gold-700 hover:underline"
+                              >
+                                Voir la fiche terrain →
+                              </Link>
                             </p>
                           )}
                           <p className="text-xs text-gray-600 mt-1">
@@ -776,39 +834,43 @@ export function SearchDetail() {
 
         <aside className="space-y-4">
           <Section
-            title="Besoin du client"
+            title="Client & critères"
             icon={<Target className="w-4 h-4" />}
+            action={
+              client && (
+                <Link
+                  to={`/admin/clients/${client.id}`}
+                  className="text-xs font-semibold text-gold-700 hover:underline"
+                >
+                  Fiche client →
+                </Link>
+              )
+            }
           >
             <dl className="space-y-3">
-              {/* Le téléphone est l'information n°1 d'une recherche à
-                  rappeler : il doit être visible sur la fiche, sans ouvrir
-                  « Modifier ». L'email est demandé par le formulaire du portail public,
-                  il doit donc apparaître aussi. */}
+              <Info label="Client" value={s.fullName} />
               <Info
                 label="Téléphone"
                 value={s.phone && <TelLink phone={s.phone} />}
               />
-              <Info label="Email" value={s.email} />
-              <Info label="WhatsApp" value={s.whatsapp} />
-              <Info label="Usage" value={s.usage} />
-              <Info label="Budget maximum" value={fmtAr(s.budgetMax)} />
-              <Info
-                label="Surface"
-                value={
-                  s.areaMin || s.areaMax
-                    ? `${fmtM2(s.areaMin)} – ${fmtM2(s.areaMax)}`
-                    : ''
-                }
-              />
-              <Info
-                label="Critères"
-                value={
-                  s.criteria && (
+              {s.whatsapp && <Info label="WhatsApp" value={s.whatsapp} />}
+              {s.email && <Info label="Email" value={s.email} />}
+              <Info label="Usage envisagé" value={s.usage} />
+              {s.criteria && (
+                <Info
+                  label="Critères particuliers"
+                  value={
                     <span className="font-normal whitespace-pre-line">
                       {s.criteria}
                     </span>
-                  )
-                }
+                  }
+                />
+              )}
+              <Info
+                label="Dernière activité"
+                value={fmtDateTime(
+                  s.history[s.history.length - 1]?.at || s.createdAt,
+                )}
               />
             </dl>
           </Section>
