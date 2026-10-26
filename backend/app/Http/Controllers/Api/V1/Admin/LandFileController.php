@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\SaveLandFileRequest;
 use App\Models\LandFile;
 use App\Support\DossierVocabulary;
-use Illuminate\Http\Request;
 
 /** Dossiers « À vendre » (dépôts de terrain, back office). */
 class LandFileController extends Controller
@@ -22,35 +22,39 @@ class LandFileController extends Controller
         return response()->json(LandFile::findOrFail($id)->toAdminArray());
     }
 
-    public function store(Request $request)
+    public function store(SaveLandFileRequest $request)
     {
-        $data = $request->all();
+        $data = $request->validated();
         $file = LandFile::create([
             'ref' => LandFile::nextRef(), // référence définitive générée par le serveur
-            'client_id' => isset($data['clientId']) && is_numeric($data['clientId']) ? (int) $data['clientId'] : null,
+            'client_id' => isset($data['clientId']) ? (int) $data['clientId'] : null,
             'status' => DossierVocabulary::status($data['status'] ?? "À l'étude"),
-            'full_name' => $data['fullName'] ?? $data['ownerName'] ?? null,
+            'full_name' => $data['fullName'] ?? null,
             'phone' => $data['phone'] ?? null,
-            'detail' => $data,
+            'detail' => $this->cleanDetail($data),
         ]);
 
         return response()->json($file->toAdminArray(), 201);
     }
 
-    public function update(Request $request, string $id)
+    public function update(SaveLandFileRequest $request, string $id)
     {
         $file = LandFile::findOrFail($id);
-        $data = $request->all();
+        $data = $request->validated();
         // Fusion (pas remplacement) avec le détail déjà en base : si le client
         // envoie un instantané incomplet (onglet resté ouvert, dépôt concurrent
         // depuis le site public pendant l'édition…), les champs absents de la
         // requête restent ceux déjà enregistrés au lieu d'être effacés.
         $file->fill([
-            'client_id' => array_key_exists('clientId', $data) ? (is_numeric($data['clientId']) ? (int) $data['clientId'] : null) : $file->client_id,
-            'status' => DossierVocabulary::status($data['status'] ?? $file->status),
-            'full_name' => $data['fullName'] ?? $data['ownerName'] ?? $file->full_name,
-            'phone' => array_key_exists('phone', $data) ? ($data['phone'] ?: null) : $file->phone,
-            'detail' => array_merge($file->detail ?? [], $data),
+            'client_id' => array_key_exists('clientId', $data) ? ($data['clientId'] !== null ? (int) $data['clientId'] : null) : $file->client_id,
+            'status' => array_key_exists('status', $data) && $data['status'] !== null
+                ? DossierVocabulary::status($data['status'])
+                : $file->status,
+            'full_name' => array_key_exists('fullName', $data) && $data['fullName'] !== null
+                ? $data['fullName']
+                : $file->full_name,
+            'phone' => array_key_exists('phone', $data) ? $data['phone'] : $file->phone,
+            'detail' => array_merge($file->detail ?? [], $this->cleanDetail($data)),
         ])->save();
 
         return response()->json($file->toAdminArray());
@@ -61,5 +65,12 @@ class LandFileController extends Controller
         LandFile::findOrFail($id)->delete();
 
         return response()->json(['message' => 'Dossier supprimé.']);
+    }
+
+    private function cleanDetail(array $data): array
+    {
+        unset($data['id'], $data['ref'], $data['createdAt'], $data['updatedAt']);
+
+        return $data;
     }
 }

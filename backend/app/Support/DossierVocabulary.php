@@ -8,6 +8,34 @@ namespace App\Support;
  */
 final class DossierVocabulary
 {
+    public const STATUSES = [
+        'Brouillon',
+        'Nouveau',
+        "À l'étude",
+        'Dossier incomplet',
+        'À examiner',
+        'Visite terrain programmée',
+        'Analyse des pièces',
+        'Prêt à publier',
+        'Publié',
+        'En négociation',
+        'Réservé',
+        'Vendu',
+        'Rejeté',
+        'Archivé',
+    ];
+
+    public const DOC_STATUSES = [
+        'Reçu',
+        'À examiner',
+        'À compléter',
+        'Écart signalé',
+    ];
+
+    public const PRIORITIES = ['Faible', 'Normale', 'Haute', 'Urgente'];
+
+    public const DECISIONS = ['Validé', 'Refusé'];
+
     public static function status(?string $value): string
     {
         return match ($value) {

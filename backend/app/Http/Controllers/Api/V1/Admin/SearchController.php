@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\SaveSearchRequest;
 use App\Models\Search;
-use Illuminate\Http\Request;
 
 /** Recherches spécifiques (back office). */
 class SearchController extends Controller
@@ -21,39 +21,39 @@ class SearchController extends Controller
         return response()->json(Search::findOrFail($id)->toAdminArray());
     }
 
-    public function store(Request $request)
+    public function store(SaveSearchRequest $request)
     {
-        $data = $request->all();
+        $data = $request->validated();
         $search = Search::create([
             'ref' => Search::nextRef(), // référence définitive générée par le serveur
-            'client_id' => isset($data['clientId']) && is_numeric($data['clientId']) ? (int) $data['clientId'] : null,
+            'client_id' => isset($data['clientId']) ? (int) $data['clientId'] : null,
             'status' => $data['status'] ?? 'Nouvelle',
             'main_zone' => $data['mainZone'] ?? null,
-            'full_name' => $data['fullName'] ?? 'Sans nom',
-            'phone' => $data['phone'] ?? null,
+            'full_name' => $data['fullName'],
+            'phone' => $data['phone'],
             'email' => $data['email'] ?? null,
             'source' => $data['source'] ?? 'Backoffice',
-            'detail' => $data,
+            'detail' => $this->cleanDetail($data),
         ]);
 
         return response()->json($search->toAdminArray(), 201);
     }
 
-    public function update(Request $request, string $id)
+    public function update(SaveSearchRequest $request, string $id)
     {
         $search = Search::findOrFail($id);
-        $data = $request->all();
+        $data = $request->validated();
         // Fusion (pas remplacement) avec le détail déjà en base : un instantané
         // incomplet côté client ne doit pas effacer les champs absents de la requête.
         $search->fill([
-            'client_id' => array_key_exists('clientId', $data) ? (is_numeric($data['clientId']) ? (int) $data['clientId'] : null) : $search->client_id,
+            'client_id' => array_key_exists('clientId', $data) ? ($data['clientId'] !== null ? (int) $data['clientId'] : null) : $search->client_id,
             'status' => $data['status'] ?? $search->status,
-            'main_zone' => $data['mainZone'] ?? $search->main_zone,
+            'main_zone' => array_key_exists('mainZone', $data) ? $data['mainZone'] : $search->main_zone,
             'full_name' => $data['fullName'] ?? $search->full_name,
-            'phone' => array_key_exists('phone', $data) ? ($data['phone'] ?: null) : $search->phone,
-            'email' => array_key_exists('email', $data) ? ($data['email'] ?: null) : $search->email,
+            'phone' => $data['phone'] ?? $search->phone,
+            'email' => array_key_exists('email', $data) ? $data['email'] : $search->email,
             'source' => $data['source'] ?? $search->source,
-            'detail' => array_merge($search->detail ?? [], $data),
+            'detail' => array_merge($search->detail ?? [], $this->cleanDetail($data)),
         ])->save();
 
         return response()->json($search->toAdminArray());
@@ -64,5 +64,12 @@ class SearchController extends Controller
         Search::findOrFail($id)->delete();
 
         return response()->json(['message' => 'Recherche supprimée.']);
+    }
+
+    private function cleanDetail(array $data): array
+    {
+        unset($data['id'], $data['ref'], $data['createdAt'], $data['updatedAt']);
+
+        return $data;
     }
 }

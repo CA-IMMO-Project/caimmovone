@@ -11,6 +11,16 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Land extends Model
 {
+    public const TITLE_STATUSES = ['Titre Foncier', 'Titre en cours', 'Cadastré'];
+
+    public const STATUSES = ['disponible', 'réservé', 'vendu'];
+
+    public const PUBLICATION_STATUSES = ['brouillon', 'publie', 'archive'];
+
+    public const RELIEFS = ['Plat', 'Pente douce', 'Pente forte'];
+
+    public const PAYMENT_MODES = ['comptant', 'facilite', 'comptant-ou-facilite'];
+
     // Donnée historique conservée en base uniquement : aucun statut de confiance
     // ne doit être déduit ou exposé depuis cet ancien champ.
     protected $hidden = ['verified'];

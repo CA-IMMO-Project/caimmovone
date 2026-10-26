@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreLandRequest;
+use App\Http\Requests\Admin\UpdateLandRequest;
 use App\Models\Land;
 use App\Support\PresentationData;
 use Database\Seeders\PresentationSeeder;
-use Illuminate\Http\Request;
 
 class LandController extends Controller
 {
@@ -17,16 +18,9 @@ class LandController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreLandRequest $request)
     {
-        // Le formulaire d'édition envoie l'objet complet : on valide les
-        // colonnes NOT NULL pour renvoyer un 422 clair plutôt qu'une erreur SQL.
-        $data = $request->validate([
-            'title' => 'required|string',
-            'region' => 'required|string',
-            'location' => 'required|string',
-            'price' => 'required|numeric',
-        ]) + $request->all();
+        $data = $request->validated();
         // Upsert : si un id numérique valide est fourni, on met à jour.
         $land = isset($data['id']) && is_numeric($data['id']) ? (Land::find((int) $data['id']) ?? new Land) : new Land;
         $land->fillFromPublic($data)->save();
@@ -39,10 +33,10 @@ class LandController extends Controller
         return response()->json(Land::findOrFail($id)->toPublicArray(true));
     }
 
-    public function update(Request $request, string $id)
+    public function update(UpdateLandRequest $request, string $id)
     {
         $land = Land::findOrFail($id);
-        $land->fillFromPublic($request->all())->save();
+        $land->fillFromPublic($request->validated())->save();
 
         return response()->json($land->toPublicArray(true));
     }

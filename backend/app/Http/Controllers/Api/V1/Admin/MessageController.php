@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UpdateMessageRequest;
 use App\Models\ContactMessage;
-use Illuminate\Http\Request;
 
 class MessageController extends Controller
 {
@@ -15,11 +15,14 @@ class MessageController extends Controller
         ]);
     }
 
-    public function update(Request $request, string $id)
+    public function update(UpdateMessageRequest $request, string $id)
     {
         $m = ContactMessage::findOrFail($id);
-        // Le front envoie { status: 'nouveau' | 'traité' } → colonne booléenne `read`.
-        $read = $request->has('read') ? $request->boolean('read') : ($request->input('status') === 'traité');
+        $data = $request->validated();
+        // Le front envoie { status: 'nouveau' | 'traité' | 'archivé' } → colonne booléenne `read`.
+        $read = array_key_exists('read', $data) && $data['read'] !== null
+            ? (bool) $data['read']
+            : in_array($data['status'] ?? '', ['traité', 'archivé'], true);
         $m->update(['read' => $read]);
 
         return response()->json($m->toAdminArray());

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class ContactMessage extends Model
 {
+    public const ADMIN_STATUSES = ['nouveau', 'traité', 'archivé'];
+
     protected $table = 'messages';
 
     protected $fillable = ['full_name', 'phone', 'email', 'subject', 'body', 'read'];

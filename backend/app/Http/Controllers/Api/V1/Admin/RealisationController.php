@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\SaveRealisationRequest;
 use App\Models\Realisation;
-use Illuminate\Http\Request;
 
 class RealisationController extends Controller
 {
@@ -15,10 +15,10 @@ class RealisationController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(SaveRealisationRequest $request)
     {
         $r = new Realisation;
-        $r->fillFromPublic($request->all())->save();
+        $r->fillFromPublic($request->validated())->save();
 
         return response()->json($r->toAdminArray(), 201);
     }
@@ -28,10 +28,10 @@ class RealisationController extends Controller
         return response()->json(Realisation::findOrFail($id)->toAdminArray());
     }
 
-    public function update(Request $request, string $id)
+    public function update(SaveRealisationRequest $request, string $id)
     {
         $r = Realisation::findOrFail($id);
-        $r->fillFromPublic($request->all())->save();
+        $r->fillFromPublic($request->validated())->save();
 
         return response()->json($r->toAdminArray());
     }

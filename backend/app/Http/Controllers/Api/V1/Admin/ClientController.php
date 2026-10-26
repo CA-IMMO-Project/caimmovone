@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\SaveClientRequest;
 use App\Models\Client;
 use App\Models\Search;
 use App\Models\SiteRequest;
@@ -38,32 +39,37 @@ class ClientController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(SaveClientRequest $request)
     {
-        $data = $request->all();
+        $data = $request->validated();
+
         $client = Client::create([
-            'full_name' => $data['fullName'] ?? trim(($data['firstName'] ?? '').' '.($data['lastName'] ?? '')) ?: 'Sans nom',
-            'phone' => $data['phone'] ?? '',
+            'full_name' => $data['fullName'],
+            'phone' => $data['phone'],
             'email' => $data['email'] ?? null,
+            'notes' => $data['notes'] ?? $data['message'] ?? null,
             'source' => $data['source'] ?? 'Backoffice',
-            'detail' => $data,
+            'detail' => $this->cleanDetail($data),
         ]);
 
         return response()->json($client->toAdminArray(), 201);
     }
 
-    public function update(Request $request, string $id)
+    public function update(SaveClientRequest $request, string $id)
     {
         $client = Client::findOrFail($id);
-        $data = $request->all();
+        $data = $request->validated();
         // Fusion (pas remplacement) avec le détail déjà en base : un instantané
         // incomplet côté client ne doit pas effacer les champs absents de la requête.
         $client->fill([
-            'full_name' => $data['fullName'] ?? trim(($data['firstName'] ?? '').' '.($data['lastName'] ?? '')) ?: $client->full_name,
+            'full_name' => $data['fullName'] ?? $client->full_name,
             'phone' => $data['phone'] ?? $client->phone,
-            'email' => array_key_exists('email', $data) ? ($data['email'] ?: null) : $client->email,
+            'email' => array_key_exists('email', $data) ? $data['email'] : $client->email,
+            'notes' => array_key_exists('notes', $data)
+                ? $data['notes']
+                : (array_key_exists('message', $data) ? $data['message'] : $client->notes),
             'source' => $data['source'] ?? $client->source,
-            'detail' => array_merge($client->detail ?? [], $data),
+            'detail' => array_merge($client->detail ?? [], $this->cleanDetail($data)),
         ])->save();
 
         return response()->json($client->toAdminArray());
@@ -74,5 +80,15 @@ class ClientController extends Controller
         Client::findOrFail($id)->delete();
 
         return response()->json(['message' => 'Client supprimé.']);
+    }
+
+    private function cleanDetail(array $data): array
+    {
+        unset($data['id'], $data['createdAt']);
+        if (array_key_exists('ref', $data) && empty($data['ref'])) {
+            unset($data['ref']);
+        }
+
+        return $data;
     }
 }

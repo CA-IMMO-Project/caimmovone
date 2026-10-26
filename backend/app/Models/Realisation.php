@@ -6,6 +6,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class Realisation extends Model
 {
+    public const CATEGORIES = [
+        'Construction de maison',
+        'Villa',
+        'Immeuble',
+        'Lotissement',
+        'Aménagement de terrain',
+        'Rénovation',
+        'Local commercial',
+        'Autre',
+    ];
+
     protected $fillable = [
         'title', 'category', 'location', 'completed_at', 'client', 'area',
         'duration', 'description', 'photos', 'published', 'featured',

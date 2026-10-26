@@ -8,6 +8,17 @@ use Illuminate\Support\Facades\DB;
 
 class Client extends Model
 {
+    public const SOURCES = [
+        'Site web',
+        'Backoffice',
+        'Téléphone',
+        'Facebook',
+        'WhatsApp',
+        'Agence',
+        'Recommandation',
+        'Autre',
+    ];
+
     protected $fillable = ['ref', 'full_name', 'phone', 'email', 'notes', 'source', 'detail'];
 
     protected function casts(): array

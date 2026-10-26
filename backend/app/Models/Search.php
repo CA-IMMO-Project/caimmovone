@@ -8,6 +8,35 @@ use Illuminate\Database\Eloquent\Model;
 /** Recherche sur mesure confiée à l'équipe (fiche « Recherches spécifiques »). */
 class Search extends Model
 {
+    public const STATUSES = [
+        'Nouvelle',
+        'En recherche',
+        'Terrains proposés',
+        'Visite programmée',
+        'Trouvé',
+        'Clôturée',
+    ];
+
+    public const USAGES = [
+        'Habitation',
+        'Investissement',
+        'Commerce',
+        'Agriculture',
+        'Hôtellerie / tourisme',
+        'Autre',
+    ];
+
+    public const SOURCES = [
+        'Site web',
+        'Backoffice',
+        'Téléphone',
+        'Facebook',
+        'WhatsApp',
+        'Agence',
+        'Recommandation',
+        'Autre',
+    ];
+
     protected $fillable = [
         'ref', 'client_id', 'status', 'main_zone', 'full_name', 'phone',
         'email', 'source', 'detail',

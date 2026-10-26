@@ -11,6 +11,48 @@ use Illuminate\Database\Eloquent\Model;
  */
 class SiteRequest extends Model
 {
+    public const KINDS = ['interet', 'visite', 'recherche', 'vente'];
+
+    public const PRIORITIES = ['Faible', 'Normale', 'Haute', 'Urgente'];
+
+    public const BUY_STATUSES = [
+        'Nouvelle',
+        'À contacter',
+        'Contacté',
+        'En étude',
+        'Proposition envoyée',
+        'Visite programmée',
+        'Négociation',
+        'Validée',
+        'Achat finalisé',
+        'Refusée',
+        'Archivée',
+    ];
+
+    public const VISIT_STATUSES = [
+        'Demandée',
+        'Confirmée',
+        'Reportée',
+        'Effectuée',
+        'Annulée',
+    ];
+
+    public const STATUSES = [
+        ...self::BUY_STATUSES,
+        ...self::VISIT_STATUSES,
+    ];
+
+    public const SOURCES = [
+        'Site web',
+        'Backoffice',
+        'Téléphone',
+        'Facebook',
+        'WhatsApp',
+        'Agence',
+        'Recommandation',
+        'Autre',
+    ];
+
     public const PREFIXES = [
         'interet' => 'ACH',
         'achat' => 'ACH',
