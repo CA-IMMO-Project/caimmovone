@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   PHONE_PLACEHOLDER,
   formatPhone,
+  matchesSearch,
   normalizePhone,
   phoneHref,
 } from '../lib/phone';
@@ -356,16 +357,14 @@ export function ClientList() {
   const [creating, setCreating] = useState(false);
 
   const filtered = useMemo(() => {
-    const s = q.toLowerCase().trim();
     return rows
       .filter(
         (c) =>
-          (!s ||
-            [c.ref, c.fullName, c.phone, c.email, c.profession, c.nationality]
-              .join(' ')
-              .toLowerCase()
-              .includes(s)) &&
-          (!source || c.source === source),
+          matchesSearch(
+            q,
+            [c.ref, c.fullName, c.email, c.profession, c.nationality],
+            [c.phone],
+          ) && (!source || c.source === source),
       )
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt)); // inscrits les plus récents d'abord
   }, [rows, q, source]);

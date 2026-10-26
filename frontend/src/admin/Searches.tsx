@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { PHONE_PLACEHOLDER, normalizePhone } from '../lib/phone';
+import { PHONE_PLACEHOLDER, matchesSearch, normalizePhone } from '../lib/phone';
 import { getLands, newId } from '../lib/store';
 import { phoneError, sanitizePhone } from '../lib/validate';
 import { Land } from '../types';
@@ -361,23 +361,20 @@ export function SearchList() {
   );
   const [creating, setCreating] = useState(false);
   const filtered = useMemo(() => {
-    const s = q.toLowerCase().trim();
     return rows
-      .filter(
-        (r) =>
-          !s ||
+      .filter((r) =>
+        matchesSearch(
+          q,
           [
             r.ref,
             r.fullName,
-            r.phone,
             r.mainZone,
             r.otherZones,
             r.targetZone,
             r.status,
-          ]
-            .join(' ')
-            .toLowerCase()
-            .includes(s),
+          ],
+          [r.phone, r.whatsapp],
+        ),
       )
       .sort((a, b) => {
         const fresh = (r: SpecificSearch) => (r.status === 'Nouvelle' ? 0 : 1);

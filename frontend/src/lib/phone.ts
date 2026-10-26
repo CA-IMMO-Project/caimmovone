@@ -60,3 +60,48 @@ export function phoneHref(phone?: string, dialCode?: string): string {
   const compact = raw.replace(/[\s.()\-]/g, '');
   return compact ? `tel:${compact}` : '';
 }
+
+/**
+ * Recherche plein texte tolérante aux formats téléphoniques :
+ * trouve un dossier que le numéro soit stocké avec ou sans espaces (« 034 03 000 30 »,
+ * « 0340300030 », « +261 34 03 000 30 ») et que l'utilisateur tape « 03403 »,
+ * « 034 03 », « +2613403 », « +261 34 03 » ou « 034-03 ».
+ */
+export function matchesSearch(
+  query: string,
+  fields: ReadonlyArray<string | number | null | undefined>,
+  phones: ReadonlyArray<string | null | undefined> = [],
+): boolean {
+  const s = query.trim().toLowerCase();
+  if (!s) return true;
+
+  const validPhones = phones.filter((p): p is string => Boolean(p && p.trim()));
+  const textHaystack = [
+    ...fields,
+    ...validPhones,
+    ...validPhones.map((p) => formatPhone(p)),
+  ]
+    .filter((v) => v != null && v !== '')
+    .join(' ')
+    .toLowerCase();
+
+  if (textHaystack.includes(s)) return true;
+
+  if (/^[+\d\s.()-]+$/.test(s)) {
+    const qDigits = s.replace(/\D/g, '');
+    if (qDigits.length > 0) {
+      return validPhones.some((p) => {
+        const rawDigits = p.replace(/\D/g, '');
+        const national = malagasyNationalDigits(p);
+        const intl = national ? `261${national.slice(1)}` : '';
+        return (
+          rawDigits.includes(qDigits) ||
+          (national ? national.includes(qDigits) : false) ||
+          (intl ? intl.includes(qDigits) : false)
+        );
+      });
+    }
+  }
+
+  return false;
+}

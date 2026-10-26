@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { formatPhone, phoneHref } from '../lib/phone';
+import { formatPhone, matchesSearch, phoneHref } from '../lib/phone';
 import { getLands } from '../lib/store';
 import { LinkedLandCard, StatusFlowBar } from './crm/client';
 import {
@@ -179,15 +179,14 @@ export function VisitList() {
 
   const filtered = rows
     .filter((r) => {
-      const s = q.toLowerCase().trim();
       const land = getLands().find((l) => l.id === r.landId);
       return (
         (!status || visitStatusOf(r) === status) &&
-        (!s ||
-          [r.ref, fullName(r), r.phone, r.email, land?.title ?? '']
-            .join(' ')
-            .toLowerCase()
-            .includes(s))
+        matchesSearch(
+          q,
+          [r.ref, fullName(r), r.email, land?.title ?? ''],
+          [formatPhone(r.phone, r.dialCode), r.phone, r.whatsapp],
+        )
       );
     })
     .sort((a, b) => {

@@ -1,7 +1,12 @@
 import { Mail, Pencil, Trash2, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { formatPhone, normalizePhone, phoneHref } from '../lib/phone';
+import {
+  formatPhone,
+  matchesSearch,
+  normalizePhone,
+  phoneHref,
+} from '../lib/phone';
 import {
   ContactMessage,
   RequestStatus,
@@ -126,11 +131,11 @@ export function AdminMessages() {
     .filter(
       (m) =>
         (!filter || m.status === filter) &&
-        (!q ||
-          [nameOf(m), m.email ?? '', m.subject ?? '', m.phone, m.message]
-            .join(' ')
-            .toLowerCase()
-            .includes(q.toLowerCase())),
+        matchesSearch(
+          q,
+          [nameOf(m), m.email ?? '', m.subject ?? '', m.message],
+          [m.phone],
+        ),
     )
     .sort(
       (a, b) =>

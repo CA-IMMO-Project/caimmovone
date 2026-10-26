@@ -26,7 +26,13 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { PHONE_PLACEHOLDER, formatPhone, normalizePhone, phoneHref } from '../lib/phone';
+import {
+  PHONE_PLACEHOLDER,
+  formatPhone,
+  matchesSearch,
+  normalizePhone,
+  phoneHref,
+} from '../lib/phone';
 import { phoneError, sanitizePhone } from '../lib/validate';
 import { NotFound } from './BuyRequests';
 import {
@@ -490,7 +496,6 @@ export function LandFileList() {
   };
 
   const filtered = useMemo(() => {
-    const s = q.toLowerCase().trim();
     return rows
       .filter(
         (r) =>
@@ -499,12 +504,12 @@ export function LandFileList() {
             : r.status !== 'Archivé') &&
           (!statusFilter || r.status === statusFilter) &&
           (!agentFilter || r.agent === agentFilter) &&
-          (!s ||
+          matchesSearch(
+            q,
             [
               r.ref,
               r.title,
               fullName(r.owner),
-              r.owner.phone,
               r.owner.email,
               r.region,
               r.district,
@@ -512,10 +517,9 @@ export function LandFileList() {
               r.fokontany,
               r.status,
               r.agent,
-            ]
-              .join(' ')
-              .toLowerCase()
-              .includes(s)),
+            ],
+            [phoneOf(r.owner), r.owner.phone, r.whatsapp],
+          ),
       )
       .sort((a, b) => {
         const fresh = (r: LandFile) =>

@@ -22,7 +22,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { formatTime } from '../lib/format';
-import { phoneHref } from '../lib/phone';
+import { matchesSearch, phoneHref } from '../lib/phone';
 import { getLands } from '../lib/store';
 import { CompleteDialog, PlanDialog } from './crm/client';
 import {
@@ -180,16 +180,13 @@ export default function Agenda() {
     .filter(
       (i) => !kind || i.kind === (kind === 'Acheteurs' ? 'achat' : 'vente'),
     )
-    .filter((i) => {
-      const s = q.trim().toLowerCase();
-      return (
-        !s ||
-        [i.who, i.phone, i.what, i.ref, i.action.note]
-          .join(' ')
-          .toLowerCase()
-          .includes(s)
-      );
-    });
+    .filter((i) =>
+      matchesSearch(
+        q,
+        [i.who, i.what, i.ref, i.action.note],
+        [i.phone],
+      ),
+    );
   const shown = filtered
     .filter((i) =>
       view === 'done'

@@ -25,6 +25,7 @@ import {
 import {
   PHONE_PLACEHOLDER,
   formatPhone,
+  matchesSearch,
   normalizePhone,
   phoneHref,
 } from '../lib/phone';
@@ -293,15 +294,14 @@ export function BuyRequestList() {
   const set = (k: keyof typeof f, v: string | number) => setF({ ...f, [k]: v });
 
   const filtered = useMemo(() => {
-    const s = q.toLowerCase().trim();
     return rows
       .filter(
         (r) =>
-          (!s ||
-            [r.ref, fullName(r), r.phone, r.email, r.commune, r.district]
-              .join(' ')
-              .toLowerCase()
-              .includes(s)) &&
+          matchesSearch(
+            q,
+            [r.ref, fullName(r), r.email, r.commune, r.district],
+            [phoneOf(r), r.phone, r.whatsapp],
+          ) &&
           (!f.region || r.region === f.region) &&
           (!f.status || r.status === f.status) &&
           (!f.agent || r.agent === f.agent) &&
